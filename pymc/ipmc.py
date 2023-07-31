@@ -16,8 +16,8 @@ class IPMC:
     mBufferSize : int
     mLocalAddr : str
 
-    mCallback: Callable[ ..., None]
-    mErrorCallback: Callable[..., None]
+    mCallback: Callable[ [bytearray,str], None]
+    mErrorCallback: Callable[ [Exception], None]
 
     def __init__(self, interface:str, TTL: int=None, bufferSize: int=None):
         self.mTTL = TTL or 32
@@ -44,8 +44,8 @@ class IPMC:
         self.mSocket.bind(('', port))
 
         # Join MC group
-        mreq = struct.pack("=4s4s", socket.inet_aton(self.mGroupAddr), socket.inet_aton(self.mLocalAddr))
-        self.mSocket.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, mreq )
+        tReq = struct.pack("=4s4s", socket.inet_aton(self.mGroupAddr), socket.inet_aton(self.mLocalAddr))
+        self.mSocket.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, tReq )
 
         # Enable local loopback
         self.mSocket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, 1)
@@ -54,7 +54,7 @@ class IPMC:
         self.mSocket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, self.mTTL)
         self.mSocket.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.mLocalAddr))
 
-    def info(self) -> str:
+    def toString(self) -> str:
         return 'grpaddr: '+ self.mGroupAddr + ' port: ' + str(self.mPort) + ' interface: '  + self.mInterface
 
     def startReader(self, callback, errorCallback ):
@@ -67,8 +67,8 @@ class IPMC:
     def readingThread(self):
         while True:
             try:
-                data, addr = self.mSocket.recvfrom( self.mBufferSize )
-                self.mCallback( data, addr )
+                tData, tAddr = self.mSocket.recvfrom( self.mBufferSize )
+                self.mCallback( tData, tAddr )
             except Exception as e:
                 self.mErrorCallback(e)
                 return

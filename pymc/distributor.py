@@ -1,10 +1,13 @@
-from aux import PCLogger
+import sys
+import logging
 from aux import Aux
+from aux import LogManager
+from distributor_interfaces import DistributorBase
+from publisher import Publisher
+from subscriber import Subscriber
 
-from distributor_connection import DistributorConnection
-from distributor_connection import Publisher
-from distributor_connection import Subscriber
-from distributor_connection import ConnectionConfiguration
+from connection import DistributorConnection
+from connection import ConnectionConfiguration
 
 
 class LogFlags:
@@ -19,6 +22,7 @@ class LogFlags:
     LOG_DATA_PROTOCOL_XTA = 256
     LOG_RETRANSMISSION_CACHE = 512
     LOG_DEFAULT_FLAGS = LOG_ERROR_EVENTS + LOG_CONNECTION_EVENTS + LOG_RETRANSMISSION_EVENTS
+
 class DistributorConfiguration:
 
     def __init__(self, applName:str ):
@@ -29,26 +33,41 @@ class DistributorConfiguration:
         self.logFile = 'Distributor.log'
         self.ethDevice = None
 
-class Distributor:
+
+class Distributor(DistributorBase):
 
     def __init__(self, application_name: str, configuration: DistributorConfiguration = None):
-        self.configuration = configuration or DistributorConfiguration( application_name )
-        self.logger = self.getLogger(__name__)
-        self.applId = Aux.getUUID()
-        self.logger.info("==== Distributor [{}] Started at {} ID {} ====".format(configuration.applName,Aux.timestampStr(), self.applId))
-
-
-    def getLogger(self, module:str) ->PCLogger:
-        _logger = PCLogger( __name__, fileName= self.configuration.logFile, logFlags= self.configuration.logFlags )
-        _logger.toConsole = self.configuration.logToConsole
-        _logger.toFile = self.configuration.logToFile
-        return _logger
+        self.mUUID:Aux.PCUUID = Aux.PCUUID()
+        self.mConfiguration = configuration or DistributorConfiguration(application_name)
+        LogManager.setConfiguration( configuration.logToConsole, configuration.logToFile, configuration.logFile, logging.DEBUG)
+        self.mLogger = LogManager.getLogger('Distributor')
+        self.mId = Aux.getApplicationId()
+        self.mStartTime = Aux.timestampStr()
+        self.mLocalIpAddress = Aux.getIpAddress('')
+        self.mLogger.info("==== Distributor [{}] Started at {} ID {} ====".format(configuration.applName, Aux.timestampStr(), self.mApplId))
 
     def createConnection(self, configuration: ConnectionConfiguration ) -> DistributorConnection:
         return DistributorConnection( self, configuration)
 
     def createPublisher(self, connection: DistributorConnection) -> Publisher:
-        return Publisher( self, connection )
+        pass
 
     def createSubscriber( self, connection: DistributorConnection) -> Subscriber:
-        return Subscriber( self, connection )
+       pass
+
+    def getId(self) -> int:
+        return self.mId
+
+    def getStartTime(self) -> str:
+        return self.mStartTime
+
+    def getLocalInetAddrStr(self) -> str:
+        return self.mLocalIpAddress
+
+    def getLocalInetAddr(self) -> int:
+        return Aux.ipAddrStrToInt(self.mLocalIpAddress)
+    def getTXID(self) -> int:
+        return self.mUUID.getNextId()
+
+    def getConfiguration(self) -> DistributorConfiguration:
+        return self.mConfiguration

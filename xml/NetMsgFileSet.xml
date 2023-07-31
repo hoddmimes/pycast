@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MessageFiles>
-	<MessageFile  file="./xml/NetMessage.xml" outPath="./msg/generated/" package="msg.generated"/>
+	<MessageFile  file="./xml/NetMessage.xml" outPath="./msg/generated/" package="msg.generated" allInOneFile="true"/>
 </MessageFiles>
 
 
