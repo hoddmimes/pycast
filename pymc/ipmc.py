@@ -1,8 +1,9 @@
 import socket
+from time import perf_counter
 from typing import Callable
 import threading
 import struct
-from aux import Aux
+from pymc.aux.aux import Aux
 
 
 class IPMC:
@@ -19,7 +20,7 @@ class IPMC:
     mCallback: Callable[ [bytearray,str], None]
     mErrorCallback: Callable[ [Exception], None]
 
-    def __init__(self, interface:str, TTL: int=None, bufferSize: int=None):
+    def __init__(self, interface:str = '', TTL: int=None, bufferSize: int=None):
         self.mTTL = TTL or 32
         self.mBufferSize = bufferSize or 8192
         self.mLocalAddr = Aux.getIpAddress(interface)
@@ -54,8 +55,8 @@ class IPMC:
         self.mSocket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, self.mTTL)
         self.mSocket.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(self.mLocalAddr))
 
-    def toString(self) -> str:
-        return 'grpaddr: '+ self.mGroupAddr + ' port: ' + str(self.mPort) + ' interface: '  + self.mInterface
+    def __str__(self) -> str:
+        return 'grpaddr: {} port: {} interface: {}'.format(self.mGroupAddr, self.mPort, self.mInterface)
 
     def startReader(self, callback, errorCallback ):
         self.mCallback = callback
@@ -74,14 +75,11 @@ class IPMC:
                 return
 
     def send(self, data: bytearray) -> int:
-        self.mLock.acquire()
-        try:
-            bytesSent = self.mSocket.sendto(data, (self.mGroupAddr, self.mPort))
-        except Exception as e:
-            self.mLock.release()
-            raise e
-
-        self.mLock.release()
-
-        return bytesSent
+        with self.mLock:
+            _start = perf_counter()
+            _bytes_sent = self.mSocket.sendto(data, (self.mGroupAddr, self.mPort))
+            if _bytes_sent != len(data):
+                raise Exception('incomplete send {} <> {}'.format( _bytes_sent, len(data)))
+            _sndtim_usec = int((perf_counter() - _start) * 1000000)
+            return _sndtim_usec
 

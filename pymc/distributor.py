@@ -1,58 +1,35 @@
 import sys
 import logging
-from aux import Aux
-from aux import LogManager
-from distributor_interfaces import DistributorBase
-from publisher import Publisher
-from subscriber import Subscriber
+from pymc.aux.aux import Aux
+from pymc.aux.log_manager import LogManager
+from pymc.distributor_interfaces import DistributorBase
+from pymc.publisher import Publisher
+from pymc.subscriber import Subscriber
 
-from connection import DistributorConnection
-from connection import ConnectionConfiguration
+from pymc.connection_configuration import ConnectionConfiguration
+from pymc.connection import Connection
 
-
-class LogFlags:
-    LOG_ERROR_EVENTS = 1
-    LOG_CONNECTION_EVENTS = 2
-    LOG_RMTDB_EVENTS = 4
-    LOG_RETRANSMISSION_EVENTS = 8
-    LOG_SUBSCRIPTION_EVENTS = 16
-    LOG_STATISTIC_EVENTS = 32
-    LOG_SEGMENTS_EVENTS = 64
-    LOG_DATA_PROTOCOL_RCV = 128;
-    LOG_DATA_PROTOCOL_XTA = 256
-    LOG_RETRANSMISSION_CACHE = 512
-    LOG_DEFAULT_FLAGS = LOG_ERROR_EVENTS + LOG_CONNECTION_EVENTS + LOG_RETRANSMISSION_EVENTS
-
-class DistributorConfiguration:
-
-    def __init__(self, applName:str ):
-        self.applName = applName
-        self.logFlags = LogFlags.LOG_DEFAULT_FLAGS
-        self.logToConsole = True
-        self.logToFile = True
-        self.logFile = 'Distributor.log'
-        self.ethDevice = None
 
 
 class Distributor(DistributorBase):
 
     def __init__(self, application_name: str, configuration: DistributorConfiguration = None):
-        self.mUUID:Aux.PCUUID = Aux.PCUUID()
+        self.mUUID:Aux.Aux_UUID = Aux.Aux_UUID()
         self.mConfiguration = configuration or DistributorConfiguration(application_name)
         LogManager.setConfiguration( configuration.logToConsole, configuration.logToFile, configuration.logFile, logging.DEBUG)
         self.mLogger = LogManager.getLogger('Distributor')
         self.mId = Aux.getApplicationId()
-        self.mStartTime = Aux.timestampStr()
+        self.mStartTime = Aux.datetime_string()
         self.mLocalIpAddress = Aux.getIpAddress('')
-        self.mLogger.info("==== Distributor [{}] Started at {} ID {} ====".format(configuration.applName, Aux.timestampStr(), self.mApplId))
+        self.mLogger.info("==== Distributor [{}] Started at {} ID {} ====".format(configuration.applName, Aux.datetime_string(), self.mApplId))
 
-    def createConnection(self, configuration: ConnectionConfiguration ) -> DistributorConnection:
-        return DistributorConnection( self, configuration)
+    def createConnection(self, configuration: ConnectionConfiguration ) -> Connection:
+        return Connection( self, configuration)
 
-    def createPublisher(self, connection: DistributorConnection) -> Publisher:
+    def createPublisher(self, connection: Connection) -> Publisher:
         pass
 
-    def createSubscriber( self, connection: DistributorConnection) -> Subscriber:
+    def createSubscriber( self, connection: Connection) -> Subscriber:
        pass
 
     def getId(self) -> int:

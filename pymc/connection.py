@@ -1,132 +1,29 @@
 from __future__ import annotations
 import logging
 import threading
-from abc import ABC, abstractmethod
+from time import perf_counter
+from pymc.aux.blocking_queue import BlockingQueue
+from pymc.aux.distributor_exception import DistributorException
+from pymc.aux.aux_uuid import Aux_UUID
+from pymc.aux.log_manager import LogManager
 
-from aux import Aux
-from aux import DistributorException
-from aux import ListItr
-from aux import LogManager
-from aux import BlockingQueue
-from distributor_interfaces import AsyncEvent
-from distributor_interfaces import DistributorBase
-from distributor_interfaces import ConnectionBase
-from distributor_interfaces import ConnectionSenderBase
-from distributor_interfaces import ConnectionReceiverBase
-from msg.pycast_messages import XtaUpdate, NetMsgUpdate
-from ipmc import IPMC
+from pymc.distributor_interfaces import AsyncEvent
+from pymc.distributor_interfaces import DistributorBase
+from pymc.distributor_interfaces import ConnectionBase, PublisherBase, SubscriberBase
 
+from pymc.connection_configuration import ConnectionConfiguration
+from pymc.msg.net_msg_update import NetMsgUpdate
+from pymc.msg.segment import Segment
+from pymc.msg.xta_update import XtaUpdate
+from pymc.ipmc import IPMC
 
-
-########################################################################################################################
-#   ConnectionConfiguration
-########################################################################################################################
-
-class ConnectionConfiguration():
-
-    def __init__(self, mca:str='224.44.44.44', mca_port:int=4444, eth_device=''):
-        self.ttl = 32
-        self.mca = mca
-        self.mca_port= mca_port
-        self.eth_device = eth_device
-
-        self.ipBufferSize = 128000
-        self.segment_size = 8192
-        self.smallsegment_size = 512
-
-        self.configuration_interval_ms = 15000
-        self.configuration_max_lost = 3
-
-        self.heartbeat_interval_ms = 3000
-        self.heartbeat_max_lost = 10
-
-        self.max_bandwidth_bytes = 0
-        self.retrans_server_holdback_ms = 20
-        self.retrans_timeout_ms = 800
-        self.retrans_max_retries = 10
-        self.retrans_max_cache_bytes = 10000000
-        self.retrans_cache_life_time_sec = 60
-        self.retrans_cache_clean_interval_sec = 2
-
-        self.flow_rate_calculate_interval_ms = 100
-
-        self.send_holdback_delay_ms = 0
-        self.send_holdback_threshold = 100
-
-        self.fake_xta_error_rate = 0
-        self.fake_rcv_error_rate = 0
-
-        self.nagging_window_interval_ms = 4000
-        self.nagging_check_interval_ms = 60000
-
-        self.statistic_interval_sec = 0
-
-########################################################################################################################
-#   ConnectionSender
-########################################################################################################################
-
-
-class ConnectionSender(ConnectionSenderBase):
-
-    def __init__(self, connectionBase: ConnectionBase):
-        self.mConnection:ConnectionBase = connectionBase
-        self.mCurrentUpdate:NetMsgUpdate = None
-
-    def publishUpdate( self, xtaUpdate:XtaUpdate):
-        return self.updateToSegment(xtaUpdate);
-
-
-    def smallUpdateToSegment(xtaUpdate:XtaUpdate):
-        if (!mCurrentUpdate.addUpdate(pXtaUpdate)) {
-            queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END);
-        if (!mCurrentUpdate.addUpdate(pXtaUpdate)) {
-        throw new DistributorException("Update did not fit into segment (" + pXtaUpdate.getSize() + " bytes)");
-        }
-        }
-        }
-
-        void largeUpdateToSegments(XtaUpdate pXtaUpdate) {
-            int pOffset = 0;
-        int pSegmenCount = 0;
-
-        /**
-        * If we have updates in the current segment, queue and get a new
-                                                                     * segment
-                                                                     */
-                                                                     queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END);
-
-        mCurrentUpdate.addLargeUpdateHeader(pXtaUpdate.mSubjectName, mConnection.mDistributor.getAppId(), pXtaUpdate.mData.length );
-
-        while (pOffset < pXtaUpdate.mData.length) {
-        pOffset += mCurrentUpdate.addLargeData(pXtaUpdate.mData, pOffset);
-        mCurrentUpdate.mUpdateCount = 1;
-        if (pSegmenCount == 0) {
-        queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START);
-        } else if (pOffset == pXtaUpdate.mData.length) {
-        queueCurrentUpdate(Segment.FLAG_M_SEGMENT_END);
-        } else {
-        queueCurrentUpdate(Segment.FLAG_M_SEGMENT_MORE);
-        }
-        pSegmenCount++;
-        }
-        }
-
-########################################################################################################################
-#   ConnectionReceiver
-########################################################################################################################
-
-class ConnectionReceiver(ConnectionReceiverBase):
-    pass
-
-
-
-########################################################################################################################
-#   Connection
-########################################################################################################################
 
 class Connection(ConnectionBase):
     def __init__(self,  distributor:DistributorBase, configuration: ConnectionConfiguration):
-        self.mId:int = Aux.getUUID()
+        self.mConnectionId:int = Aux_UUID.getId()
+        self.mTimeToDie:bool = False
+        self.mPublishers:[PublisherBase] = []
+        self.mSubscribers:[SubscriberBase] = []
         self.mDistributor:DistributorBase = distributor
         self.mConfiguration:ConnectionConfiguration = configuration
         self.mLogger:logging.Logger = LogManager.getLogger('DistributorConnection')
@@ -141,6 +38,12 @@ class Connection(ConnectionBase):
 
     def lock(self):
         self.mMutex.acquire()
+
+    def getMcPort(self) ->int:
+        self.mIpmc.mPort
+
+    def getMcAddress(self) ->int:
+        self.mIpmc.mGroupAddr
 
     def unlock(self):
         self.mMutex.release()
@@ -160,6 +63,8 @@ class Connection(ConnectionBase):
     def publishUpdate(self, xtaUpdate: XtaUpdate):
         self.mConnectionSender.publishUpdate( xtaUpdate )
 
+    def getConnectionId(self) -> int:
+        return self.mConnectionId
     def checkStatus(self):
         if self.mState == ConnectionBase.STATE_RUNNING:
             return
@@ -173,6 +78,14 @@ class Connection(ConnectionBase):
             else:
                 raise DistributorException( "Connection in error state, not in a trustworthy state");
 
+    def send(self, segment: Segment ) ->int:
+        _start_time = perf_counter()
+        self.mIpmc.send(segment.getEncoder().getBytes())
+        return int((perf_counter()  - _start_time) * 1000000) # return usec
+
+
+    def getConfiguration(self):
+        return self.mConfiguration
 
     def workingThread(self, args ):
         while self.mState == ConnectionBase.STATE_RUNNING or self.mState == ConnectionBase.STATE_INIT:
@@ -197,91 +110,3 @@ class Connection(ConnectionBase):
 
 
 
-
-########################################################################################################################
-#   ConnectionController
-########################################################################################################################
-
-class ConnectionController(object):
-    cLogger:logging.Logger = LogManager.getLogger('ConnectionController')
-    cMutexAccess:threading.RLock = threading.RLock()
-    cMutexRemove:threading.RLock = threading.RLock()
-    cConnections:Aux.LinkedList = Aux.LinkedList()
-
-
-    @staticmethod
-    def getConnection( connectionId:int  ):
-        ConnectionController.cMutexAccess.acquire()
-        itr = ListItr( ConnectionController.cConnections )
-        while itr.has_next():
-            tConn:Connection = itr.next();
-            if tConn.mId == connectionId:
-                ConnectionController.cMutexAccess.release()
-                return tConn
-
-        ConnectionController.cMutexAccess.release()
-        return None
-    @staticmethod
-    def createConnection( distributor:DistributorBase, connectionConfiguration:ConnectionConfiguration ) -> Connection:
-
-        ConnectionController.cMutexRemove.acquire()
-        ConnectionController.cMutexAccess.acquire()
-        itr = ListItr( ConnectionController.cConnections )
-        while itr.has_next():
-            tConn:Connection = itr.next();
-            if tConn.mIpmc.mGroupAddr == connectionConfiguration.mca and tConn.mIpmc.mPort == connectionConfiguration.mca_port:
-                ConnectionController.cMutexRemove.release()
-                ConnectionController.cMutexAccess.release()
-                raise Exception("Connection for multicast group: {} port: {} has already been created".format(tConn.mIpmc.mGroupAddr, connectionConfiguration.mca_port ))
-        try:
-            tConn = Connection( distributor, connectionConfiguration)
-        except Exception as e:
-            ConnectionController.cMutexRemove.release()
-            ConnectionController.cMutexAccess.release()
-            raise e
-        ConnectionController.cMutexRemove.release()
-        ConnectionController.cMutexAccess.release()
-        return tConn
-
-
-    @staticmethod
-    def getAndLockConnection( connectionId: int ) -> Connection:
-        ConnectionController.cMutexAccess.acquire()
-        tConn:Connection = ConnectionController.getConnection( connectionId )
-        if tConn:
-            tConn.lock()
-        ConnectionController.cMutexAccess.release()
-        return tConn
-
-    @staticmethod
-    def unlockConnection( connection:Connection):
-        connection.unlock()
-
-    @staticmethod
-    def removeConnection( connectionId:int ):
-        ConnectionController.cMutexRemove.acquire()
-        ConnectionController.cMutexAccess.acquire()
-
-        itr:ListItr = ListItr( ConnectionController.cConnections )
-        while itr.has_next():
-            tConn:Connection = itr.next()
-            if tConn.mId == connectionId:
-                itr.remove()
-                ConnectionController.cMutexRemove.release()
-                ConnectionController.cMutexAccess.release()
-                return
-        ConnectionController.cMutexRemove.release()
-        ConnectionController.cMutexAccess.release()
-
-
-
-    @staticmethod
-    def queueAyncEvent( connectionId:int, asyncEvent: AsyncEvent ) -> bool:
-        ConnectionController.cMutexAccess.acquire()
-        tConn = ConnectionController.getConnection( connectionId )
-        if not tConn:
-            ConnectionController.cMutexAccess.release()
-            return False
-        tConn.queueAsyncEvent( asyncEvent )
-        ConnectionController.cMutexAccess.release()
-        return True

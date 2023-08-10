@@ -1,6 +1,8 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from distributor import DistributorConfiguration
-
+from pymc.distributor_configuration import DistributorConfiguration
+from pymc.connection_configuration import ConnectionConfiguration
+from pymc.msg.segment import Segment
 
 class AsyncEvent(ABC):
 
@@ -21,7 +23,10 @@ class SubscriberBase(ABC):
 
 
 class ConnectionSenderBase(ABC):
-    pass
+    @abstractmethod
+    def getSenderId(self) -> int:
+        pass
+
 
 class ConnectionReceiverBase(ABC):
     pass
@@ -36,8 +41,28 @@ class ConnectionBase(ABC):
     def publishUpdate( xtaUpdate ):
         pass
 
+    @abstractmethod
+    def getConfiguration(self) -> ConnectionConfiguration:
+        pass
 
+    @abstractmethod
+    def getDistributor(selfself) -> DistributorBase:
+        pass
 
+    @abstractmethod
+    def getConnectionId(self) -> int:
+        pass
+
+    @abstractmethod
+    def send(self, segment:Segment ) ->int:
+        pass
+
+    @abstractmethod
+    def getMcAddress(self) ->int:
+        pass
+        @abstractmethod
+    def getMcPort(self) ->int:
+        pass
 
 class DistributorBase(ABC):
 
