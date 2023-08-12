@@ -1,5 +1,23 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from pymc.aux.aux import Aux
+from pymc.connection import Connection
+
+class AsyncEvent(ABC):
+
+    def __init__(self, taskName):
+        self._taskName = taskName
+        super(AsyncEvent,self).__init__()
+
+    @abstractmethod
+    def execute(self):
+        pass
+    def getTaskName(self) -> str:
+        return self._taskName
+
+
+
+
+
 
 class DistributorEvent(object):
     NAGGING_EXCEPTION = 101
@@ -115,3 +133,50 @@ class DistributorConnectionClosedErrorEvent(DistributorErrorEvent):
 
         super().setMessage("Distributor Connection Closing mc-addr: {} mc-port: {}".format( self.mc_addr, self.mc_port))
 
+
+class AsyncEventSignalEvent(AsyncEvent):
+
+    def __init__(self, event: DistributorEvent):
+        self.mEvent: DistributorEvent = event
+
+    def execute(self, connection:Connection):
+        if connection.isLoggingEnabled( DistributorEvent.e)
+
+
+@Override
+
+
+public
+void
+execute(DistributorConnection
+pConnection)
+{
+if (pConnection.isLogFlagSet(DistributorApplicationConfiguration.LOG_ERROR_EVENTS))
+{
+if (mEvent instanceof DistributorErrorEvent)
+{
+    pConnection.log("APPLICATION ERROR EVENT Event: " + mEvent.toString());
+}
+}
+
+ClientDeliveryController.getInstance().queueEvent(pConnection.mConnectionId, mEvent);
+}
+
+@Override
+
+
+public
+String
+getTaskName()
+{
+return this.getClass().getSimpleName();
+}
+
+public
+String
+toString()
+{
+return "[" + this.getClass().getSimpleName() + "] " + mEvent.toString();
+}
+
+}

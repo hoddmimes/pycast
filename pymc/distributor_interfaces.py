@@ -4,17 +4,7 @@ from pymc.distributor_configuration import DistributorConfiguration
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.msg.segment import Segment
 
-class AsyncEvent(ABC):
 
-    def __init__(self, taskName):
-        self._taskName = taskName
-        super(AsyncEvent,self).__init__()
-
-    @abstractmethod
-    def execute(self):
-        pass
-    def getTaskName(self) -> str:
-        return self._taskName
 
 class PublisherBase(ABC):
     pass

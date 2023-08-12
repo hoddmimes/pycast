@@ -4,9 +4,10 @@ from distributor_interfaces import ConnectionReceiverBase
 from logging import Logger
 from threading import Thread
 from pymc.aux.aux import Aux, AuxThread
+from pymc.aux.distributor_exception import DistributorTheadExitException, DistributorException
 from pymc.connection import Connection
+from pymc.distributor_events import DistributorCommunicationErrorEvent, AsyncEvent
 from pymc.ipmc import IPMC
-from pymc.aux.log_manager import LogManager
 from pymc.msg.segment import Segment
 from pymc.msg.net_msg import NetMsg
 
@@ -16,11 +17,8 @@ from pymc.msg.net_msg import NetMsg
 ## ======================================================================
 
 class ConnectionReceiver(ConnectionReceiverBase):
-    _cLogger: Logger = None
-
 
     def __init__(self, connection:Connection):
-        self.mLogger = LogManager.getInstance().getLogger('ConnectionReceiver')
         self.mConnection = connection
         self.mConfiguration = connection.mConfiguration
         self.mRemoteConnectionController = RemoteConnectionController(connection)
@@ -137,40 +135,44 @@ class ConnectionReceiver(ConnectionReceiverBase):
             ClientDeliveryController.getInstance().queueUpdate(self.mConnection.mConnectionId, tRcvUpdateList)
 
     def logInfo(self, msg):
-        self._cLogger.info( msg )
+        self.mConnection.logInfo( msg )
 
     def logWarning(self, msg):
-        self._cLogger.warning( msg )
+        self.mConnection.logWarning( msg )
 
     def logError(self, msg):
-        self._cLogger.error( msg )
+        self.mConnection.logError( msg )
 
     def logThrowable(self, exception ):
-        self._cLogger.exception( exception )
+        self.mConnection.logThrowable( exception )
 
 
 
     class ReceiverThread(AuxThread):
-        def __init__(self, ipmc:IPMC, connection_id:int, index:int, segment_size:int):
+        def __init__(self, logger:Logger, ipmc:IPMC, connection_id:int, index:int, segment_size:int):
             super().__init__()
             self.mIpmc = ipmc
             self.mIndex = index
+            self.mLogger  = logger
             self.mSegmentSize = segment_size
             self.mConnectionId = connection_id
 
         def run(self):
-            tInetSocketAddress = None
+            t_data_addr = None
             self.setName("DIST_RECEIVER_" + str(self.mIndex) + ":" + str(self.mMca))
             while (True):
                 tByteBuffer = bytearray(self.mSegmentSize)
                 try:
-                    tInetSocketAddress = InetSocketAddress(mMca.receive(tByteBuffer))
+                    t_data_addr = self.mIpmc.read()
                 except Exception as e:
                     if (self.mConnection.mTimeToDie):
                         return
-                    self.mConnection.log("Failed to receive segment, reason: " + str(e))
-                    self.mConnection.logThrowable(e)
-                    tEvent = DistributorCommunicationErrorEvent("[RECEIVE]", mMca.mInetAddress, mMca.mPort, str(e))
+                    e = DistributorException("IPMC read failure", e)
+                    self.mLogger.exception( e )
+                    tEvent = DistributorCommunicationErrorEvent("[RECEIVE]",
+                                                                self.mIpmc.mMcAddr,
+                                                                self.mIpmc.mMcPort,
+                                                                str(e))
                     tAsyncEvent = AsyncEventSignalEvent(tEvent)
                     DistributorConnectionController.queueAsyncEvent(self.mDistributorConnectionId, tAsyncEvent)
                 if (self.mConnection.mTimeToDie):
