@@ -1,12 +1,12 @@
-import socket
-import datetime
-import uuid
-from collections import deque
 
-class RemoteConnection:
-    cSDF = datetime.datetime.now().strftime("%H:%M:%S.%f")
+ from pymc.msg.segment import Segment
+ from pymc.aux.aux import Aux
 
-    def __init__(self, pSegment, pController, pConnection):
+
+
+class RemoteConnection(object):
+
+    def __init__(self, segment:Segment, controller, pConnection):
         self.mRemoteConnectionId = uuid.uuid4()
         self.mConnection = pConnection
         self.mHashCode = hash(pSegment)

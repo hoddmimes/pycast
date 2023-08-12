@@ -5,6 +5,7 @@ from pymc.aux.log_manager import LogManager
 from pymc.distributor_interfaces import DistributorBase
 from pymc.publisher import Publisher
 from pymc.subscriber import Subscriber
+from pymc.distributor_configuration import DistributorConfiguration
 
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.connection import Connection
@@ -35,6 +36,9 @@ class Distributor(DistributorBase):
     def getId(self) -> int:
         return self.mId
 
+    def getApplName(self) -> str:
+        return self.mConfiguration.applName
+
     def getStartTime(self) -> str:
         return self.mStartTime
 
@@ -48,3 +52,8 @@ class Distributor(DistributorBase):
 
     def getConfiguration(self) -> DistributorConfiguration:
         return self.mConfiguration
+
+    def isLoggingEnable(self, log_flag:int) -> bool:
+        if ((self.mConfiguration.logFlags & log_flag) != 0):
+            return True
+        return False

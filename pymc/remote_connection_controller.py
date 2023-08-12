@@ -1,30 +1,9 @@
-import socket
-from collections import defaultdict
+from __future__ import annotations
+from pymc.aux.aux import Aux
+from pymc.msg.segment import Segment
 
-class RemoteConnection:
-    def __init__(self, pSegment, controller, connection):
-        self.mRemoteConnectionId = pSegment
-        self.mRemoteHostInetAddress = None
-        self.mMca = None
-        self.mRemoteApplicationName = None
-        self.mRemoteAppId = None
-        self.mRemoteSenderId = None
-        self.mRemoteStartTime = None
-        self.mCfgIsActive = False
-        self.mHbIsActive = False
-        self.mCheckConfigurationTask = None
-        self.mCheckHeartbeatTask = None
-        self.mController = controller
-        self.mConnection = connection
-
-    def processHeartbeatMsg(self, pSegment):
-        pass
-
-    def processUpdateSegment(self, pSegment):
-        pass
-
-class RemoteConnectionController:
-    def __init__(self, pConnection):
+class RemoteConnectionController(object):
+    def __init__(self, pconnection):
         self.mRemoteConnections = {}
         self.mConnection = pConnection
 

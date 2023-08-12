@@ -60,7 +60,7 @@ class ConnectionBase(ABC):
     @abstractmethod
     def getMcAddress(self) ->int:
         pass
-        @abstractmethod
+    @abstractmethod
     def getMcPort(self) ->int:
         pass
 
@@ -69,6 +69,10 @@ class DistributorBase(ABC):
     @abstractmethod
     def getId(self) -> int:
         pass
+    @staticmethod
+    def getApplName(self) -> str:
+        pass
+
     @abstractmethod
     def getStartTime(self) -> str:
         pass
@@ -88,3 +92,6 @@ class DistributorBase(ABC):
         pass
 
 
+    @abstractmethod
+    def isLoggingEnable(self) -> bool:
+        pass

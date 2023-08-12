@@ -1,11 +1,13 @@
 import uuid
 import datetime
+import threading
+import ctypes
 import time
 import netifaces as ni
 from threading import Timer
 import socket
 import os
-
+from pymc.aux.distributor_exception import  DistributorTheadExitException
 
 class Aux:
     _allocated_server_sockets = []
@@ -118,5 +120,24 @@ class Aux:
        return uuid.uuid4().hex
 
 
+class AuxThread(threading.Thread):
 
+    def __int__(self):
+        self._time_to_exit = False
 
+    @property
+    def thread_id(self):
+        # returns id of the respective thread
+        if hasattr(self, '_thread_id'):
+            return self._thread_id
+        for id, thread in threading._active.items():
+            if thread is self:
+                return id
+
+    def stop(self):
+        _id = self.thread_id
+        _sts = res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(_id), ctypes.py_object(DistributorTheadExitException))
+        #print("id: {} status: {}".format( _id,  _sts ))
+
+    def setName(self, name:str):
+        super().name = name

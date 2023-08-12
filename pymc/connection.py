@@ -10,15 +10,17 @@ from pymc.aux.log_manager import LogManager
 from pymc.distributor_interfaces import AsyncEvent
 from pymc.distributor_interfaces import DistributorBase
 from pymc.distributor_interfaces import ConnectionBase, PublisherBase, SubscriberBase
-
+from pymc.connection_sender import ConnectionSender
 from pymc.connection_configuration import ConnectionConfiguration
-from pymc.msg.net_msg_update import NetMsgUpdate
+from pymc.msg.net_msg_configuration import NetMsgConfiguration
+from pymc.msg.xta_segment import XtaSegment
 from pymc.msg.segment import Segment
 from pymc.msg.xta_update import XtaUpdate
 from pymc.ipmc import IPMC
 
 
 class Connection(ConnectionBase):
+
     def __init__(self,  distributor:DistributorBase, configuration: ConnectionConfiguration):
         self.mConnectionId:int = Aux_UUID.getId()
         self.mTimeToDie:bool = False
@@ -26,7 +28,7 @@ class Connection(ConnectionBase):
         self.mSubscribers:[SubscriberBase] = []
         self.mDistributor:DistributorBase = distributor
         self.mConfiguration:ConnectionConfiguration = configuration
-        self.mLogger:logging.Logger = LogManager.getLogger('DistributorConnection')
+        self.mLogger = LogManager.getLogger('DistributorConnection')
         self.mLastKnownError = None
         self.mState:int  = self.STATE_INIT
         self.mMutex:threading.Rlock = threading.RLock()
@@ -35,6 +37,7 @@ class Connection(ConnectionBase):
         self.mIpmc.open(configuration.mca, configuration.mca_port)
         self.mIpmc.startReader( self.mcaReadComplete(), self.mcaReadException())
         self.mWorkingThread = threading.Thread( target=self.connectionWorker, args=[self], name="connection-working")
+        self.mConnectionSender = ConnectionSender( self )
 
     def lock(self):
         self.mMutex.acquire()
@@ -57,8 +60,8 @@ class Connection(ConnectionBase):
     def mcaReadException(self, exception: Exception):
         self.mLogger.fatal("MCA {} read exception {}".format(self.toString(), str(exception)))
 
-    def toString(self) -> str:
-        return "mca: " + self.mConfiguration.mca + " mca_port: " + str(self.mConfiguration.mca_port)
+    def __str__(self):
+        return "mca: {} mca-port: {}".format(self.mConfiguration.mca,self.mConfiguration.mca_port)
 
     def publishUpdate(self, xtaUpdate: XtaUpdate):
         self.mConnectionSender.publishUpdate( xtaUpdate )
@@ -83,9 +86,39 @@ class Connection(ConnectionBase):
         self.mIpmc.send(segment.getEncoder().getBytes())
         return int((perf_counter()  - _start_time) * 1000000) # return usec
 
+    def isLoggingEnabled(self, log_flag:int ) -> bool:
+        return (self.mDistributor.isLoggingEnable(log_flag))
 
     def getConfiguration(self):
         return self.mConfiguration
+
+    def pushOutConfiguration(self):
+        _cfgmsg = NetMsgConfiguration( XtaSegment(self.mConfiguration.small_segment_size ))
+
+        _cfgmsg.setHeader( messageType=Segment.MSG_TYPE_CONFIGURATION,
+                           segmentFlags=(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END),
+                           localAddress=self.mIpmc.mLocalAddr,
+                           senderId=self.mConnectionSender.mSenderId,
+                           senderStartTime = (self.mConnectionSender.mConnectionStartTime & 0xffffffff),
+                           appId= self.mDistributor.getId())
+
+
+        _cfgmsg.set( mc_addr=self.mIpmc.mMcAddr,
+                     mc_port=self.mIpmc.mMcPort,
+                     sender_id=self.mConnectionSender.mSenderId,
+                     start_time=(self.mConnectionSender.mConnectionStartTime & 0xffffffff),
+                     heartbeat_interval=self.mConfiguration.heartbeat_interval_ms,
+                     config_interval=self.mConfiguration.configuration_interval_ms,
+                     host_addr=self.mDistributor.getLocalInetAddr(),
+                     appl_name=self.mDistributor.getApplName())
+
+        _cfgmsg.encode();
+        self.mConnectionSender.sendSegment( _cfgmsg.mSegment )
+
+
+
+
+
 
     def workingThread(self, args ):
         while self.mState == ConnectionBase.STATE_RUNNING or self.mState == ConnectionBase.STATE_INIT:
@@ -108,5 +141,14 @@ class Connection(ConnectionBase):
                         tAsyncEvent.execute()
             self.mMutex.release()
 
+    def logInfo(self, msg):
+        self.mLogger.info( msg )
 
+    def logWarning(self, msg):
+        self.mLogger.warning( msg )
 
+    def logError(self, msg):
+        self.mLogger.error( msg )
+
+    def logThrowable(self, exception):
+        self.mLogger.exception( exception )

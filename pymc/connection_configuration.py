@@ -1,3 +1,5 @@
+
+
 class ConnectionConfiguration():
 
     def __init__(self, mca:str='224.44.44.44', mca_port:int=4444, eth_device=''):
@@ -10,7 +12,7 @@ class ConnectionConfiguration():
 
         self.ipBufferSize = 128000
         self.segment_size = 8192
-        self.smallsegment_size = 512
+        self.small_segment_size = 512
 
         self.configuration_interval_ms = 15000
         self.configuration_max_lost = 3
@@ -40,3 +42,5 @@ class ConnectionConfiguration():
         self.nagging_check_interval_ms = 60000
 
         self.statistic_interval_sec = 0
+
+        self.receiver_thread = 1

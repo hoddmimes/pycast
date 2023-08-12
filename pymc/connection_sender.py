@@ -103,6 +103,7 @@ class ConnectionSender(ConnectionSenderBase):
         else:
             self.mSenderId = self.mConfiguration.sender_id_port
 
+
         self.mCurrentSeqNo = 1
         self.mLocalAddress:int = self.mDistributor.getLocalInetAddr()
         self.mCurrentSeqNo:int = 0

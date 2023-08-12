@@ -18,7 +18,7 @@ class Segment(ABC):
     # +---------------------------------+----------- +
     # | Sender Id                       |     Byte 4 |
     # +---------------------------------+----------- +
-    # | Sender Start Time               |     Byte 4 |
+    # | Sender Start Time (sec)         |     Byte 4 |
     # +---------------------------------+----------- +
     # | Application Id 		    		|	  Byte 4 |
     # +---------------------------------+------------+
@@ -59,6 +59,13 @@ class Segment(ABC):
         self.mHdrSenderId:int = 0
         self.mHdrSenderStartTime:int = 0
         self.mHdrAppId:int = 0
+
+    def setHeaderMessageType(self, msg_type):
+        self.mHdrMsgType = msg_type
+        if self.mDecoder:
+            self.mDecoder.putByteAt(2, msg_type)
+        else:
+            self.mEncoder.putByteAt(2, msg_type)
 
     def getHeaderMessageType(self) -> int:
         if self.mDecoder:

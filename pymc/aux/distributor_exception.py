@@ -1,3 +1,7 @@
+class DistributorTheadExitException(Exception):
+
+    def __init__(self, msg='Thread Exit Interrupt'):
+        super().__init__(msg)
 
 class DistributorException( Exception ):
     def __init__(self, message, exception=None):
