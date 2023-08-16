@@ -168,7 +168,7 @@ class ClientDeliveryController(object):
                 return _sfc.subscription_filter
         return None
 
-    def processEvent( self, event:ClientEvent):
+    def processEvent( self, event: ClientEvent):
         with self.mLock:
             if event.mEventType == ClientEvent.UPDATE:
                 _filter = self.getSubscriptionFilter(event.mDistributorConnectionId)
@@ -183,14 +183,14 @@ class ClientDeliveryController(object):
                             _filter.match(_upd.mSubject, _upd.mUpdateData, _upd.mAppId, (self.mQueueLength - 1))
                             self.mQueueLength -= 1
             elif event.mEventType == ClientEvent.APPEVENT:
-                _appevt:ClientAppEvent = event
+                _appevt: ClientAppEvent = event
                 for _evtlst in self.mEventCallbackListeners:
                     if _evtlst.connection_id == _appevt.mDistributorConnectionId:
                         _evtlst.callback( _appevt.mEvent )
                 self.mQueueLength -= 1
 
             elif event.mEventType == ClientEvent.DEDICATED_APPEVENT:
-                _appevt:ClientDedicatedAppEvent = event
+                _appevt: ClientDedicatedAppEvent = event
                 _appevt.mEventCallbackIf(_appevt.mEvent)
                 self.mQueueLength -= 1
 

@@ -1,64 +1,59 @@
-
 from pymc.connection import Connection
 from pymc.distributor_interfaces import DistributorBase, AsyncEvent
 from pymc.connection_configuration import ConnectionConfiguration
 import threading
 
 
-
 class ConnectionController(object):
-    cMutexAccess:threading.RLock = threading.RLock()
-    cMutexRemove:threading.RLock = threading.RLock()
-    cConnections:dict[int, Connection] = {}
-
+    cMutexAccess: threading.RLock = threading.RLock()
+    cMutexRemove: threading.RLock = threading.RLock()
+    cConnections: dict[int, Connection] = {}
 
     @staticmethod
-    def getConnection( connectionId:int  ) -> Connection:
+    def getConnection(connection_id: int) -> Connection:
         with ConnectionController.cMutexAccess:
-            return ConnectionController.cConnections.get(connectionId, None )
+            return ConnectionController.cConnections.get(connection_id, None)
 
     @staticmethod
-    def createConnection( distributor:DistributorBase, connectionConfiguration:ConnectionConfiguration ) -> Connection:
+    def createConnection(distributor: DistributorBase, connection_configuration: ConnectionConfiguration) -> Connection:
 
         with ConnectionController.cMutexRemove and ConnectionController.cMutexAccess:
-            for tConn in ConnectionController.cConnections.values():
-             if tConn.mIpmc.mGroupAddr == connectionConfiguration.mca and tConn.mIpmc.mPort == connectionConfiguration.mca_port:
-                 ConnectionController.cMutexRemove.release()
-                 ConnectionController.cMutexAccess.release()
-                 raise Exception("Connection for multicast group: {} port: {} has already been created".format(tConn.mIpmc.mGroupAddr, connectionConfiguration.mca_port ))
+            for t_conn in ConnectionController.cConnections.values():
+                if t_conn.mIpmc.mGroupAddr == connection_configuration.mca and t_conn.mIpmc.mPort == connection_configuration.mca_port:
+                    ConnectionController.cMutexRemove.release()
+                    ConnectionController.cMutexAccess.release()
+                    raise Exception("Connection for multicast group: {} port: {} has already been created".format(
+                        t_conn.mIpmc.mGroupAddr, connection_configuration.mca_port))
 
             try:
-                tConn = Connection( distributor, connectionConfiguration)
+                t_conn = Connection(distributor, connection_configuration)
             except Exception as e:
                 raise e
 
-            return tConn
-
+            return t_conn
 
     @staticmethod
-    def getAndLockConnection( connectionId: int ) -> Connection:
+    def getAndLockConnection(connection_id: int) -> Connection:
         with ConnectionController.cMutexAccess:
-            tConn:Connection = ConnectionController.getConnection( connectionId )
-            if tConn:
-                tConn.lock()
-        return tConn
+            t_conn: Connection = ConnectionController.getConnection(connection_id)
+            if t_conn:
+                t_conn.lock()
+        return t_conn
 
     @staticmethod
-    def unlockConnection( connection:Connection):
+    def unlockConnection(connection: Connection):
         connection.unlock()
 
     @staticmethod
-    def removeConnection( connectionId:int ):
+    def removeConnection(connection_is: int):
         with ConnectionController.cMutexRemove and ConnectionController.cMutexAccess:
-            ConnectionController.cConnections.pop( connectionId )
-
-
+            ConnectionController.cConnections.pop(connection_is)
 
     @staticmethod
-    def queueAyncEvent( connectionId:int, asyncEvent: AsyncEvent ) -> bool:
+    def queueAyncEvent(connection_id: int, async_event: AsyncEvent) -> bool:
         with ConnectionController.cMutexAccess:
-            tConn = ConnectionController.getConnection( connectionId )
-            if not tConn:
+            t_conn: Connection = ConnectionController.getConnection(connection_id)
+            if not t_conn:
                 return False
-            tConn.queueAsyncEvent( asyncEvent )
+            t_conn.queueAsyncEvent(async_event)
             return True

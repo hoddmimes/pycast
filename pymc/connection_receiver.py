@@ -9,6 +9,7 @@ from pymc.connection import Connection
 from pymc.distributor_events import DistributorCommunicationErrorEvent, AsyncEvent
 from pymc.ipmc import IPMC
 from pymc.msg.segment import Segment
+from pymc.msg.rcv_segment import RcvSegment
 from pymc.msg.net_msg import NetMsg
 
 
@@ -164,8 +165,11 @@ class ConnectionReceiver(ConnectionReceiverBase):
                 tByteBuffer = bytearray(self.mSegmentSize)
                 try:
                     t_data_addr = self.mIpmc.read()
+                    t_data = t_data_addr[0]
+                    t_mc_addr = t_data_addr[1][0]
+                    t_mc_port = t_data_addr[1][1]
                 except Exception as e:
-                    if (self.mConnection.mTimeToDie):
+                    if self.mConnection.mTimeToDie:
                         return
                     e = DistributorException("IPMC read failure", e)
                     self.mLogger.exception( e )
@@ -175,12 +179,15 @@ class ConnectionReceiver(ConnectionReceiverBase):
                                                                 str(e))
                     tAsyncEvent = AsyncEventSignalEvent(tEvent)
                     DistributorConnectionController.queueAsyncEvent(self.mDistributorConnectionId, tAsyncEvent)
+
+
+
                 if (self.mConnection.mTimeToDie):
                     return
-                tRcvSegment = RcvSegment(tByteBuffer)
-                tRcvSegment.setFromAddress(tInetSocketAddress.getAddress())
-                tRcvSegment.setFromPort(tInetSocketAddress.getPort())
+                tRcvSegment = RcvSegment(t_data)
+                tRcvSegment.setFromAddress(Aux.ipAddrStrToInt( t_mc_addr))
+                tRcvSegment.setFromPort(t_mc_port)
                 tRcvSegment.decode()
-                tAsyncEvent = AsyncEventReceiveSegment(tRcvSegment)
+                tAsyncEvent:AsyncEventReceiveSegment = AsyncEventReceiveSegment(tRcvSegment)
                 DistributorConnectionController.queueAsyncEvent(self.mDistributorConnectionId, tAsyncEvent)
 

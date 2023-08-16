@@ -33,7 +33,7 @@ class Connection(ConnectionBase):
         self.mState:int  = self.STATE_INIT
         self.mMutex:threading.Rlock = threading.RLock()
         self.mAsyncEventQueue:BlockingQueue = BlockingQueue()
-        self.mIpmc = IPMC(configuration.eth_device, configuration.ttl, configuration.ipBufferSize)
+        self.mIpmc: IPMC = IPMC(configuration.eth_device, configuration.ttl, configuration.ipBufferSize)
         self.mIpmc.open(configuration.mca, configuration.mca_port)
         self.mIpmc.startReader( self.mcaReadComplete(), self.mcaReadException())
         self.mWorkingThread = threading.Thread( target=self.connectionWorker, args=[self], name="connection-working")
@@ -92,6 +92,10 @@ class Connection(ConnectionBase):
     def getConfiguration(self):
         return self.mConfiguration
 
+    def queueAsyncEvent(self):
+
+
+
     def pushOutConfiguration(self):
         _cfgmsg = NetMsgConfiguration( XtaSegment(self.mConfiguration.small_segment_size ))
 
@@ -124,22 +128,20 @@ class Connection(ConnectionBase):
         while self.mState == ConnectionBase.STATE_RUNNING or self.mState == ConnectionBase.STATE_INIT:
             tAsyncEvent:AsyncEvent = self.mAsyncEventQueue.take()
 
-            self.mMutex.acquire()
+            with self.mMutex:
+                if not self.mState == ConnectionBase.RUNNING:
+                    self.mAsynchEventQueue.clear()
+                    return;
 
-            if not self.mState == ConnectionBase.RUNNING:
-                self.mMutex.release()
-                self.mAsynchEventQueue.clear()
-                return;
+                # Execute Async Event
+                tAsyncEvent.execute(self)
 
-            # Execute Async Event
-            tAsyncEvent.execute()
+                if not self.mAsyncEventQueue.isEmpty():
+                    tEventList:list = self.mAsyncEventQueue.drain(60)
+                    for tAsyncEvent in tEventList:
+                        if self.mState == ConnectionBase.STATE_RUNNING:
+                            tAsyncEvent.execute(self)
 
-            if not self.mAsyncEventQueue.isEmpty():
-                tEventList:list = self.mAsyncEventQueue.drain(60)
-                for tAsyncEvent in tEventList:
-                    if self.mState == ConnectionBase.STATE_RUNNING:
-                        tAsyncEvent.execute()
-            self.mMutex.release()
 
     def logInfo(self, msg):
         self.mLogger.info( msg )
