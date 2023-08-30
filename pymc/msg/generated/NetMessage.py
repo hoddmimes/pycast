@@ -10,29 +10,29 @@ class DistNetMsg( MessageBase ):
     def __init__(self):
         self.className = "pymc.msg.generated.DistNetMsg"
         
-        self.requestId: int
-        self.timestamp: int
-        self.isRequestMessage: bool
-        self.message: MessageBase
-    def setRequestId( self, value: int ):
-        self.requestId = value
+        self.request: int = None
+        self.timestamp: int = None
+        self.is_request_message: bool = None
+        self.message: MessageBase = None
+    def set_request(self, value: int):
+        self.request = value
 
-    def getRequestId( self ) -> int:
-        return self.requestId
-    def setTimestamp( self, value: int ):
+    def get_request(self) -> int:
+        return self.request
+    def set_timestamp(self, value: int):
         self.timestamp = value
 
-    def getTimestamp( self ) -> int:
+    def get_timestamp(self) -> int:
         return self.timestamp
-    def setIsRequestMessage( self, value: bool ):
-        self.isRequestMessage = value
+    def set_is_request_message(self, value: bool):
+        self.is_request_message = value
 
-    def getIsRequestMessage( self ) -> bool:
-        return self.isRequestMessage
-    def setMessage( self, value: MessageBase ):
+    def get_is_request_message(self) -> bool:
+        return self.is_request_message
+    def set_message(self, value: MessageBase):
         self.message = value
 
-    def getMessage( self ) -> MessageBase:
+    def get_message(self) -> MessageBase:
         return self.message
 
     def toBytes(self) -> bytearray:
@@ -44,12 +44,12 @@ class DistNetMsg( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: requestId Type: long List: false
-        _encoder.addLong( self.requestId )
+        # Encode Attribute: request Type: long List: false
+        _encoder.addLong( self.request )
         # Encode Attribute: timestamp Type: long List: false
         _encoder.addLong( self.timestamp )
-        # Encode Attribute: isRequestMessage Type: bool List: false
-        _encoder.addBool( self.isRequestMessage )
+        # Encode Attribute: is_request_message Type: bool List: false
+        _encoder.addBool( self.is_request_message )
         # Encode Attribute: message Type: MessageBase List: false
         _encoder.addMessage( self.message )
         return _encoder.get_bytes()
@@ -60,14 +60,14 @@ class DistNetMsg( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: requestId Type:long List: false
-        self.requestId = _decoder.getLong()
+        #Decode Attribute: request Type:long List: false
+        self.request = _decoder.getLong()
         
         #Decode Attribute: timestamp Type:long List: false
         self.timestamp = _decoder.getLong()
         
-        #Decode Attribute: isRequestMessage Type:bool List: false
-        self.isRequestMessage = _decoder.getBool()
+        #Decode Attribute: is_request_message Type:bool List: false
+        self.is_request_message = _decoder.getBool()
         
         #Decode Attribute: message Type:MessageBase List: false
         self.message = _decoder.getMessage()
@@ -82,57 +82,60 @@ class DistNetMsg( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "requestId : " + str( self.requestId) + "\n")
+        _buffer.write(self._blanks( _indent ) + "request : " + str( self.request) + "\n")
         _buffer.write(self._blanks( _indent ) + "timestamp : " + str( self.timestamp) + "\n")
-        _buffer.write(self._blanks( _indent ) + "isRequestMessage : " + str( self.isRequestMessage) + "\n")
+        _buffer.write(self._blanks( _indent ) + "is_request_message : " + str( self.is_request_message) + "\n")
         if self.message is None:
            _buffer.write(self._blanks( _indent ) + "message : None \n")
         else:
                     
            _buffer.write(self._blanks( _indent ) + "message : \n" + self.message.toString( _indent + 2) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistDomainConnectionEntry( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistDomainConnectionEntry"
         
-        self.connectionId: int
-        self.mcaAddress: str
-        self.mcaPort: int
-        self.subscriptions: int
-        self.inRetransmissions: int
-        self.outRetransmissions: int
-    def setConnectionId( self, value: int ):
-        self.connectionId = value
+        self.connection_id: int = None
+        self.mc_address: str = None
+        self.mc_port: int = None
+        self.subscriptions: int = None
+        self.in_retransmissions: int = None
+        self.out_retransmissions: int = None
+    def set_connection_id(self, value: int):
+        self.connection_id = value
 
-    def getConnectionId( self ) -> int:
-        return self.connectionId
-    def setMcaAddress( self, value: str ):
-        self.mcaAddress = value
+    def get_connection_id(self) -> int:
+        return self.connection_id
+    def set_mc_address(self, value: str):
+        self.mc_address = value
 
-    def getMcaAddress( self ) -> str:
-        return self.mcaAddress
-    def setMcaPort( self, value: int ):
-        self.mcaPort = value
+    def get_mc_address(self) -> str:
+        return self.mc_address
+    def set_mc_port(self, value: int):
+        self.mc_port = value
 
-    def getMcaPort( self ) -> int:
-        return self.mcaPort
-    def setSubscriptions( self, value: int ):
+    def get_mc_port(self) -> int:
+        return self.mc_port
+    def set_subscriptions(self, value: int):
         self.subscriptions = value
 
-    def getSubscriptions( self ) -> int:
+    def get_subscriptions(self) -> int:
         return self.subscriptions
-    def setInRetransmissions( self, value: int ):
-        self.inRetransmissions = value
+    def set_in_retransmissions(self, value: int):
+        self.in_retransmissions = value
 
-    def getInRetransmissions( self ) -> int:
-        return self.inRetransmissions
-    def setOutRetransmissions( self, value: int ):
-        self.outRetransmissions = value
+    def get_in_retransmissions(self) -> int:
+        return self.in_retransmissions
+    def set_out_retransmissions(self, value: int):
+        self.out_retransmissions = value
 
-    def getOutRetransmissions( self ) -> int:
-        return self.outRetransmissions
+    def get_out_retransmissions(self) -> int:
+        return self.out_retransmissions
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -143,18 +146,18 @@ class DistDomainConnectionEntry( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: connectionId Type: long List: false
-        _encoder.addLong( self.connectionId )
-        # Encode Attribute: mcaAddress Type: str List: false
-        _encoder.addString( self.mcaAddress )
-        # Encode Attribute: mcaPort Type: int List: false
-        _encoder.addInt( self.mcaPort )
+        # Encode Attribute: connection_id Type: long List: false
+        _encoder.addLong( self.connection_id )
+        # Encode Attribute: mc_address Type: str List: false
+        _encoder.addString( self.mc_address )
+        # Encode Attribute: mc_port Type: int List: false
+        _encoder.addInt( self.mc_port )
         # Encode Attribute: subscriptions Type: int List: false
         _encoder.addInt( self.subscriptions )
-        # Encode Attribute: inRetransmissions Type: int List: false
-        _encoder.addInt( self.inRetransmissions )
-        # Encode Attribute: outRetransmissions Type: int List: false
-        _encoder.addInt( self.outRetransmissions )
+        # Encode Attribute: in_retransmissions Type: int List: false
+        _encoder.addInt( self.in_retransmissions )
+        # Encode Attribute: out_retransmissions Type: int List: false
+        _encoder.addInt( self.out_retransmissions )
         return _encoder.get_bytes()
 
 
@@ -163,23 +166,23 @@ class DistDomainConnectionEntry( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: connectionId Type:long List: false
-        self.connectionId = _decoder.getLong()
+        #Decode Attribute: connection_id Type:long List: false
+        self.connection_id = _decoder.getLong()
         
-        #Decode Attribute: mcaAddress Type:str List: false
-        self.mcaAddress = _decoder.getString()
+        #Decode Attribute: mc_address Type:str List: false
+        self.mc_address = _decoder.getString()
         
-        #Decode Attribute: mcaPort Type:int List: false
-        self.mcaPort = _decoder.getInt()
+        #Decode Attribute: mc_port Type:int List: false
+        self.mc_port = _decoder.getInt()
         
         #Decode Attribute: subscriptions Type:int List: false
         self.subscriptions = _decoder.getInt()
         
-        #Decode Attribute: inRetransmissions Type:int List: false
-        self.inRetransmissions = _decoder.getInt()
+        #Decode Attribute: in_retransmissions Type:int List: false
+        self.in_retransmissions = _decoder.getInt()
         
-        #Decode Attribute: outRetransmissions Type:int List: false
-        self.outRetransmissions = _decoder.getInt()
+        #Decode Attribute: out_retransmissions Type:int List: false
+        self.out_retransmissions = _decoder.getInt()
         
 
     def _blanks( self, _indent ) -> str:
@@ -191,72 +194,75 @@ class DistDomainConnectionEntry( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "connectionId : " + str( self.connectionId) + "\n")
-        _buffer.write(self._blanks( _indent ) + "mcaAddress : " + str( self.mcaAddress) + "\n")
-        _buffer.write(self._blanks( _indent ) + "mcaPort : " + str( self.mcaPort) + "\n")
+        _buffer.write(self._blanks( _indent ) + "connection_id : " + str( self.connection_id) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_address : " + str( self.mc_address) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_port : " + str( self.mc_port) + "\n")
         _buffer.write(self._blanks( _indent ) + "subscriptions : " + str( self.subscriptions) + "\n")
-        _buffer.write(self._blanks( _indent ) + "inRetransmissions : " + str( self.inRetransmissions) + "\n")
-        _buffer.write(self._blanks( _indent ) + "outRetransmissions : " + str( self.outRetransmissions) + "\n")
+        _buffer.write(self._blanks( _indent ) + "in_retransmissions : " + str( self.in_retransmissions) + "\n")
+        _buffer.write(self._blanks( _indent ) + "out_retransmissions : " + str( self.out_retransmissions) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistDomainDistributorEntry( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistDomainDistributorEntry"
         
-        self.distributorId: int
-        self.hostname: str
-        self.hostaddress: str
-        self.applicationName: str
-        self.applicationId: int
-        self.startTime: str
-        self.inRetransmissions: int
-        self.outRetransmissions: int
-        self.connections: DistDomainConnectionEntry
-    def setDistributorId( self, value: int ):
-        self.distributorId = value
+        self.distributor_id: int = None
+        self.hostname: str = None
+        self.hosta_ddress: str = None
+        self.application_name: str = None
+        self.application_id: int = None
+        self.start_time: str = None
+        self.in_retransmissions: int = None
+        self.out_retransmissions: int = None
+        self.connections: list = None
+    def set_distributor_id(self, value: int):
+        self.distributor_id = value
 
-    def getDistributorId( self ) -> int:
-        return self.distributorId
-    def setHostname( self, value: str ):
+    def get_distributor_id(self) -> int:
+        return self.distributor_id
+    def set_hostname(self, value: str):
         self.hostname = value
 
-    def getHostname( self ) -> str:
+    def get_hostname(self) -> str:
         return self.hostname
-    def setHostaddress( self, value: str ):
-        self.hostaddress = value
+    def set_hosta_ddress(self, value: str):
+        self.hosta_ddress = value
 
-    def getHostaddress( self ) -> str:
-        return self.hostaddress
-    def setApplicationName( self, value: str ):
-        self.applicationName = value
+    def get_hosta_ddress(self) -> str:
+        return self.hosta_ddress
+    def set_application_name(self, value: str):
+        self.application_name = value
 
-    def getApplicationName( self ) -> str:
-        return self.applicationName
-    def setApplicationId( self, value: int ):
-        self.applicationId = value
+    def get_application_name(self) -> str:
+        return self.application_name
+    def set_application_id(self, value: int):
+        self.application_id = value
 
-    def getApplicationId( self ) -> int:
-        return self.applicationId
-    def setStartTime( self, value: str ):
-        self.startTime = value
+    def get_application_id(self) -> int:
+        return self.application_id
+    def set_start_time(self, value: str):
+        self.start_time = value
 
-    def getStartTime( self ) -> str:
-        return self.startTime
-    def setInRetransmissions( self, value: int ):
-        self.inRetransmissions = value
+    def get_start_time(self) -> str:
+        return self.start_time
+    def set_in_retransmissions(self, value: int):
+        self.in_retransmissions = value
 
-    def getInRetransmissions( self ) -> int:
-        return self.inRetransmissions
-    def setOutRetransmissions( self, value: int ):
-        self.outRetransmissions = value
+    def get_in_retransmissions(self) -> int:
+        return self.in_retransmissions
+    def set_out_retransmissions(self, value: int):
+        self.out_retransmissions = value
 
-    def getOutRetransmissions( self ) -> int:
-        return self.outRetransmissions
-    def setConnections( self, value: DistDomainConnectionEntry ):
+    def get_out_retransmissions(self) -> int:
+        return self.out_retransmissions
+    def set_connections(self, value: list):
         self.connections = value
 
-    def getConnections( self ) -> DistDomainConnectionEntry:
+    def get_connections(self) -> list:
         return self.connections
 
     def toBytes(self) -> bytearray:
@@ -268,24 +274,24 @@ class DistDomainDistributorEntry( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: distributorId Type: long List: false
-        _encoder.addLong( self.distributorId )
+        # Encode Attribute: distributor_id Type: long List: false
+        _encoder.addLong( self.distributor_id )
         # Encode Attribute: hostname Type: str List: false
         _encoder.addString( self.hostname )
-        # Encode Attribute: hostaddress Type: str List: false
-        _encoder.addString( self.hostaddress )
-        # Encode Attribute: applicationName Type: str List: false
-        _encoder.addString( self.applicationName )
-        # Encode Attribute: applicationId Type: int List: false
-        _encoder.addInt( self.applicationId )
-        # Encode Attribute: startTime Type: str List: false
-        _encoder.addString( self.startTime )
-        # Encode Attribute: inRetransmissions Type: int List: false
-        _encoder.addInt( self.inRetransmissions )
-        # Encode Attribute: outRetransmissions Type: int List: false
-        _encoder.addInt( self.outRetransmissions )
-        # Encode Attribute: connections Type: DistDomainConnectionEntry List: false
-        _encoder.addMessage( self.connections )
+        # Encode Attribute: hosta_ddress Type: str List: false
+        _encoder.addString( self.hosta_ddress )
+        # Encode Attribute: application_name Type: str List: false
+        _encoder.addString( self.application_name )
+        # Encode Attribute: application_id Type: int List: false
+        _encoder.addInt( self.application_id )
+        # Encode Attribute: start_time Type: str List: false
+        _encoder.addString( self.start_time )
+        # Encode Attribute: in_retransmissions Type: int List: false
+        _encoder.addInt( self.in_retransmissions )
+        # Encode Attribute: out_retransmissions Type: int List: false
+        _encoder.addInt( self.out_retransmissions )
+        # Encode Attribute: connections Type: DistDomainConnectionEntry List: true
+        MessageAux.addMessageList( _encoder, self.connections)
         return _encoder.get_bytes()
 
 
@@ -294,33 +300,32 @@ class DistDomainDistributorEntry( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: distributorId Type:long List: false
-        self.distributorId = _decoder.getLong()
+        #Decode Attribute: distributor_id Type:long List: false
+        self.distributor_id = _decoder.getLong()
         
         #Decode Attribute: hostname Type:str List: false
         self.hostname = _decoder.getString()
         
-        #Decode Attribute: hostaddress Type:str List: false
-        self.hostaddress = _decoder.getString()
+        #Decode Attribute: hosta_ddress Type:str List: false
+        self.hosta_ddress = _decoder.getString()
         
-        #Decode Attribute: applicationName Type:str List: false
-        self.applicationName = _decoder.getString()
+        #Decode Attribute: application_name Type:str List: false
+        self.application_name = _decoder.getString()
         
-        #Decode Attribute: applicationId Type:int List: false
-        self.applicationId = _decoder.getInt()
+        #Decode Attribute: application_id Type:int List: false
+        self.application_id = _decoder.getInt()
         
-        #Decode Attribute: startTime Type:str List: false
-        self.startTime = _decoder.getString()
+        #Decode Attribute: start_time Type:str List: false
+        self.start_time = _decoder.getString()
         
-        #Decode Attribute: inRetransmissions Type:int List: false
-        self.inRetransmissions = _decoder.getInt()
+        #Decode Attribute: in_retransmissions Type:int List: false
+        self.in_retransmissions = _decoder.getInt()
         
-        #Decode Attribute: outRetransmissions Type:int List: false
-        self.outRetransmissions = _decoder.getInt()
+        #Decode Attribute: out_retransmissions Type:int List: false
+        self.out_retransmissions = _decoder.getInt()
         
-        #Decode Attribute: connections Type:DistDomainConnectionEntry List: false
-        self.connections = _decoder.getMessage()
-        
+        #Decode Attribute: connections Type:DistDomainConnectionEntry List: true
+        self.connections = MessageAux.getMessageList( _decoder )
 
     def _blanks( self, _indent ) -> str:
         if _indent == 0:
@@ -331,20 +336,28 @@ class DistDomainDistributorEntry( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "distributorId : " + str( self.distributorId) + "\n")
+        _buffer.write(self._blanks( _indent ) + "distributor_id : " + str( self.distributor_id) + "\n")
         _buffer.write(self._blanks( _indent ) + "hostname : " + str( self.hostname) + "\n")
-        _buffer.write(self._blanks( _indent ) + "hostaddress : " + str( self.hostaddress) + "\n")
-        _buffer.write(self._blanks( _indent ) + "applicationName : " + str( self.applicationName) + "\n")
-        _buffer.write(self._blanks( _indent ) + "applicationId : " + str( self.applicationId) + "\n")
-        _buffer.write(self._blanks( _indent ) + "startTime : " + str( self.startTime) + "\n")
-        _buffer.write(self._blanks( _indent ) + "inRetransmissions : " + str( self.inRetransmissions) + "\n")
-        _buffer.write(self._blanks( _indent ) + "outRetransmissions : " + str( self.outRetransmissions) + "\n")
+        _buffer.write(self._blanks( _indent ) + "hosta_ddress : " + str( self.hosta_ddress) + "\n")
+        _buffer.write(self._blanks( _indent ) + "application_name : " + str( self.application_name) + "\n")
+        _buffer.write(self._blanks( _indent ) + "application_id : " + str( self.application_id) + "\n")
+        _buffer.write(self._blanks( _indent ) + "start_time : " + str( self.start_time) + "\n")
+        _buffer.write(self._blanks( _indent ) + "in_retransmissions : " + str( self.in_retransmissions) + "\n")
+        _buffer.write(self._blanks( _indent ) + "out_retransmissions : " + str( self.out_retransmissions) + "\n")
         if self.connections is None:
            _buffer.write(self._blanks( _indent ) + "connections : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "connections : \n" + self.connections.toString( _indent + 2) + "\n")
+           _buffer.write(self._blanks( _indent ) + "connections : \n")
+           _idx = 0
+           for _m in self.connections:
+                _idx += 1;
+                _buffer.write( self._blanks( _indent + 2 ) + "[" + str(_idx) +"] \n" )
+                _buffer.write( _m.toString( _indent + 4) + "\n") 
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreDomainRqst( MessageBase ):
 
@@ -380,17 +393,20 @@ class DistExploreDomainRqst( MessageBase ):
         _buffer: StringIO = StringIO()
         
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreDomainRsp( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreDomainRsp"
         
-        self.distributor: DistDomainDistributorEntry
-    def setDistributor( self, value: DistDomainDistributorEntry ):
+        self.distributor: DistDomainDistributorEntry = None
+    def set_distributor(self, value: DistDomainDistributorEntry):
         self.distributor = value
 
-    def getDistributor( self ) -> DistDomainDistributorEntry:
+    def get_distributor(self) -> DistDomainDistributorEntry:
         return self.distributor
 
     def toBytes(self) -> bytearray:
@@ -431,89 +447,92 @@ class DistExploreDomainRsp( MessageBase ):
                     
            _buffer.write(self._blanks( _indent ) + "distributor : \n" + self.distributor.toString( _indent + 2) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistributorEntry( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistributorEntry"
         
-        self.hostname: str
-        self.hostaddress: str
-        self.applicationName: str
-        self.applicationId: int
-        self.startTime: str
-        self.connections: int
-        self.distributorId: int
-        self.memMax: int
-        self.memUsed: int
-        self.memFree: int
-        self.inRetransmissions: int
-        self.outRetransmissions: int
-        self.subscriptions: int
-    def setHostname( self, value: str ):
-        self.hostname = value
+        self.host_name: str = None
+        self.hosta_address: str = None
+        self.application_name: str = None
+        self.application_id: int = None
+        self.start_time: str = None
+        self.connections: int = None
+        self.distributor_id: int = None
+        self.mem_max: int = None
+        self.mem_used: int = None
+        self.mem_free: int = None
+        self.in_retransmissions: int = None
+        self.out_retransmissions: int = None
+        self.subscriptions: int = None
+    def set_host_name(self, value: str):
+        self.host_name = value
 
-    def getHostname( self ) -> str:
-        return self.hostname
-    def setHostaddress( self, value: str ):
-        self.hostaddress = value
+    def get_host_name(self) -> str:
+        return self.host_name
+    def set_hosta_address(self, value: str):
+        self.hosta_address = value
 
-    def getHostaddress( self ) -> str:
-        return self.hostaddress
-    def setApplicationName( self, value: str ):
-        self.applicationName = value
+    def get_hosta_address(self) -> str:
+        return self.hosta_address
+    def set_application_name(self, value: str):
+        self.application_name = value
 
-    def getApplicationName( self ) -> str:
-        return self.applicationName
-    def setApplicationId( self, value: int ):
-        self.applicationId = value
+    def get_application_name(self) -> str:
+        return self.application_name
+    def set_application_id(self, value: int):
+        self.application_id = value
 
-    def getApplicationId( self ) -> int:
-        return self.applicationId
-    def setStartTime( self, value: str ):
-        self.startTime = value
+    def get_application_id(self) -> int:
+        return self.application_id
+    def set_start_time(self, value: str):
+        self.start_time = value
 
-    def getStartTime( self ) -> str:
-        return self.startTime
-    def setConnections( self, value: int ):
+    def get_start_time(self) -> str:
+        return self.start_time
+    def set_connections(self, value: int):
         self.connections = value
 
-    def getConnections( self ) -> int:
+    def get_connections(self) -> int:
         return self.connections
-    def setDistributorId( self, value: int ):
-        self.distributorId = value
+    def set_distributor_id(self, value: int):
+        self.distributor_id = value
 
-    def getDistributorId( self ) -> int:
-        return self.distributorId
-    def setMemMax( self, value: int ):
-        self.memMax = value
+    def get_distributor_id(self) -> int:
+        return self.distributor_id
+    def set_mem_max(self, value: int):
+        self.mem_max = value
 
-    def getMemMax( self ) -> int:
-        return self.memMax
-    def setMemUsed( self, value: int ):
-        self.memUsed = value
+    def get_mem_max(self) -> int:
+        return self.mem_max
+    def set_mem_used(self, value: int):
+        self.mem_used = value
 
-    def getMemUsed( self ) -> int:
-        return self.memUsed
-    def setMemFree( self, value: int ):
-        self.memFree = value
+    def get_mem_used(self) -> int:
+        return self.mem_used
+    def set_mem_free(self, value: int):
+        self.mem_free = value
 
-    def getMemFree( self ) -> int:
-        return self.memFree
-    def setInRetransmissions( self, value: int ):
-        self.inRetransmissions = value
+    def get_mem_free(self) -> int:
+        return self.mem_free
+    def set_in_retransmissions(self, value: int):
+        self.in_retransmissions = value
 
-    def getInRetransmissions( self ) -> int:
-        return self.inRetransmissions
-    def setOutRetransmissions( self, value: int ):
-        self.outRetransmissions = value
+    def get_in_retransmissions(self) -> int:
+        return self.in_retransmissions
+    def set_out_retransmissions(self, value: int):
+        self.out_retransmissions = value
 
-    def getOutRetransmissions( self ) -> int:
-        return self.outRetransmissions
-    def setSubscriptions( self, value: int ):
+    def get_out_retransmissions(self) -> int:
+        return self.out_retransmissions
+    def set_subscriptions(self, value: int):
         self.subscriptions = value
 
-    def getSubscriptions( self ) -> int:
+    def get_subscriptions(self) -> int:
         return self.subscriptions
 
     def toBytes(self) -> bytearray:
@@ -525,30 +544,30 @@ class DistributorEntry( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: hostname Type: str List: false
-        _encoder.addString( self.hostname )
-        # Encode Attribute: hostaddress Type: str List: false
-        _encoder.addString( self.hostaddress )
-        # Encode Attribute: applicationName Type: str List: false
-        _encoder.addString( self.applicationName )
-        # Encode Attribute: applicationId Type: int List: false
-        _encoder.addInt( self.applicationId )
-        # Encode Attribute: startTime Type: str List: false
-        _encoder.addString( self.startTime )
+        # Encode Attribute: host_name Type: str List: false
+        _encoder.addString( self.host_name )
+        # Encode Attribute: hosta_address Type: str List: false
+        _encoder.addString( self.hosta_address )
+        # Encode Attribute: application_name Type: str List: false
+        _encoder.addString( self.application_name )
+        # Encode Attribute: application_id Type: int List: false
+        _encoder.addInt( self.application_id )
+        # Encode Attribute: start_time Type: str List: false
+        _encoder.addString( self.start_time )
         # Encode Attribute: connections Type: int List: false
         _encoder.addInt( self.connections )
-        # Encode Attribute: distributorId Type: long List: false
-        _encoder.addLong( self.distributorId )
-        # Encode Attribute: memMax Type: long List: false
-        _encoder.addLong( self.memMax )
-        # Encode Attribute: memUsed Type: long List: false
-        _encoder.addLong( self.memUsed )
-        # Encode Attribute: memFree Type: long List: false
-        _encoder.addLong( self.memFree )
-        # Encode Attribute: inRetransmissions Type: int List: false
-        _encoder.addInt( self.inRetransmissions )
-        # Encode Attribute: outRetransmissions Type: int List: false
-        _encoder.addInt( self.outRetransmissions )
+        # Encode Attribute: distributor_id Type: long List: false
+        _encoder.addLong( self.distributor_id )
+        # Encode Attribute: mem_max Type: long List: false
+        _encoder.addLong( self.mem_max )
+        # Encode Attribute: mem_used Type: long List: false
+        _encoder.addLong( self.mem_used )
+        # Encode Attribute: mem_free Type: long List: false
+        _encoder.addLong( self.mem_free )
+        # Encode Attribute: in_retransmissions Type: int List: false
+        _encoder.addInt( self.in_retransmissions )
+        # Encode Attribute: out_retransmissions Type: int List: false
+        _encoder.addInt( self.out_retransmissions )
         # Encode Attribute: subscriptions Type: int List: false
         _encoder.addInt( self.subscriptions )
         return _encoder.get_bytes()
@@ -559,41 +578,41 @@ class DistributorEntry( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: hostname Type:str List: false
-        self.hostname = _decoder.getString()
+        #Decode Attribute: host_name Type:str List: false
+        self.host_name = _decoder.getString()
         
-        #Decode Attribute: hostaddress Type:str List: false
-        self.hostaddress = _decoder.getString()
+        #Decode Attribute: hosta_address Type:str List: false
+        self.hosta_address = _decoder.getString()
         
-        #Decode Attribute: applicationName Type:str List: false
-        self.applicationName = _decoder.getString()
+        #Decode Attribute: application_name Type:str List: false
+        self.application_name = _decoder.getString()
         
-        #Decode Attribute: applicationId Type:int List: false
-        self.applicationId = _decoder.getInt()
+        #Decode Attribute: application_id Type:int List: false
+        self.application_id = _decoder.getInt()
         
-        #Decode Attribute: startTime Type:str List: false
-        self.startTime = _decoder.getString()
+        #Decode Attribute: start_time Type:str List: false
+        self.start_time = _decoder.getString()
         
         #Decode Attribute: connections Type:int List: false
         self.connections = _decoder.getInt()
         
-        #Decode Attribute: distributorId Type:long List: false
-        self.distributorId = _decoder.getLong()
+        #Decode Attribute: distributor_id Type:long List: false
+        self.distributor_id = _decoder.getLong()
         
-        #Decode Attribute: memMax Type:long List: false
-        self.memMax = _decoder.getLong()
+        #Decode Attribute: mem_max Type:long List: false
+        self.mem_max = _decoder.getLong()
         
-        #Decode Attribute: memUsed Type:long List: false
-        self.memUsed = _decoder.getLong()
+        #Decode Attribute: mem_used Type:long List: false
+        self.mem_used = _decoder.getLong()
         
-        #Decode Attribute: memFree Type:long List: false
-        self.memFree = _decoder.getLong()
+        #Decode Attribute: mem_free Type:long List: false
+        self.mem_free = _decoder.getLong()
         
-        #Decode Attribute: inRetransmissions Type:int List: false
-        self.inRetransmissions = _decoder.getInt()
+        #Decode Attribute: in_retransmissions Type:int List: false
+        self.in_retransmissions = _decoder.getInt()
         
-        #Decode Attribute: outRetransmissions Type:int List: false
-        self.outRetransmissions = _decoder.getInt()
+        #Decode Attribute: out_retransmissions Type:int List: false
+        self.out_retransmissions = _decoder.getInt()
         
         #Decode Attribute: subscriptions Type:int List: false
         self.subscriptions = _decoder.getInt()
@@ -608,32 +627,35 @@ class DistributorEntry( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "hostname : " + str( self.hostname) + "\n")
-        _buffer.write(self._blanks( _indent ) + "hostaddress : " + str( self.hostaddress) + "\n")
-        _buffer.write(self._blanks( _indent ) + "applicationName : " + str( self.applicationName) + "\n")
-        _buffer.write(self._blanks( _indent ) + "applicationId : " + str( self.applicationId) + "\n")
-        _buffer.write(self._blanks( _indent ) + "startTime : " + str( self.startTime) + "\n")
+        _buffer.write(self._blanks( _indent ) + "host_name : " + str( self.host_name) + "\n")
+        _buffer.write(self._blanks( _indent ) + "hosta_address : " + str( self.hosta_address) + "\n")
+        _buffer.write(self._blanks( _indent ) + "application_name : " + str( self.application_name) + "\n")
+        _buffer.write(self._blanks( _indent ) + "application_id : " + str( self.application_id) + "\n")
+        _buffer.write(self._blanks( _indent ) + "start_time : " + str( self.start_time) + "\n")
         _buffer.write(self._blanks( _indent ) + "connections : " + str( self.connections) + "\n")
-        _buffer.write(self._blanks( _indent ) + "distributorId : " + str( self.distributorId) + "\n")
-        _buffer.write(self._blanks( _indent ) + "memMax : " + str( self.memMax) + "\n")
-        _buffer.write(self._blanks( _indent ) + "memUsed : " + str( self.memUsed) + "\n")
-        _buffer.write(self._blanks( _indent ) + "memFree : " + str( self.memFree) + "\n")
-        _buffer.write(self._blanks( _indent ) + "inRetransmissions : " + str( self.inRetransmissions) + "\n")
-        _buffer.write(self._blanks( _indent ) + "outRetransmissions : " + str( self.outRetransmissions) + "\n")
+        _buffer.write(self._blanks( _indent ) + "distributor_id : " + str( self.distributor_id) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mem_max : " + str( self.mem_max) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mem_used : " + str( self.mem_used) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mem_free : " + str( self.mem_free) + "\n")
+        _buffer.write(self._blanks( _indent ) + "in_retransmissions : " + str( self.in_retransmissions) + "\n")
+        _buffer.write(self._blanks( _indent ) + "out_retransmissions : " + str( self.out_retransmissions) + "\n")
         _buffer.write(self._blanks( _indent ) + "subscriptions : " + str( self.subscriptions) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreDistributorRqst( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreDistributorRqst"
         
-        self.distributorId: int
-    def setDistributorId( self, value: int ):
-        self.distributorId = value
+        self.distributor_id: int = None
+    def set_distributor_id(self, value: int):
+        self.distributor_id = value
 
-    def getDistributorId( self ) -> int:
-        return self.distributorId
+    def get_distributor_id(self) -> int:
+        return self.distributor_id
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -644,8 +666,8 @@ class DistExploreDistributorRqst( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: distributorId Type: long List: false
-        _encoder.addLong( self.distributorId )
+        # Encode Attribute: distributor_id Type: long List: false
+        _encoder.addLong( self.distributor_id )
         return _encoder.get_bytes()
 
 
@@ -654,8 +676,8 @@ class DistExploreDistributorRqst( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: distributorId Type:long List: false
-        self.distributorId = _decoder.getLong()
+        #Decode Attribute: distributor_id Type:long List: false
+        self.distributor_id = _decoder.getLong()
         
 
     def _blanks( self, _indent ) -> str:
@@ -667,19 +689,22 @@ class DistExploreDistributorRqst( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "distributorId : " + str( self.distributorId) + "\n")
+        _buffer.write(self._blanks( _indent ) + "distributor_id : " + str( self.distributor_id) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreDistributorRsp( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreDistributorRsp"
         
-        self.distributor: DistributorEntry
-    def setDistributor( self, value: DistributorEntry ):
+        self.distributor: DistributorEntry = None
+    def set_distributor(self, value: DistributorEntry):
         self.distributor = value
 
-    def getDistributor( self ) -> DistributorEntry:
+    def get_distributor(self) -> DistributorEntry:
         return self.distributor
 
     def toBytes(self) -> bytearray:
@@ -720,36 +745,39 @@ class DistExploreDistributorRsp( MessageBase ):
                     
            _buffer.write(self._blanks( _indent ) + "distributor : \n" + self.distributor.toString( _indent + 2) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DataRateItem( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DataRateItem"
         
-        self.total: int
-        self.currValue: int
-        self.peakValue: int
-        self.peakTime: str
-    def setTotal( self, value: int ):
+        self.total: int = None
+        self.curr_value: int = None
+        self.peak_value: int = None
+        self.peak_time: str = None
+    def set_total(self, value: int):
         self.total = value
 
-    def getTotal( self ) -> int:
+    def get_total(self) -> int:
         return self.total
-    def setCurrValue( self, value: int ):
-        self.currValue = value
+    def set_curr_value(self, value: int):
+        self.curr_value = value
 
-    def getCurrValue( self ) -> int:
-        return self.currValue
-    def setPeakValue( self, value: int ):
-        self.peakValue = value
+    def get_curr_value(self) -> int:
+        return self.curr_value
+    def set_peak_value(self, value: int):
+        self.peak_value = value
 
-    def getPeakValue( self ) -> int:
-        return self.peakValue
-    def setPeakTime( self, value: str ):
-        self.peakTime = value
+    def get_peak_value(self) -> int:
+        return self.peak_value
+    def set_peak_time(self, value: str):
+        self.peak_time = value
 
-    def getPeakTime( self ) -> str:
-        return self.peakTime
+    def get_peak_time(self) -> str:
+        return self.peak_time
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -762,12 +790,12 @@ class DataRateItem( MessageBase ):
         
         # Encode Attribute: total Type: long List: false
         _encoder.addLong( self.total )
-        # Encode Attribute: currValue Type: int List: false
-        _encoder.addInt( self.currValue )
-        # Encode Attribute: peakValue Type: int List: false
-        _encoder.addInt( self.peakValue )
-        # Encode Attribute: peakTime Type: str List: false
-        _encoder.addString( self.peakTime )
+        # Encode Attribute: curr_value Type: int List: false
+        _encoder.addInt( self.curr_value )
+        # Encode Attribute: peak_value Type: int List: false
+        _encoder.addInt( self.peak_value )
+        # Encode Attribute: peak_time Type: str List: false
+        _encoder.addString( self.peak_time )
         return _encoder.get_bytes()
 
 
@@ -779,14 +807,14 @@ class DataRateItem( MessageBase ):
         #Decode Attribute: total Type:long List: false
         self.total = _decoder.getLong()
         
-        #Decode Attribute: currValue Type:int List: false
-        self.currValue = _decoder.getInt()
+        #Decode Attribute: curr_value Type:int List: false
+        self.curr_value = _decoder.getInt()
         
-        #Decode Attribute: peakValue Type:int List: false
-        self.peakValue = _decoder.getInt()
+        #Decode Attribute: peak_value Type:int List: false
+        self.peak_value = _decoder.getInt()
         
-        #Decode Attribute: peakTime Type:str List: false
-        self.peakTime = _decoder.getString()
+        #Decode Attribute: peak_time Type:str List: false
+        self.peak_time = _decoder.getString()
         
 
     def _blanks( self, _indent ) -> str:
@@ -799,34 +827,37 @@ class DataRateItem( MessageBase ):
         _buffer: StringIO = StringIO()
         
         _buffer.write(self._blanks( _indent ) + "total : " + str( self.total) + "\n")
-        _buffer.write(self._blanks( _indent ) + "currValue : " + str( self.currValue) + "\n")
-        _buffer.write(self._blanks( _indent ) + "peakValue : " + str( self.peakValue) + "\n")
-        _buffer.write(self._blanks( _indent ) + "peakTime : " + str( self.peakTime) + "\n")
+        _buffer.write(self._blanks( _indent ) + "curr_value : " + str( self.curr_value) + "\n")
+        _buffer.write(self._blanks( _indent ) + "peak_value : " + str( self.peak_value) + "\n")
+        _buffer.write(self._blanks( _indent ) + "peak_time : " + str( self.peak_time) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class QueueSizeItem( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.QueueSizeItem"
         
-        self.size: int
-        self.peakSize: int
-        self.peakTime: str
-    def setSize( self, value: int ):
+        self.size: int = None
+        self.peak_size: int = None
+        self.peak_time: str = None
+    def set_size(self, value: int):
         self.size = value
 
-    def getSize( self ) -> int:
+    def get_size(self) -> int:
         return self.size
-    def setPeakSize( self, value: int ):
-        self.peakSize = value
+    def set_peak_size(self, value: int):
+        self.peak_size = value
 
-    def getPeakSize( self ) -> int:
-        return self.peakSize
-    def setPeakTime( self, value: str ):
-        self.peakTime = value
+    def get_peak_size(self) -> int:
+        return self.peak_size
+    def set_peak_time(self, value: str):
+        self.peak_time = value
 
-    def getPeakTime( self ) -> str:
-        return self.peakTime
+    def get_peak_time(self) -> str:
+        return self.peak_time
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -839,10 +870,10 @@ class QueueSizeItem( MessageBase ):
         
         # Encode Attribute: size Type: long List: false
         _encoder.addLong( self.size )
-        # Encode Attribute: peakSize Type: int List: false
-        _encoder.addInt( self.peakSize )
-        # Encode Attribute: peakTime Type: str List: false
-        _encoder.addString( self.peakTime )
+        # Encode Attribute: peak_size Type: int List: false
+        _encoder.addInt( self.peak_size )
+        # Encode Attribute: peak_time Type: str List: false
+        _encoder.addString( self.peak_time )
         return _encoder.get_bytes()
 
 
@@ -854,11 +885,11 @@ class QueueSizeItem( MessageBase ):
         #Decode Attribute: size Type:long List: false
         self.size = _decoder.getLong()
         
-        #Decode Attribute: peakSize Type:int List: false
-        self.peakSize = _decoder.getInt()
+        #Decode Attribute: peak_size Type:int List: false
+        self.peak_size = _decoder.getInt()
         
-        #Decode Attribute: peakTime Type:str List: false
-        self.peakTime = _decoder.getString()
+        #Decode Attribute: peak_time Type:str List: false
+        self.peak_time = _decoder.getString()
         
 
     def _blanks( self, _indent ) -> str:
@@ -871,213 +902,216 @@ class QueueSizeItem( MessageBase ):
         _buffer: StringIO = StringIO()
         
         _buffer.write(self._blanks( _indent ) + "size : " + str( self.size) + "\n")
-        _buffer.write(self._blanks( _indent ) + "peakSize : " + str( self.peakSize) + "\n")
-        _buffer.write(self._blanks( _indent ) + "peakTime : " + str( self.peakTime) + "\n")
+        _buffer.write(self._blanks( _indent ) + "peak_size : " + str( self.peak_size) + "\n")
+        _buffer.write(self._blanks( _indent ) + "peak_time : " + str( self.peak_time) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class ConnectionEntry( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.ConnectionEntry"
         
-        self.mcaAddress: str
-        self.mcaPort: int
-        self.connectionId: int
-        self.publishers: int
-        self.subscribers: int
-        self.subscriptions: int
-        self.inRetransmissions: int
-        self.outRetransmissions: int
-        self.deliverUpdateQueue: QueueSizeItem
-        self.xtaTotalBytes: int
-        self.xtaTotalSegments: int
-        self.xtaTotalUpdates: int
-        self.xtaBytes: DataRateItem
-        self.xtaSegments: DataRateItem
-        self.xtaUpdates: DataRateItem
-        self.xtaBytes1min: DataRateItem
-        self.xtaSegments1min: DataRateItem
-        self.xtaUpdates1min: DataRateItem
-        self.xtaBytes5min: DataRateItem
-        self.xtaSegments5min: DataRateItem
-        self.xtaUpdates5min: DataRateItem
-        self.rcvTotalBytes: int
-        self.rcvTotalSegments: int
-        self.rcvTotalUpdates: int
-        self.rcvBytes: DataRateItem
-        self.rcvSegments: DataRateItem
-        self.rcvUpdates: DataRateItem
-        self.rcvBytes1min: DataRateItem
-        self.rcvSegments1min: DataRateItem
-        self.rcvUpdates1min: DataRateItem
-        self.rcvBytes5min: DataRateItem
-        self.rcvSegments5min: DataRateItem
-        self.rcvUpdates5min: DataRateItem
-    def setMcaAddress( self, value: str ):
-        self.mcaAddress = value
+        self.mc_address: str = None
+        self.mc_port: int = None
+        self.connection_id: int = None
+        self.publishers: int = None
+        self.subscribers: int = None
+        self.subscriptions: int = None
+        self.in_retransmissions: int = None
+        self.out_retransmissions: int = None
+        self.deliver_update_queue: QueueSizeItem = None
+        self.xta_total_bytes: int = None
+        self.xta_total_segments: int = None
+        self.xta_total_updates: int = None
+        self.xta_bytes: DataRateItem = None
+        self.xtaSegments: DataRateItem = None
+        self.xta_updates: DataRateItem = None
+        self.xta_bytes_1min: DataRateItem = None
+        self.xta_segments_1min: DataRateItem = None
+        self.xta_updates_1min: DataRateItem = None
+        self.xta_bytes_5min: DataRateItem = None
+        self.xta_segments_5min: DataRateItem = None
+        self.xta_updates_5min: DataRateItem = None
+        self.rcv_total_bytes: int = None
+        self.rcv_total_segments: int = None
+        self.rcv_total_updates: int = None
+        self.rcv_bytes: DataRateItem = None
+        self.rcv_segments: DataRateItem = None
+        self.rcv_updates: DataRateItem = None
+        self.rcv_bytes_1min: DataRateItem = None
+        self.rcv_segments_1min: DataRateItem = None
+        self.rcv_updates_1min: DataRateItem = None
+        self.rcv_bytes_5min: DataRateItem = None
+        self.rcv_segments_5min: DataRateItem = None
+        self.rcv_updates_5min: DataRateItem = None
+    def set_mc_address(self, value: str):
+        self.mc_address = value
 
-    def getMcaAddress( self ) -> str:
-        return self.mcaAddress
-    def setMcaPort( self, value: int ):
-        self.mcaPort = value
+    def get_mc_address(self) -> str:
+        return self.mc_address
+    def set_mc_port(self, value: int):
+        self.mc_port = value
 
-    def getMcaPort( self ) -> int:
-        return self.mcaPort
-    def setConnectionId( self, value: int ):
-        self.connectionId = value
+    def get_mc_port(self) -> int:
+        return self.mc_port
+    def set_connection_id(self, value: int):
+        self.connection_id = value
 
-    def getConnectionId( self ) -> int:
-        return self.connectionId
-    def setPublishers( self, value: int ):
+    def get_connection_id(self) -> int:
+        return self.connection_id
+    def set_publishers(self, value: int):
         self.publishers = value
 
-    def getPublishers( self ) -> int:
+    def get_publishers(self) -> int:
         return self.publishers
-    def setSubscribers( self, value: int ):
+    def set_subscribers(self, value: int):
         self.subscribers = value
 
-    def getSubscribers( self ) -> int:
+    def get_subscribers(self) -> int:
         return self.subscribers
-    def setSubscriptions( self, value: int ):
+    def set_subscriptions(self, value: int):
         self.subscriptions = value
 
-    def getSubscriptions( self ) -> int:
+    def get_subscriptions(self) -> int:
         return self.subscriptions
-    def setInRetransmissions( self, value: int ):
-        self.inRetransmissions = value
+    def set_in_retransmissions(self, value: int):
+        self.in_retransmissions = value
 
-    def getInRetransmissions( self ) -> int:
-        return self.inRetransmissions
-    def setOutRetransmissions( self, value: int ):
-        self.outRetransmissions = value
+    def get_in_retransmissions(self) -> int:
+        return self.in_retransmissions
+    def set_out_retransmissions(self, value: int):
+        self.out_retransmissions = value
 
-    def getOutRetransmissions( self ) -> int:
-        return self.outRetransmissions
-    def setDeliverUpdateQueue( self, value: QueueSizeItem ):
-        self.deliverUpdateQueue = value
+    def get_out_retransmissions(self) -> int:
+        return self.out_retransmissions
+    def set_deliver_update_queue(self, value: QueueSizeItem):
+        self.deliver_update_queue = value
 
-    def getDeliverUpdateQueue( self ) -> QueueSizeItem:
-        return self.deliverUpdateQueue
-    def setXtaTotalBytes( self, value: int ):
-        self.xtaTotalBytes = value
+    def get_deliver_update_queue(self) -> QueueSizeItem:
+        return self.deliver_update_queue
+    def set_xta_total_bytes(self, value: int):
+        self.xta_total_bytes = value
 
-    def getXtaTotalBytes( self ) -> int:
-        return self.xtaTotalBytes
-    def setXtaTotalSegments( self, value: int ):
-        self.xtaTotalSegments = value
+    def get_xta_total_bytes(self) -> int:
+        return self.xta_total_bytes
+    def set_xta_total_segments(self, value: int):
+        self.xta_total_segments = value
 
-    def getXtaTotalSegments( self ) -> int:
-        return self.xtaTotalSegments
-    def setXtaTotalUpdates( self, value: int ):
-        self.xtaTotalUpdates = value
+    def get_xta_total_segments(self) -> int:
+        return self.xta_total_segments
+    def set_xta_total_updates(self, value: int):
+        self.xta_total_updates = value
 
-    def getXtaTotalUpdates( self ) -> int:
-        return self.xtaTotalUpdates
-    def setXtaBytes( self, value: DataRateItem ):
-        self.xtaBytes = value
+    def get_xta_total_updates(self) -> int:
+        return self.xta_total_updates
+    def set_xta_bytes(self, value: DataRateItem):
+        self.xta_bytes = value
 
-    def getXtaBytes( self ) -> DataRateItem:
-        return self.xtaBytes
-    def setXtaSegments( self, value: DataRateItem ):
+    def get_xta_bytes(self) -> DataRateItem:
+        return self.xta_bytes
+    def set_xtaSegments(self, value: DataRateItem):
         self.xtaSegments = value
 
-    def getXtaSegments( self ) -> DataRateItem:
+    def get_xtaSegments(self) -> DataRateItem:
         return self.xtaSegments
-    def setXtaUpdates( self, value: DataRateItem ):
-        self.xtaUpdates = value
+    def set_xta_updates(self, value: DataRateItem):
+        self.xta_updates = value
 
-    def getXtaUpdates( self ) -> DataRateItem:
-        return self.xtaUpdates
-    def setXtaBytes1min( self, value: DataRateItem ):
-        self.xtaBytes1min = value
+    def get_xta_updates(self) -> DataRateItem:
+        return self.xta_updates
+    def set_xta_bytes_1min(self, value: DataRateItem):
+        self.xta_bytes_1min = value
 
-    def getXtaBytes1min( self ) -> DataRateItem:
-        return self.xtaBytes1min
-    def setXtaSegments1min( self, value: DataRateItem ):
-        self.xtaSegments1min = value
+    def get_xta_bytes_1min(self) -> DataRateItem:
+        return self.xta_bytes_1min
+    def set_xta_segments_1min(self, value: DataRateItem):
+        self.xta_segments_1min = value
 
-    def getXtaSegments1min( self ) -> DataRateItem:
-        return self.xtaSegments1min
-    def setXtaUpdates1min( self, value: DataRateItem ):
-        self.xtaUpdates1min = value
+    def get_xta_segments_1min(self) -> DataRateItem:
+        return self.xta_segments_1min
+    def set_xta_updates_1min(self, value: DataRateItem):
+        self.xta_updates_1min = value
 
-    def getXtaUpdates1min( self ) -> DataRateItem:
-        return self.xtaUpdates1min
-    def setXtaBytes5min( self, value: DataRateItem ):
-        self.xtaBytes5min = value
+    def get_xta_updates_1min(self) -> DataRateItem:
+        return self.xta_updates_1min
+    def set_xta_bytes_5min(self, value: DataRateItem):
+        self.xta_bytes_5min = value
 
-    def getXtaBytes5min( self ) -> DataRateItem:
-        return self.xtaBytes5min
-    def setXtaSegments5min( self, value: DataRateItem ):
-        self.xtaSegments5min = value
+    def get_xta_bytes_5min(self) -> DataRateItem:
+        return self.xta_bytes_5min
+    def set_xta_segments_5min(self, value: DataRateItem):
+        self.xta_segments_5min = value
 
-    def getXtaSegments5min( self ) -> DataRateItem:
-        return self.xtaSegments5min
-    def setXtaUpdates5min( self, value: DataRateItem ):
-        self.xtaUpdates5min = value
+    def get_xta_segments_5min(self) -> DataRateItem:
+        return self.xta_segments_5min
+    def set_xta_updates_5min(self, value: DataRateItem):
+        self.xta_updates_5min = value
 
-    def getXtaUpdates5min( self ) -> DataRateItem:
-        return self.xtaUpdates5min
-    def setRcvTotalBytes( self, value: int ):
-        self.rcvTotalBytes = value
+    def get_xta_updates_5min(self) -> DataRateItem:
+        return self.xta_updates_5min
+    def set_rcv_total_bytes(self, value: int):
+        self.rcv_total_bytes = value
 
-    def getRcvTotalBytes( self ) -> int:
-        return self.rcvTotalBytes
-    def setRcvTotalSegments( self, value: int ):
-        self.rcvTotalSegments = value
+    def get_rcv_total_bytes(self) -> int:
+        return self.rcv_total_bytes
+    def set_rcv_total_segments(self, value: int):
+        self.rcv_total_segments = value
 
-    def getRcvTotalSegments( self ) -> int:
-        return self.rcvTotalSegments
-    def setRcvTotalUpdates( self, value: int ):
-        self.rcvTotalUpdates = value
+    def get_rcv_total_segments(self) -> int:
+        return self.rcv_total_segments
+    def set_rcv_total_updates(self, value: int):
+        self.rcv_total_updates = value
 
-    def getRcvTotalUpdates( self ) -> int:
-        return self.rcvTotalUpdates
-    def setRcvBytes( self, value: DataRateItem ):
-        self.rcvBytes = value
+    def get_rcv_total_updates(self) -> int:
+        return self.rcv_total_updates
+    def set_rcv_bytes(self, value: DataRateItem):
+        self.rcv_bytes = value
 
-    def getRcvBytes( self ) -> DataRateItem:
-        return self.rcvBytes
-    def setRcvSegments( self, value: DataRateItem ):
-        self.rcvSegments = value
+    def get_rcv_bytes(self) -> DataRateItem:
+        return self.rcv_bytes
+    def set_rcv_segments(self, value: DataRateItem):
+        self.rcv_segments = value
 
-    def getRcvSegments( self ) -> DataRateItem:
-        return self.rcvSegments
-    def setRcvUpdates( self, value: DataRateItem ):
-        self.rcvUpdates = value
+    def get_rcv_segments(self) -> DataRateItem:
+        return self.rcv_segments
+    def set_rcv_updates(self, value: DataRateItem):
+        self.rcv_updates = value
 
-    def getRcvUpdates( self ) -> DataRateItem:
-        return self.rcvUpdates
-    def setRcvBytes1min( self, value: DataRateItem ):
-        self.rcvBytes1min = value
+    def get_rcv_updates(self) -> DataRateItem:
+        return self.rcv_updates
+    def set_rcv_bytes_1min(self, value: DataRateItem):
+        self.rcv_bytes_1min = value
 
-    def getRcvBytes1min( self ) -> DataRateItem:
-        return self.rcvBytes1min
-    def setRcvSegments1min( self, value: DataRateItem ):
-        self.rcvSegments1min = value
+    def get_rcv_bytes_1min(self) -> DataRateItem:
+        return self.rcv_bytes_1min
+    def set_rcv_segments_1min(self, value: DataRateItem):
+        self.rcv_segments_1min = value
 
-    def getRcvSegments1min( self ) -> DataRateItem:
-        return self.rcvSegments1min
-    def setRcvUpdates1min( self, value: DataRateItem ):
-        self.rcvUpdates1min = value
+    def get_rcv_segments_1min(self) -> DataRateItem:
+        return self.rcv_segments_1min
+    def set_rcv_updates_1min(self, value: DataRateItem):
+        self.rcv_updates_1min = value
 
-    def getRcvUpdates1min( self ) -> DataRateItem:
-        return self.rcvUpdates1min
-    def setRcvBytes5min( self, value: DataRateItem ):
-        self.rcvBytes5min = value
+    def get_rcv_updates_1min(self) -> DataRateItem:
+        return self.rcv_updates_1min
+    def set_rcv_bytes_5min(self, value: DataRateItem):
+        self.rcv_bytes_5min = value
 
-    def getRcvBytes5min( self ) -> DataRateItem:
-        return self.rcvBytes5min
-    def setRcvSegments5min( self, value: DataRateItem ):
-        self.rcvSegments5min = value
+    def get_rcv_bytes_5min(self) -> DataRateItem:
+        return self.rcv_bytes_5min
+    def set_rcv_segments_5min(self, value: DataRateItem):
+        self.rcv_segments_5min = value
 
-    def getRcvSegments5min( self ) -> DataRateItem:
-        return self.rcvSegments5min
-    def setRcvUpdates5min( self, value: DataRateItem ):
-        self.rcvUpdates5min = value
+    def get_rcv_segments_5min(self) -> DataRateItem:
+        return self.rcv_segments_5min
+    def set_rcv_updates_5min(self, value: DataRateItem):
+        self.rcv_updates_5min = value
 
-    def getRcvUpdates5min( self ) -> DataRateItem:
-        return self.rcvUpdates5min
+    def get_rcv_updates_5min(self) -> DataRateItem:
+        return self.rcv_updates_5min
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -1088,72 +1122,72 @@ class ConnectionEntry( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: mcaAddress Type: str List: false
-        _encoder.addString( self.mcaAddress )
-        # Encode Attribute: mcaPort Type: int List: false
-        _encoder.addInt( self.mcaPort )
-        # Encode Attribute: connectionId Type: long List: false
-        _encoder.addLong( self.connectionId )
+        # Encode Attribute: mc_address Type: str List: false
+        _encoder.addString( self.mc_address )
+        # Encode Attribute: mc_port Type: int List: false
+        _encoder.addInt( self.mc_port )
+        # Encode Attribute: connection_id Type: long List: false
+        _encoder.addLong( self.connection_id )
         # Encode Attribute: publishers Type: int List: false
         _encoder.addInt( self.publishers )
         # Encode Attribute: subscribers Type: int List: false
         _encoder.addInt( self.subscribers )
         # Encode Attribute: subscriptions Type: int List: false
         _encoder.addInt( self.subscriptions )
-        # Encode Attribute: inRetransmissions Type: int List: false
-        _encoder.addInt( self.inRetransmissions )
-        # Encode Attribute: outRetransmissions Type: int List: false
-        _encoder.addInt( self.outRetransmissions )
-        # Encode Attribute: deliverUpdateQueue Type: QueueSizeItem List: false
-        _encoder.addMessage( self.deliverUpdateQueue )
-        # Encode Attribute: xtaTotalBytes Type: long List: false
-        _encoder.addLong( self.xtaTotalBytes )
-        # Encode Attribute: xtaTotalSegments Type: long List: false
-        _encoder.addLong( self.xtaTotalSegments )
-        # Encode Attribute: xtaTotalUpdates Type: long List: false
-        _encoder.addLong( self.xtaTotalUpdates )
-        # Encode Attribute: xtaBytes Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaBytes )
+        # Encode Attribute: in_retransmissions Type: int List: false
+        _encoder.addInt( self.in_retransmissions )
+        # Encode Attribute: out_retransmissions Type: int List: false
+        _encoder.addInt( self.out_retransmissions )
+        # Encode Attribute: deliver_update_queue Type: QueueSizeItem List: false
+        _encoder.addMessage( self.deliver_update_queue )
+        # Encode Attribute: xta_total_bytes Type: long List: false
+        _encoder.addLong( self.xta_total_bytes )
+        # Encode Attribute: xta_total_segments Type: long List: false
+        _encoder.addLong( self.xta_total_segments )
+        # Encode Attribute: xta_total_updates Type: long List: false
+        _encoder.addLong( self.xta_total_updates )
+        # Encode Attribute: xta_bytes Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_bytes )
         # Encode Attribute: xtaSegments Type: DataRateItem List: false
         _encoder.addMessage( self.xtaSegments )
-        # Encode Attribute: xtaUpdates Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaUpdates )
-        # Encode Attribute: xtaBytes1min Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaBytes1min )
-        # Encode Attribute: xtaSegments1min Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaSegments1min )
-        # Encode Attribute: xtaUpdates1min Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaUpdates1min )
-        # Encode Attribute: xtaBytes5min Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaBytes5min )
-        # Encode Attribute: xtaSegments5min Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaSegments5min )
-        # Encode Attribute: xtaUpdates5min Type: DataRateItem List: false
-        _encoder.addMessage( self.xtaUpdates5min )
-        # Encode Attribute: rcvTotalBytes Type: long List: false
-        _encoder.addLong( self.rcvTotalBytes )
-        # Encode Attribute: rcvTotalSegments Type: long List: false
-        _encoder.addLong( self.rcvTotalSegments )
-        # Encode Attribute: rcvTotalUpdates Type: long List: false
-        _encoder.addLong( self.rcvTotalUpdates )
-        # Encode Attribute: rcvBytes Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvBytes )
-        # Encode Attribute: rcvSegments Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvSegments )
-        # Encode Attribute: rcvUpdates Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvUpdates )
-        # Encode Attribute: rcvBytes1min Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvBytes1min )
-        # Encode Attribute: rcvSegments1min Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvSegments1min )
-        # Encode Attribute: rcvUpdates1min Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvUpdates1min )
-        # Encode Attribute: rcvBytes5min Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvBytes5min )
-        # Encode Attribute: rcvSegments5min Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvSegments5min )
-        # Encode Attribute: rcvUpdates5min Type: DataRateItem List: false
-        _encoder.addMessage( self.rcvUpdates5min )
+        # Encode Attribute: xta_updates Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_updates )
+        # Encode Attribute: xta_bytes_1min Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_bytes_1min )
+        # Encode Attribute: xta_segments_1min Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_segments_1min )
+        # Encode Attribute: xta_updates_1min Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_updates_1min )
+        # Encode Attribute: xta_bytes_5min Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_bytes_5min )
+        # Encode Attribute: xta_segments_5min Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_segments_5min )
+        # Encode Attribute: xta_updates_5min Type: DataRateItem List: false
+        _encoder.addMessage( self.xta_updates_5min )
+        # Encode Attribute: rcv_total_bytes Type: long List: false
+        _encoder.addLong( self.rcv_total_bytes )
+        # Encode Attribute: rcv_total_segments Type: long List: false
+        _encoder.addLong( self.rcv_total_segments )
+        # Encode Attribute: rcv_total_updates Type: long List: false
+        _encoder.addLong( self.rcv_total_updates )
+        # Encode Attribute: rcv_bytes Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_bytes )
+        # Encode Attribute: rcv_segments Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_segments )
+        # Encode Attribute: rcv_updates Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_updates )
+        # Encode Attribute: rcv_bytes_1min Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_bytes_1min )
+        # Encode Attribute: rcv_segments_1min Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_segments_1min )
+        # Encode Attribute: rcv_updates_1min Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_updates_1min )
+        # Encode Attribute: rcv_bytes_5min Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_bytes_5min )
+        # Encode Attribute: rcv_segments_5min Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_segments_5min )
+        # Encode Attribute: rcv_updates_5min Type: DataRateItem List: false
+        _encoder.addMessage( self.rcv_updates_5min )
         return _encoder.get_bytes()
 
 
@@ -1162,14 +1196,14 @@ class ConnectionEntry( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: mcaAddress Type:str List: false
-        self.mcaAddress = _decoder.getString()
+        #Decode Attribute: mc_address Type:str List: false
+        self.mc_address = _decoder.getString()
         
-        #Decode Attribute: mcaPort Type:int List: false
-        self.mcaPort = _decoder.getInt()
+        #Decode Attribute: mc_port Type:int List: false
+        self.mc_port = _decoder.getInt()
         
-        #Decode Attribute: connectionId Type:long List: false
-        self.connectionId = _decoder.getLong()
+        #Decode Attribute: connection_id Type:long List: false
+        self.connection_id = _decoder.getLong()
         
         #Decode Attribute: publishers Type:int List: false
         self.publishers = _decoder.getInt()
@@ -1180,86 +1214,86 @@ class ConnectionEntry( MessageBase ):
         #Decode Attribute: subscriptions Type:int List: false
         self.subscriptions = _decoder.getInt()
         
-        #Decode Attribute: inRetransmissions Type:int List: false
-        self.inRetransmissions = _decoder.getInt()
+        #Decode Attribute: in_retransmissions Type:int List: false
+        self.in_retransmissions = _decoder.getInt()
         
-        #Decode Attribute: outRetransmissions Type:int List: false
-        self.outRetransmissions = _decoder.getInt()
+        #Decode Attribute: out_retransmissions Type:int List: false
+        self.out_retransmissions = _decoder.getInt()
         
-        #Decode Attribute: deliverUpdateQueue Type:QueueSizeItem List: false
-        self.deliverUpdateQueue = _decoder.getMessage()
+        #Decode Attribute: deliver_update_queue Type:QueueSizeItem List: false
+        self.deliver_update_queue = _decoder.getMessage()
         
-        #Decode Attribute: xtaTotalBytes Type:long List: false
-        self.xtaTotalBytes = _decoder.getLong()
+        #Decode Attribute: xta_total_bytes Type:long List: false
+        self.xta_total_bytes = _decoder.getLong()
         
-        #Decode Attribute: xtaTotalSegments Type:long List: false
-        self.xtaTotalSegments = _decoder.getLong()
+        #Decode Attribute: xta_total_segments Type:long List: false
+        self.xta_total_segments = _decoder.getLong()
         
-        #Decode Attribute: xtaTotalUpdates Type:long List: false
-        self.xtaTotalUpdates = _decoder.getLong()
+        #Decode Attribute: xta_total_updates Type:long List: false
+        self.xta_total_updates = _decoder.getLong()
         
-        #Decode Attribute: xtaBytes Type:DataRateItem List: false
-        self.xtaBytes = _decoder.getMessage()
+        #Decode Attribute: xta_bytes Type:DataRateItem List: false
+        self.xta_bytes = _decoder.getMessage()
         
         #Decode Attribute: xtaSegments Type:DataRateItem List: false
         self.xtaSegments = _decoder.getMessage()
         
-        #Decode Attribute: xtaUpdates Type:DataRateItem List: false
-        self.xtaUpdates = _decoder.getMessage()
+        #Decode Attribute: xta_updates Type:DataRateItem List: false
+        self.xta_updates = _decoder.getMessage()
         
-        #Decode Attribute: xtaBytes1min Type:DataRateItem List: false
-        self.xtaBytes1min = _decoder.getMessage()
+        #Decode Attribute: xta_bytes_1min Type:DataRateItem List: false
+        self.xta_bytes_1min = _decoder.getMessage()
         
-        #Decode Attribute: xtaSegments1min Type:DataRateItem List: false
-        self.xtaSegments1min = _decoder.getMessage()
+        #Decode Attribute: xta_segments_1min Type:DataRateItem List: false
+        self.xta_segments_1min = _decoder.getMessage()
         
-        #Decode Attribute: xtaUpdates1min Type:DataRateItem List: false
-        self.xtaUpdates1min = _decoder.getMessage()
+        #Decode Attribute: xta_updates_1min Type:DataRateItem List: false
+        self.xta_updates_1min = _decoder.getMessage()
         
-        #Decode Attribute: xtaBytes5min Type:DataRateItem List: false
-        self.xtaBytes5min = _decoder.getMessage()
+        #Decode Attribute: xta_bytes_5min Type:DataRateItem List: false
+        self.xta_bytes_5min = _decoder.getMessage()
         
-        #Decode Attribute: xtaSegments5min Type:DataRateItem List: false
-        self.xtaSegments5min = _decoder.getMessage()
+        #Decode Attribute: xta_segments_5min Type:DataRateItem List: false
+        self.xta_segments_5min = _decoder.getMessage()
         
-        #Decode Attribute: xtaUpdates5min Type:DataRateItem List: false
-        self.xtaUpdates5min = _decoder.getMessage()
+        #Decode Attribute: xta_updates_5min Type:DataRateItem List: false
+        self.xta_updates_5min = _decoder.getMessage()
         
-        #Decode Attribute: rcvTotalBytes Type:long List: false
-        self.rcvTotalBytes = _decoder.getLong()
+        #Decode Attribute: rcv_total_bytes Type:long List: false
+        self.rcv_total_bytes = _decoder.getLong()
         
-        #Decode Attribute: rcvTotalSegments Type:long List: false
-        self.rcvTotalSegments = _decoder.getLong()
+        #Decode Attribute: rcv_total_segments Type:long List: false
+        self.rcv_total_segments = _decoder.getLong()
         
-        #Decode Attribute: rcvTotalUpdates Type:long List: false
-        self.rcvTotalUpdates = _decoder.getLong()
+        #Decode Attribute: rcv_total_updates Type:long List: false
+        self.rcv_total_updates = _decoder.getLong()
         
-        #Decode Attribute: rcvBytes Type:DataRateItem List: false
-        self.rcvBytes = _decoder.getMessage()
+        #Decode Attribute: rcv_bytes Type:DataRateItem List: false
+        self.rcv_bytes = _decoder.getMessage()
         
-        #Decode Attribute: rcvSegments Type:DataRateItem List: false
-        self.rcvSegments = _decoder.getMessage()
+        #Decode Attribute: rcv_segments Type:DataRateItem List: false
+        self.rcv_segments = _decoder.getMessage()
         
-        #Decode Attribute: rcvUpdates Type:DataRateItem List: false
-        self.rcvUpdates = _decoder.getMessage()
+        #Decode Attribute: rcv_updates Type:DataRateItem List: false
+        self.rcv_updates = _decoder.getMessage()
         
-        #Decode Attribute: rcvBytes1min Type:DataRateItem List: false
-        self.rcvBytes1min = _decoder.getMessage()
+        #Decode Attribute: rcv_bytes_1min Type:DataRateItem List: false
+        self.rcv_bytes_1min = _decoder.getMessage()
         
-        #Decode Attribute: rcvSegments1min Type:DataRateItem List: false
-        self.rcvSegments1min = _decoder.getMessage()
+        #Decode Attribute: rcv_segments_1min Type:DataRateItem List: false
+        self.rcv_segments_1min = _decoder.getMessage()
         
-        #Decode Attribute: rcvUpdates1min Type:DataRateItem List: false
-        self.rcvUpdates1min = _decoder.getMessage()
+        #Decode Attribute: rcv_updates_1min Type:DataRateItem List: false
+        self.rcv_updates_1min = _decoder.getMessage()
         
-        #Decode Attribute: rcvBytes5min Type:DataRateItem List: false
-        self.rcvBytes5min = _decoder.getMessage()
+        #Decode Attribute: rcv_bytes_5min Type:DataRateItem List: false
+        self.rcv_bytes_5min = _decoder.getMessage()
         
-        #Decode Attribute: rcvSegments5min Type:DataRateItem List: false
-        self.rcvSegments5min = _decoder.getMessage()
+        #Decode Attribute: rcv_segments_5min Type:DataRateItem List: false
+        self.rcv_segments_5min = _decoder.getMessage()
         
-        #Decode Attribute: rcvUpdates5min Type:DataRateItem List: false
-        self.rcvUpdates5min = _decoder.getMessage()
+        #Decode Attribute: rcv_updates_5min Type:DataRateItem List: false
+        self.rcv_updates_5min = _decoder.getMessage()
         
 
     def _blanks( self, _indent ) -> str:
@@ -1271,134 +1305,137 @@ class ConnectionEntry( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "mcaAddress : " + str( self.mcaAddress) + "\n")
-        _buffer.write(self._blanks( _indent ) + "mcaPort : " + str( self.mcaPort) + "\n")
-        _buffer.write(self._blanks( _indent ) + "connectionId : " + str( self.connectionId) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_address : " + str( self.mc_address) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_port : " + str( self.mc_port) + "\n")
+        _buffer.write(self._blanks( _indent ) + "connection_id : " + str( self.connection_id) + "\n")
         _buffer.write(self._blanks( _indent ) + "publishers : " + str( self.publishers) + "\n")
         _buffer.write(self._blanks( _indent ) + "subscribers : " + str( self.subscribers) + "\n")
         _buffer.write(self._blanks( _indent ) + "subscriptions : " + str( self.subscriptions) + "\n")
-        _buffer.write(self._blanks( _indent ) + "inRetransmissions : " + str( self.inRetransmissions) + "\n")
-        _buffer.write(self._blanks( _indent ) + "outRetransmissions : " + str( self.outRetransmissions) + "\n")
-        if self.deliverUpdateQueue is None:
-           _buffer.write(self._blanks( _indent ) + "deliverUpdateQueue : None \n")
+        _buffer.write(self._blanks( _indent ) + "in_retransmissions : " + str( self.in_retransmissions) + "\n")
+        _buffer.write(self._blanks( _indent ) + "out_retransmissions : " + str( self.out_retransmissions) + "\n")
+        if self.deliver_update_queue is None:
+           _buffer.write(self._blanks( _indent ) + "deliver_update_queue : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "deliverUpdateQueue : \n" + self.deliverUpdateQueue.toString( _indent + 2) + "\n")
-        _buffer.write(self._blanks( _indent ) + "xtaTotalBytes : " + str( self.xtaTotalBytes) + "\n")
-        _buffer.write(self._blanks( _indent ) + "xtaTotalSegments : " + str( self.xtaTotalSegments) + "\n")
-        _buffer.write(self._blanks( _indent ) + "xtaTotalUpdates : " + str( self.xtaTotalUpdates) + "\n")
-        if self.xtaBytes is None:
-           _buffer.write(self._blanks( _indent ) + "xtaBytes : None \n")
+           _buffer.write(self._blanks( _indent ) + "deliver_update_queue : \n" + self.deliver_update_queue.toString( _indent + 2) + "\n")
+        _buffer.write(self._blanks( _indent ) + "xta_total_bytes : " + str( self.xta_total_bytes) + "\n")
+        _buffer.write(self._blanks( _indent ) + "xta_total_segments : " + str( self.xta_total_segments) + "\n")
+        _buffer.write(self._blanks( _indent ) + "xta_total_updates : " + str( self.xta_total_updates) + "\n")
+        if self.xta_bytes is None:
+           _buffer.write(self._blanks( _indent ) + "xta_bytes : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaBytes : \n" + self.xtaBytes.toString( _indent + 2) + "\n")
+           _buffer.write(self._blanks( _indent ) + "xta_bytes : \n" + self.xta_bytes.toString( _indent + 2) + "\n")
         if self.xtaSegments is None:
            _buffer.write(self._blanks( _indent ) + "xtaSegments : None \n")
         else:
                     
            _buffer.write(self._blanks( _indent ) + "xtaSegments : \n" + self.xtaSegments.toString( _indent + 2) + "\n")
-        if self.xtaUpdates is None:
-           _buffer.write(self._blanks( _indent ) + "xtaUpdates : None \n")
+        if self.xta_updates is None:
+           _buffer.write(self._blanks( _indent ) + "xta_updates : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaUpdates : \n" + self.xtaUpdates.toString( _indent + 2) + "\n")
-        if self.xtaBytes1min is None:
-           _buffer.write(self._blanks( _indent ) + "xtaBytes1min : None \n")
+           _buffer.write(self._blanks( _indent ) + "xta_updates : \n" + self.xta_updates.toString( _indent + 2) + "\n")
+        if self.xta_bytes_1min is None:
+           _buffer.write(self._blanks( _indent ) + "xta_bytes_1min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaBytes1min : \n" + self.xtaBytes1min.toString( _indent + 2) + "\n")
-        if self.xtaSegments1min is None:
-           _buffer.write(self._blanks( _indent ) + "xtaSegments1min : None \n")
+           _buffer.write(self._blanks( _indent ) + "xta_bytes_1min : \n" + self.xta_bytes_1min.toString( _indent + 2) + "\n")
+        if self.xta_segments_1min is None:
+           _buffer.write(self._blanks( _indent ) + "xta_segments_1min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaSegments1min : \n" + self.xtaSegments1min.toString( _indent + 2) + "\n")
-        if self.xtaUpdates1min is None:
-           _buffer.write(self._blanks( _indent ) + "xtaUpdates1min : None \n")
+           _buffer.write(self._blanks( _indent ) + "xta_segments_1min : \n" + self.xta_segments_1min.toString( _indent + 2) + "\n")
+        if self.xta_updates_1min is None:
+           _buffer.write(self._blanks( _indent ) + "xta_updates_1min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaUpdates1min : \n" + self.xtaUpdates1min.toString( _indent + 2) + "\n")
-        if self.xtaBytes5min is None:
-           _buffer.write(self._blanks( _indent ) + "xtaBytes5min : None \n")
+           _buffer.write(self._blanks( _indent ) + "xta_updates_1min : \n" + self.xta_updates_1min.toString( _indent + 2) + "\n")
+        if self.xta_bytes_5min is None:
+           _buffer.write(self._blanks( _indent ) + "xta_bytes_5min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaBytes5min : \n" + self.xtaBytes5min.toString( _indent + 2) + "\n")
-        if self.xtaSegments5min is None:
-           _buffer.write(self._blanks( _indent ) + "xtaSegments5min : None \n")
+           _buffer.write(self._blanks( _indent ) + "xta_bytes_5min : \n" + self.xta_bytes_5min.toString( _indent + 2) + "\n")
+        if self.xta_segments_5min is None:
+           _buffer.write(self._blanks( _indent ) + "xta_segments_5min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaSegments5min : \n" + self.xtaSegments5min.toString( _indent + 2) + "\n")
-        if self.xtaUpdates5min is None:
-           _buffer.write(self._blanks( _indent ) + "xtaUpdates5min : None \n")
+           _buffer.write(self._blanks( _indent ) + "xta_segments_5min : \n" + self.xta_segments_5min.toString( _indent + 2) + "\n")
+        if self.xta_updates_5min is None:
+           _buffer.write(self._blanks( _indent ) + "xta_updates_5min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "xtaUpdates5min : \n" + self.xtaUpdates5min.toString( _indent + 2) + "\n")
-        _buffer.write(self._blanks( _indent ) + "rcvTotalBytes : " + str( self.rcvTotalBytes) + "\n")
-        _buffer.write(self._blanks( _indent ) + "rcvTotalSegments : " + str( self.rcvTotalSegments) + "\n")
-        _buffer.write(self._blanks( _indent ) + "rcvTotalUpdates : " + str( self.rcvTotalUpdates) + "\n")
-        if self.rcvBytes is None:
-           _buffer.write(self._blanks( _indent ) + "rcvBytes : None \n")
+           _buffer.write(self._blanks( _indent ) + "xta_updates_5min : \n" + self.xta_updates_5min.toString( _indent + 2) + "\n")
+        _buffer.write(self._blanks( _indent ) + "rcv_total_bytes : " + str( self.rcv_total_bytes) + "\n")
+        _buffer.write(self._blanks( _indent ) + "rcv_total_segments : " + str( self.rcv_total_segments) + "\n")
+        _buffer.write(self._blanks( _indent ) + "rcv_total_updates : " + str( self.rcv_total_updates) + "\n")
+        if self.rcv_bytes is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_bytes : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvBytes : \n" + self.rcvBytes.toString( _indent + 2) + "\n")
-        if self.rcvSegments is None:
-           _buffer.write(self._blanks( _indent ) + "rcvSegments : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_bytes : \n" + self.rcv_bytes.toString( _indent + 2) + "\n")
+        if self.rcv_segments is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_segments : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvSegments : \n" + self.rcvSegments.toString( _indent + 2) + "\n")
-        if self.rcvUpdates is None:
-           _buffer.write(self._blanks( _indent ) + "rcvUpdates : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_segments : \n" + self.rcv_segments.toString( _indent + 2) + "\n")
+        if self.rcv_updates is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_updates : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvUpdates : \n" + self.rcvUpdates.toString( _indent + 2) + "\n")
-        if self.rcvBytes1min is None:
-           _buffer.write(self._blanks( _indent ) + "rcvBytes1min : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_updates : \n" + self.rcv_updates.toString( _indent + 2) + "\n")
+        if self.rcv_bytes_1min is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_bytes_1min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvBytes1min : \n" + self.rcvBytes1min.toString( _indent + 2) + "\n")
-        if self.rcvSegments1min is None:
-           _buffer.write(self._blanks( _indent ) + "rcvSegments1min : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_bytes_1min : \n" + self.rcv_bytes_1min.toString( _indent + 2) + "\n")
+        if self.rcv_segments_1min is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_segments_1min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvSegments1min : \n" + self.rcvSegments1min.toString( _indent + 2) + "\n")
-        if self.rcvUpdates1min is None:
-           _buffer.write(self._blanks( _indent ) + "rcvUpdates1min : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_segments_1min : \n" + self.rcv_segments_1min.toString( _indent + 2) + "\n")
+        if self.rcv_updates_1min is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_updates_1min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvUpdates1min : \n" + self.rcvUpdates1min.toString( _indent + 2) + "\n")
-        if self.rcvBytes5min is None:
-           _buffer.write(self._blanks( _indent ) + "rcvBytes5min : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_updates_1min : \n" + self.rcv_updates_1min.toString( _indent + 2) + "\n")
+        if self.rcv_bytes_5min is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_bytes_5min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvBytes5min : \n" + self.rcvBytes5min.toString( _indent + 2) + "\n")
-        if self.rcvSegments5min is None:
-           _buffer.write(self._blanks( _indent ) + "rcvSegments5min : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_bytes_5min : \n" + self.rcv_bytes_5min.toString( _indent + 2) + "\n")
+        if self.rcv_segments_5min is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_segments_5min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvSegments5min : \n" + self.rcvSegments5min.toString( _indent + 2) + "\n")
-        if self.rcvUpdates5min is None:
-           _buffer.write(self._blanks( _indent ) + "rcvUpdates5min : None \n")
+           _buffer.write(self._blanks( _indent ) + "rcv_segments_5min : \n" + self.rcv_segments_5min.toString( _indent + 2) + "\n")
+        if self.rcv_updates_5min is None:
+           _buffer.write(self._blanks( _indent ) + "rcv_updates_5min : None \n")
         else:
                     
-           _buffer.write(self._blanks( _indent ) + "rcvUpdates5min : \n" + self.rcvUpdates5min.toString( _indent + 2) + "\n")
+           _buffer.write(self._blanks( _indent ) + "rcv_updates_5min : \n" + self.rcv_updates_5min.toString( _indent + 2) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreConnectionRqst( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreConnectionRqst"
         
-        self.distributorId: int
-        self.connectionId: int
-    def setDistributorId( self, value: int ):
-        self.distributorId = value
+        self.distributor_id: int = None
+        self.connection_id: int = None
+    def set_distributor_id(self, value: int):
+        self.distributor_id = value
 
-    def getDistributorId( self ) -> int:
-        return self.distributorId
-    def setConnectionId( self, value: int ):
-        self.connectionId = value
+    def get_distributor_id(self) -> int:
+        return self.distributor_id
+    def set_connection_id(self, value: int):
+        self.connection_id = value
 
-    def getConnectionId( self ) -> int:
-        return self.connectionId
+    def get_connection_id(self) -> int:
+        return self.connection_id
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -1409,10 +1446,10 @@ class DistExploreConnectionRqst( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: distributorId Type: long List: false
-        _encoder.addLong( self.distributorId )
-        # Encode Attribute: connectionId Type: long List: false
-        _encoder.addLong( self.connectionId )
+        # Encode Attribute: distributor_id Type: long List: false
+        _encoder.addLong( self.distributor_id )
+        # Encode Attribute: connection_id Type: long List: false
+        _encoder.addLong( self.connection_id )
         return _encoder.get_bytes()
 
 
@@ -1421,11 +1458,11 @@ class DistExploreConnectionRqst( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: distributorId Type:long List: false
-        self.distributorId = _decoder.getLong()
+        #Decode Attribute: distributor_id Type:long List: false
+        self.distributor_id = _decoder.getLong()
         
-        #Decode Attribute: connectionId Type:long List: false
-        self.connectionId = _decoder.getLong()
+        #Decode Attribute: connection_id Type:long List: false
+        self.connection_id = _decoder.getLong()
         
 
     def _blanks( self, _indent ) -> str:
@@ -1437,20 +1474,23 @@ class DistExploreConnectionRqst( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "distributorId : " + str( self.distributorId) + "\n")
-        _buffer.write(self._blanks( _indent ) + "connectionId : " + str( self.connectionId) + "\n")
+        _buffer.write(self._blanks( _indent ) + "distributor_id : " + str( self.distributor_id) + "\n")
+        _buffer.write(self._blanks( _indent ) + "connection_id : " + str( self.connection_id) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreConnectionRsp( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreConnectionRsp"
         
-        self.connection: ConnectionEntry
-    def setConnection( self, value: ConnectionEntry ):
+        self.connection: ConnectionEntry = None
+    def set_connection(self, value: ConnectionEntry):
         self.connection = value
 
-    def getConnection( self ) -> ConnectionEntry:
+    def get_connection(self) -> ConnectionEntry:
         return self.connection
 
     def toBytes(self) -> bytearray:
@@ -1491,24 +1531,27 @@ class DistExploreConnectionRsp( MessageBase ):
                     
            _buffer.write(self._blanks( _indent ) + "connection : \n" + self.connection.toString( _indent + 2) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreSubscriptionsRqst( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreSubscriptionsRqst"
         
-        self.distributorId: int
-        self.connectionId: int
-    def setDistributorId( self, value: int ):
-        self.distributorId = value
+        self.distributor_id: int = None
+        self.connection_id: int = None
+    def set_distributor_id(self, value: int):
+        self.distributor_id = value
 
-    def getDistributorId( self ) -> int:
-        return self.distributorId
-    def setConnectionId( self, value: int ):
-        self.connectionId = value
+    def get_distributor_id(self) -> int:
+        return self.distributor_id
+    def set_connection_id(self, value: int):
+        self.connection_id = value
 
-    def getConnectionId( self ) -> int:
-        return self.connectionId
+    def get_connection_id(self) -> int:
+        return self.connection_id
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -1519,10 +1562,10 @@ class DistExploreSubscriptionsRqst( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: distributorId Type: long List: false
-        _encoder.addLong( self.distributorId )
-        # Encode Attribute: connectionId Type: long List: false
-        _encoder.addLong( self.connectionId )
+        # Encode Attribute: distributor_id Type: long List: false
+        _encoder.addLong( self.distributor_id )
+        # Encode Attribute: connection_id Type: long List: false
+        _encoder.addLong( self.connection_id )
         return _encoder.get_bytes()
 
 
@@ -1531,11 +1574,11 @@ class DistExploreSubscriptionsRqst( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: distributorId Type:long List: false
-        self.distributorId = _decoder.getLong()
+        #Decode Attribute: distributor_id Type:long List: false
+        self.distributor_id = _decoder.getLong()
         
-        #Decode Attribute: connectionId Type:long List: false
-        self.connectionId = _decoder.getLong()
+        #Decode Attribute: connection_id Type:long List: false
+        self.connection_id = _decoder.getLong()
         
 
     def _blanks( self, _indent ) -> str:
@@ -1547,32 +1590,35 @@ class DistExploreSubscriptionsRqst( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "distributorId : " + str( self.distributorId) + "\n")
-        _buffer.write(self._blanks( _indent ) + "connectionId : " + str( self.connectionId) + "\n")
+        _buffer.write(self._blanks( _indent ) + "distributor_id : " + str( self.distributor_id) + "\n")
+        _buffer.write(self._blanks( _indent ) + "connection_id : " + str( self.connection_id) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreSubscriptionsRsp( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreSubscriptionsRsp"
         
-        self.mcaAddress: str
-        self.mcaPort: int
-        self.subscriptions: str
-    def setMcaAddress( self, value: str ):
-        self.mcaAddress = value
+        self.mc_address: str = None
+        self.mc_port: int = None
+        self.subscriptions: list = None
+    def set_mc_address(self, value: str):
+        self.mc_address = value
 
-    def getMcaAddress( self ) -> str:
-        return self.mcaAddress
-    def setMcaPort( self, value: int ):
-        self.mcaPort = value
+    def get_mc_address(self) -> str:
+        return self.mc_address
+    def set_mc_port(self, value: int):
+        self.mc_port = value
 
-    def getMcaPort( self ) -> int:
-        return self.mcaPort
-    def setSubscriptions( self, value: str ):
+    def get_mc_port(self) -> int:
+        return self.mc_port
+    def set_subscriptions( self, value: list ):
         self.subscriptions = value
 
-    def getSubscriptions( self ) -> str:
+    def get_subscriptions(self) -> list:
         return self.subscriptions
 
     def toBytes(self) -> bytearray:
@@ -1584,12 +1630,13 @@ class DistExploreSubscriptionsRsp( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: mcaAddress Type: str List: false
-        _encoder.addString( self.mcaAddress )
-        # Encode Attribute: mcaPort Type: int List: false
-        _encoder.addInt( self.mcaPort )
-        # Encode Attribute: subscriptions Type: str List: false
-        _encoder.addString( self.subscriptions )
+        # Encode Attribute: mc_address Type: str List: false
+        _encoder.addString( self.mc_address )
+        # Encode Attribute: mc_port Type: int List: false
+        _encoder.addInt( self.mc_port )
+        # Encode Attribute: subscriptions Type: str List: true
+            # Encode str list
+        MessageAux.addStringList( _encoder, self.subscriptions  )
         return _encoder.get_bytes()
 
 
@@ -1598,15 +1645,14 @@ class DistExploreSubscriptionsRsp( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: mcaAddress Type:str List: false
-        self.mcaAddress = _decoder.getString()
+        #Decode Attribute: mc_address Type:str List: false
+        self.mc_address = _decoder.getString()
         
-        #Decode Attribute: mcaPort Type:int List: false
-        self.mcaPort = _decoder.getInt()
+        #Decode Attribute: mc_port Type:int List: false
+        self.mc_port = _decoder.getInt()
         
-        #Decode Attribute: subscriptions Type:str List: false
-        self.subscriptions = _decoder.getString()
-        
+        #Decode Attribute: subscriptions Type:str List: true
+        self.subscriptions = MessageAux.getStringList( _decoder )
 
     def _blanks( self, _indent ) -> str:
         if _indent == 0:
@@ -1617,28 +1663,31 @@ class DistExploreSubscriptionsRsp( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "mcaAddress : " + str( self.mcaAddress) + "\n")
-        _buffer.write(self._blanks( _indent ) + "mcaPort : " + str( self.mcaPort) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_address : " + str( self.mc_address) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_port : " + str( self.mc_port) + "\n")
         _buffer.write(self._blanks( _indent ) + "subscriptions : " + str( self.subscriptions) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreRetransmissionsRqst( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreRetransmissionsRqst"
         
-        self.distributorId: int
-        self.connectionId: int
-    def setDistributorId( self, value: int ):
-        self.distributorId = value
+        self.distributor_id: int = None
+        self.connection_id: int = None
+    def set_distributor_id(self, value: int):
+        self.distributor_id = value
 
-    def getDistributorId( self ) -> int:
-        return self.distributorId
-    def setConnectionId( self, value: int ):
-        self.connectionId = value
+    def get_distributor_id(self) -> int:
+        return self.distributor_id
+    def set_connection_id(self, value: int):
+        self.connection_id = value
 
-    def getConnectionId( self ) -> int:
-        return self.connectionId
+    def get_connection_id(self) -> int:
+        return self.connection_id
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -1649,10 +1698,10 @@ class DistExploreRetransmissionsRqst( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: distributorId Type: long List: false
-        _encoder.addLong( self.distributorId )
-        # Encode Attribute: connectionId Type: long List: false
-        _encoder.addLong( self.connectionId )
+        # Encode Attribute: distributor_id Type: long List: false
+        _encoder.addLong( self.distributor_id )
+        # Encode Attribute: connection_id Type: long List: false
+        _encoder.addLong( self.connection_id )
         return _encoder.get_bytes()
 
 
@@ -1661,11 +1710,11 @@ class DistExploreRetransmissionsRqst( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: distributorId Type:long List: false
-        self.distributorId = _decoder.getLong()
+        #Decode Attribute: distributor_id Type:long List: false
+        self.distributor_id = _decoder.getLong()
         
-        #Decode Attribute: connectionId Type:long List: false
-        self.connectionId = _decoder.getLong()
+        #Decode Attribute: connection_id Type:long List: false
+        self.connection_id = _decoder.getLong()
         
 
     def _blanks( self, _indent ) -> str:
@@ -1677,57 +1726,60 @@ class DistExploreRetransmissionsRqst( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "distributorId : " + str( self.distributorId) + "\n")
-        _buffer.write(self._blanks( _indent ) + "connectionId : " + str( self.connectionId) + "\n")
+        _buffer.write(self._blanks( _indent ) + "distributor_id : " + str( self.distributor_id) + "\n")
+        _buffer.write(self._blanks( _indent ) + "connection_id : " + str( self.connection_id) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class DistExploreRetransmissonsRsp( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.DistExploreRetransmissonsRsp"
         
-        self.mcaAddress: str
-        self.mcaPort: int
-        self.totalInRqst: int
-        self.totalOutRqst: int
-        self.totalSeenRqst: int
-        self.inHosts: str
-        self.outHosts: str
-    def setMcaAddress( self, value: str ):
-        self.mcaAddress = value
+        self.mc_address: str = None
+        self.mc_port: int = None
+        self.total_in_rqst: int = None
+        self.total_out_rqst: int = None
+        self.total_seen_rqst: int = None
+        self.in_hosts: list = None
+        self.out_hosts: list = None
+    def set_mc_address(self, value: str):
+        self.mc_address = value
 
-    def getMcaAddress( self ) -> str:
-        return self.mcaAddress
-    def setMcaPort( self, value: int ):
-        self.mcaPort = value
+    def get_mc_address(self) -> str:
+        return self.mc_address
+    def set_mc_port(self, value: int):
+        self.mc_port = value
 
-    def getMcaPort( self ) -> int:
-        return self.mcaPort
-    def setTotalInRqst( self, value: int ):
-        self.totalInRqst = value
+    def get_mc_port(self) -> int:
+        return self.mc_port
+    def set_total_in_rqst(self, value: int):
+        self.total_in_rqst = value
 
-    def getTotalInRqst( self ) -> int:
-        return self.totalInRqst
-    def setTotalOutRqst( self, value: int ):
-        self.totalOutRqst = value
+    def get_total_in_rqst(self) -> int:
+        return self.total_in_rqst
+    def set_total_out_rqst(self, value: int):
+        self.total_out_rqst = value
 
-    def getTotalOutRqst( self ) -> int:
-        return self.totalOutRqst
-    def setTotalSeenRqst( self, value: int ):
-        self.totalSeenRqst = value
+    def get_total_out_rqst(self) -> int:
+        return self.total_out_rqst
+    def set_total_seen_rqst(self, value: int):
+        self.total_seen_rqst = value
 
-    def getTotalSeenRqst( self ) -> int:
-        return self.totalSeenRqst
-    def setInHosts( self, value: str ):
-        self.inHosts = value
+    def get_total_seen_rqst(self) -> int:
+        return self.total_seen_rqst
+    def set_in_hosts( self, value: list  ):
+        self.in_hosts = value
 
-    def getInHosts( self ) -> str:
-        return self.inHosts
-    def setOutHosts( self, value: str ):
-        self.outHosts = value
+    def get_in_hosts(self) -> list:
+        return self.in_hosts
+    def set_out_hosts( self, value: list ):
+        self.out_hosts = value
 
-    def getOutHosts( self ) -> str:
-        return self.outHosts
+    def get_out_hosts(self) -> list:
+        return self.out_hosts
 
     def toBytes(self) -> bytearray:
        return self.encode()
@@ -1738,20 +1790,22 @@ class DistExploreRetransmissonsRsp( MessageBase ):
         _encoder.addString( self.className )
 
         
-        # Encode Attribute: mcaAddress Type: str List: false
-        _encoder.addString( self.mcaAddress )
-        # Encode Attribute: mcaPort Type: int List: false
-        _encoder.addInt( self.mcaPort )
-        # Encode Attribute: totalInRqst Type: int List: false
-        _encoder.addInt( self.totalInRqst )
-        # Encode Attribute: totalOutRqst Type: int List: false
-        _encoder.addInt( self.totalOutRqst )
-        # Encode Attribute: totalSeenRqst Type: int List: false
-        _encoder.addInt( self.totalSeenRqst )
-        # Encode Attribute: inHosts Type: str List: false
-        _encoder.addString( self.inHosts )
-        # Encode Attribute: outHosts Type: str List: false
-        _encoder.addString( self.outHosts )
+        # Encode Attribute: mc_address Type: str List: false
+        _encoder.addString( self.mc_address )
+        # Encode Attribute: mc_port Type: int List: false
+        _encoder.addInt( self.mc_port )
+        # Encode Attribute: total_in_rqst Type: int List: false
+        _encoder.addInt( self.total_in_rqst )
+        # Encode Attribute: total_out_rqst Type: int List: false
+        _encoder.addInt( self.total_out_rqst )
+        # Encode Attribute: total_seen_rqst Type: int List: false
+        _encoder.addInt( self.total_seen_rqst )
+        # Encode Attribute: in_hosts Type: str List: true
+            # Encode str list
+        MessageAux.addStringList( _encoder, self.in_hosts  )
+        # Encode Attribute: out_hosts Type: str List: true
+            # Encode str list
+        MessageAux.addStringList( _encoder, self.out_hosts  )
         return _encoder.get_bytes()
 
 
@@ -1760,27 +1814,25 @@ class DistExploreRetransmissonsRsp( MessageBase ):
         _decoder = Decoder( buffer )
         self.className = _decoder.getString()
         
-        #Decode Attribute: mcaAddress Type:str List: false
-        self.mcaAddress = _decoder.getString()
+        #Decode Attribute: mc_address Type:str List: false
+        self.mc_address = _decoder.getString()
         
-        #Decode Attribute: mcaPort Type:int List: false
-        self.mcaPort = _decoder.getInt()
+        #Decode Attribute: mc_port Type:int List: false
+        self.mc_port = _decoder.getInt()
         
-        #Decode Attribute: totalInRqst Type:int List: false
-        self.totalInRqst = _decoder.getInt()
+        #Decode Attribute: total_in_rqst Type:int List: false
+        self.total_in_rqst = _decoder.getInt()
         
-        #Decode Attribute: totalOutRqst Type:int List: false
-        self.totalOutRqst = _decoder.getInt()
+        #Decode Attribute: total_out_rqst Type:int List: false
+        self.total_out_rqst = _decoder.getInt()
         
-        #Decode Attribute: totalSeenRqst Type:int List: false
-        self.totalSeenRqst = _decoder.getInt()
+        #Decode Attribute: total_seen_rqst Type:int List: false
+        self.total_seen_rqst = _decoder.getInt()
         
-        #Decode Attribute: inHosts Type:str List: false
-        self.inHosts = _decoder.getString()
-        
-        #Decode Attribute: outHosts Type:str List: false
-        self.outHosts = _decoder.getString()
-        
+        #Decode Attribute: in_hosts Type:str List: true
+        self.in_hosts = MessageAux.getStringList( _decoder )
+        #Decode Attribute: out_hosts Type:str List: true
+        self.out_hosts = MessageAux.getStringList( _decoder )
 
     def _blanks( self, _indent ) -> str:
         if _indent == 0:
@@ -1791,37 +1843,40 @@ class DistExploreRetransmissonsRsp( MessageBase ):
     def toString(self, _indent: int = 0 ) -> str:
         _buffer: StringIO = StringIO()
         
-        _buffer.write(self._blanks( _indent ) + "mcaAddress : " + str( self.mcaAddress) + "\n")
-        _buffer.write(self._blanks( _indent ) + "mcaPort : " + str( self.mcaPort) + "\n")
-        _buffer.write(self._blanks( _indent ) + "totalInRqst : " + str( self.totalInRqst) + "\n")
-        _buffer.write(self._blanks( _indent ) + "totalOutRqst : " + str( self.totalOutRqst) + "\n")
-        _buffer.write(self._blanks( _indent ) + "totalSeenRqst : " + str( self.totalSeenRqst) + "\n")
-        _buffer.write(self._blanks( _indent ) + "inHosts : " + str( self.inHosts) + "\n")
-        _buffer.write(self._blanks( _indent ) + "outHosts : " + str( self.outHosts) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_address : " + str( self.mc_address) + "\n")
+        _buffer.write(self._blanks( _indent ) + "mc_port : " + str( self.mc_port) + "\n")
+        _buffer.write(self._blanks( _indent ) + "total_in_rqst : " + str( self.total_in_rqst) + "\n")
+        _buffer.write(self._blanks( _indent ) + "total_out_rqst : " + str( self.total_out_rqst) + "\n")
+        _buffer.write(self._blanks( _indent ) + "total_seen_rqst : " + str( self.total_seen_rqst) + "\n")
+        _buffer.write(self._blanks( _indent ) + "in_hosts : " + str( self.in_hosts) + "\n")
+        _buffer.write(self._blanks( _indent ) + "out_hosts : " + str( self.out_hosts) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     
 class NameValuePair( MessageBase ):
 
     def __init__(self):
         self.className = "pymc.msg.generated.NameValuePair"
         
-        self.name: str
-        self.value: str
-        self.code: str
-    def setName( self, value: str ):
+        self.name: str = None
+        self.value: str = None
+        self.code: str = None
+    def set_name(self, value: str):
         self.name = value
 
-    def getName( self ) -> str:
+    def get_name(self) -> str:
         return self.name
-    def setValue( self, value: str ):
+    def set_value(self, value: str):
         self.value = value
 
-    def getValue( self ) -> str:
+    def get_value(self) -> str:
         return self.value
-    def setCode( self, value: str ):
+    def set_code(self, value: str):
         self.code = value
 
-    def getCode( self ) -> str:
+    def get_code(self) -> str:
         return self.code
 
     def toBytes(self) -> bytearray:
@@ -1870,4 +1925,7 @@ class NameValuePair( MessageBase ):
         _buffer.write(self._blanks( _indent ) + "value : " + str( self.value) + "\n")
         _buffer.write(self._blanks( _indent ) + "code : " + str( self.code) + "\n")
         return _buffer.getvalue()
+
+    def __str__(self) ->str:
+        return self.toString()
     

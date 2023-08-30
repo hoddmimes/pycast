@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 
 class XtaUpdate(object):
 
-    def __init__(self, subject:str, data:bytearray, length:int):
-        self.mSubject = subject
-        self.mData = data
-        self.mDataLength =  length
+    def __init__(self, subject: str, data: bytearray, length: int = None):
+        self._subject = subject
+        if length == None:
+            self._data = data
+            self._data_length = len(data)
+        else:
+            self._data = data[:length]
+            self._data_length = length
 
     # XtaUpdate encoded layout
     # 1 byte subject present or not
@@ -14,9 +20,24 @@ class XtaUpdate(object):
     # 4 bytes update data length
     # 'n' bytes update payload
 
-    def getSize(self) -> int:
-        tSize:int = len(self.mSubjectName) + (1+4+1+4) + self.mDataLength
-        return tSize
+    @property
+    def size(self) -> int:
+        return len(self._subject) + (1 + 4 + 1 + 4) + self._data_length
 
-    def getDataLength(self) -> int:
-        return self.mDataLength
+    @property
+    def data_length(self) -> int:
+        return self._data_length
+
+    @property
+    def subject(self) -> str:
+        return self._subject
+
+    @property
+    def data(self) -> bytearray:
+        return self._data
+
+    @classmethod
+    def cast(cls, obj: object) -> XtaUpdate:
+        if isinstance(obj, XtaUpdate):
+            return obj
+        raise Exception('Can not cast object to {}'.format(cls.__name__))

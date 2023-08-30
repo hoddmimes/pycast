@@ -51,7 +51,7 @@ class DistributorManagementController(DistributorEventCallbackIf, DistributorUpd
                     tFound = True
                     break
             if not tFound:
-                tLocalHostAddresses.add(tLocalHostAddressString)
+                tLocalHostAddresses.queue(tLocalHostAddressString)
         sb = StringBuilder()
         for i in range(len(tLocalHostAddresses)):
             sb.append(tLocalHostAddresses.get(i) + ", ")
@@ -75,13 +75,13 @@ class DistributorManagementController(DistributorEventCallbackIf, DistributorUpd
             for i in range(len(tConnectedConnections)):
                 tEntry = DistDomainConnectionEntry()
                 tConnection = tConnectedConnections.get(i)
-                tEntry.setConnectionId(tConnection.mConnectionId)
+                tEntry.setConnectionId(tConnection._connection_id)
                 tEntry.setMcaAddress(tConnection.mIpmg.mInetAddress.getHostAddress().toString())
                 tEntry.setMcaPort(tConnection.mIpmg.mPort)
                 tEntry.setSubscriptions(tConnection.mSubscriptionFilter.getActiveSubscriptions())
-                tEntry.setInRetransmissions(tConnection.mRetransmissionStatistics.mTotalIn)
-                tEntry.setOutRetransmissions(tConnection.mRetransmissionStatistics.mTotalOut)
-                tConnections.add(tEntry)
+                tEntry.setInRetransmissions(tConnection.mRetransmissionStatistics.total_in)
+                tEntry.setOutRetransmissions(tConnection.mRetransmissionStatistics.total_out)
+                tConnections.queue(tEntry)
             tResponse.getDistributor().setConnections(tConnections)
         tNetRsp = DistNetMsg()
         tNetRsp.setMessage(MessageWrapper(tResponse))
@@ -107,8 +107,8 @@ class DistributorManagementController(DistributorEventCallbackIf, DistributorUpd
         tResponse.getDistributor().setStartTime(self.mDistributor.getStartTime())
         for i in range(len(tConnectedConnections)):
             tConnection = tConnectedConnections.get(i)
-            tResponse.getDistributor().setInRetransmissions(tResponse.getDistributor().getInRetransmissions() + tConnection.mRetransmissionStatistics.mTotalIn)
-            tResponse.getDistributor().setOutRetransmissions(tResponse.getDistributor().getOutRetransmissions() + tConnection.mRetransmissionStatistics.mTotalOut)
+            tResponse.getDistributor().setInRetransmissions(tResponse.getDistributor().getInRetransmissions() + tConnection.mRetransmissionStatistics.total_in)
+            tResponse.getDistributor().setOutRetransmissions(tResponse.getDistributor().getOutRetransmissions() + tConnection.mRetransmissionStatistics.total_out)
             tResponse.getDistributor().setSubscriptions(tConnection.mSubscriptionFilter.getActiveSubscriptions())
         tNetRsp = DistNetMsg()
         tNetRsp.setMessage(MessageWrapper(tResponse))
@@ -125,7 +125,7 @@ def serveDistExploreConnectionRqst(pNetMsg):
     tConnectedConnections = DistributorConnectionController.getDistributorConnection()
     for i in range(len(tConnectedConnections)):
         tConnection = tConnectedConnections[i]
-        if tConnection.mConnectionId == tRequest.getConnectionId():
+        if tConnection._connection_id == tRequest.getConnectionId():
             tFound = True
             break
     if not tFound:
@@ -135,8 +135,8 @@ def serveDistExploreConnectionRqst(pNetMsg):
     tResponse.getConnection().setConnectionId(tConnection.getConnectionId())
     tResponse.getConnection().setMcaAddress(tConnection.mIpmg.mInetAddress.getHostAddress())
     tResponse.getConnection().setMcaPort(tConnection.mIpmg.mPort)
-    tResponse.getConnection().setOutRetransmissions(tConnection.mRetransmissionStatistics.mTotalOut)
-    tResponse.getConnection().setInRetransmissions(tConnection.mRetransmissionStatistics.mTotalIn)
+    tResponse.getConnection().setOutRetransmissions(tConnection.mRetransmissionStatistics.total_out)
+    tResponse.getConnection().setInRetransmissions(tConnection.mRetransmissionStatistics.total_in)
     tResponse.getConnection().setDeliverUpdateQueue(ClientDeliveryController.getInstance().getQueueSize())
     tResponse.getConnection().setPublishers(tConnection.mPublishers.size())
     tResponse.getConnection().setSubscribers(tConnection.mSubscribers.size())
@@ -179,7 +179,7 @@ def serveDistExploreRetransmissionsRqst(pNetMsg):
     tConnectedConnections = DistributorConnectionController.getDistributorConnection()
     for i in range(len(tConnectedConnections)):
         tConnection = tConnectedConnections[i]
-        if tConnection.mConnectionId == tRequest.getConnectionId():
+        if tConnection._connection_id == tRequest.getConnectionId():
             tFound = True
             break
     if not tFound:
@@ -206,7 +206,7 @@ def serveDistExploreSubscriptionsRqst(pNetMsg):
     tConnectedConnections = DistributorConnectionController.getDistributorConnection()
     for i in range(len(tConnectedConnections)):
         tConnection = tConnectedConnections[i]
-        if tConnection.mConnectionId == tRequest.getConnectionId():
+        if tConnection._connection_id == tRequest.getConnectionId():
             tFound = True
             break
     if not tFound:

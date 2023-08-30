@@ -72,16 +72,16 @@ class QueueRetransmissionListTask(ConnectionTimerTask):
 class RetransmissionCache(object):
     def __init__(self, sender: ConnectionSender):
         self.mConnection: Connection = sender.mConnection
-        self.mConfiguration: ConnectionConfiguration = sender.mConnection.mConfiguration
+        self.mConfiguration: ConnectionConfiguration = sender.mConnection._configuration
         self.mSender: ConnectionSender = sender
         self.mIsDead: bool = False
         self.mQueue: LinkedList = LinkedList()
         self.mCacheSize: int = 0
         self.mCleanCacheTask = CleanRetransmissionQueueTask(self.mConnection.mConnectionId)
         _interval_ms: int = self.mConfiguration.retrans_cache_clean_interval_sec * 1000
-        ConnectionTimerExecutor.getInstance().add(delay_ms=_interval_ms,
-                                                  task=self.mCleanCacheTask,
-                                                  repeat=True)
+        ConnectionTimerExecutor.getInstance().queue(interval=_interval_ms,
+                                                    task=self.mCleanCacheTask,
+                                                    repeat=True)
 
     def close(self):
         self.mCleanCacheTask.cancel()
@@ -125,7 +125,7 @@ class RetransmissionCache(object):
         tNAKMsg.set( mc_addr=self.mSender.mMca.mInetAddress, mc_port=self.mSender.mMca.mPort, sender_id=self.mSender.mSenderId)
         tNAKMsg.setNakSeqNo(nak_seqno)
         tNAKMsg.encode()
-        self.mSender.sendSegment(tNAKMsg.mSegment)
+        self.mSender.send_segment(tNAKMsg._segment)
 
     def sendRetransmissions(self, retrans_list: list[RetransQueItm]):
         for tQueItm in retrans_list:
@@ -133,7 +133,7 @@ class RetransmissionCache(object):
             if self.mConnection.isLogFlagSet(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
                 self.mConnection.logInfo("RETRANSMISSION: XTA RE-SENDING Segment [{}] resent-count: {}".
                                          format(tQueItm.mSeqNo, tQueItm.mResentCount))
-            self.mSender.sendSegment(tQueItm.mSegment)
+            self.mSender.send_segment(tQueItm.mSegment)
             tQueItm.mInProgress = False
 
     def retransmit(self, low_seqno: int, high_seqno: int):

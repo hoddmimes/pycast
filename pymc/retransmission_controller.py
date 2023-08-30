@@ -6,10 +6,10 @@ class RetransmissionController:
     def __init__(self, pConnection):
         self.cLogger = logging.getLogger(__name__)
         self.mConnection = pConnection
-        self.mNaggingMonitor = self.NaggingMonitorTask(pConnection.mConnectionId, pConnection.mConfiguration)
+        self.mNaggingMonitor = self.NaggingMonitorTask(pConnection._connection_id, pConnection._configuration)
         self.mRetransmissionRequestQueue = deque()
-        if pConnection.mConfiguration.getNaggingWindowInterval() > 0:
-            tInterval = pConnection.mConfiguration.getNaggingWindowInterval()
+        if pConnection._configuration.getNaggingWindowInterval() > 0:
+            tInterval = pConnection._configuration.getNaggingWindowInterval()
             Timer(tInterval, self.mNaggingMonitor).start()
 
     def close(self):
@@ -22,9 +22,9 @@ class RetransmissionController:
         self.mNaggingMonitor.cancel()
 
     def createRetransmissionRequest(self, pRemoteConnection, pLowSeqNo, pHighSeqNo):
-        tRqstTask = self.RetransmissionRequestItem(self.mConnection.mConnectionId, pRemoteConnection.mRemoteConnectionId, pLowSeqNo, pHighSeqNo)
+        tRqstTask = self.RetransmissionRequestItem(self.mConnection._connection_id, pRemoteConnection.mRemoteConnectionId, pLowSeqNo, pHighSeqNo)
         self.mRetransmissionRequestQueue.append(tRqstTask)
-        Timer(0, self.mConnection.mConfiguration.getRetransmissionTimeout(), tRqstTask).start()
+        Timer(0, self.mConnection._configuration.getRetransmissionTimeout(), tRqstTask).start()
 
     def updateRetransmissions(self, pSegment):
         if not self.mRetransmissionRequestQueue:
@@ -59,7 +59,7 @@ class RetransmissionController:
             self.mServedListIndex = 0
 
         def queueRetransmissionRqstMessage(self, pConnection, pRemoteConnection):
-            tRqstMsg = NetMsgRetransmissionRqst(XtaSegment(pConnection.mConfiguration.getSmallSegmentSize()))
+            tRqstMsg = NetMsgRetransmissionRqst(XtaSegment(pConnection._configuration.getSmallSegmentSize()))
             tRqstMsg.setHeader(
                 Segment.MSG_TYPE_RETRANSMISSION_RQST,
                 Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END,
@@ -83,7 +83,7 @@ class RetransmissionController:
                 pRemoteConnection.mRemoteHostInetAddress
             )
             tRqstMsg.encode()
-            pConnection.mConnectionSender.sendSegment(tRqstMsg.mSegment)
+            pConnection.mConnectionSender.send_segment(tRqstMsg._segment)
 
         def requestNakSmoked(self, tRemoteConnection, pNakSeqNo):
             tEvent = DistributorRetransmissionNAKErrorEvent(
@@ -94,7 +94,7 @@ class RetransmissionController:
                 self.mConnection.log(
                     f"RETRANSMISSION: RCV NAK (NakSeqNo: {pNakSeqNo})  Remote Addr: {tRemoteConnection.mRemoteHostAddressString} Remote Sender Id: {tRemoteConnection.mRemoteSenderId} LowSeqNo: {self.mLowSeqNo} HighSeqNo: {tRemoteConnection.mHighiestSeenSeqNo}"
                 )
-            ClientDeliveryController.getInstance().queueEvent(self.mConnection.mConnectionId, tEvent)
+            ClientDeliveryController.getInstance().queueEvent(self.mConnection._connection_id, tEvent)
 
         def adjustSeqNo(self, pSeqNo):
             if pSeqNo > self.mHighSeqNo or pSeqNo < self.mLowSeqNo:
@@ -120,7 +120,7 @@ class RetransmissionController:
                     self.mRetransmissionRequestQueue.remove(self)
                     self.cancel()
                     return
-                elif self.mRetries > pConnection.mConfiguration.getRetransmissionRetries():
+                elif self.mRetries > pConnection._configuration.getRetransmissionRetries():
                     tFailed = True
                 else:
                     tResend = True
@@ -143,7 +143,7 @@ class RetransmissionController:
                         self.mConnection.log(
                             f"RETRANSMISSION: RCV TO MANY RETRANSMISSION  Remote Addr: {tRemoteConnection.mRemoteHostAddressString} Remote Sender Id: {tRemoteConnection.mRemoteSenderId} LowSeqNo: {self.mLowSeqNo} HighSeqNo: {self.mHighSeqNo}"
                         )
-                    ClientDeliveryController.getInstance().queueEvent(self.mConnection.mConnectionId, tEvent)
+                    ClientDeliveryController.getInstance().queueEvent(self.mConnection._connection_id, tEvent)
             except Exception as e:
                 print(e)
 
@@ -168,10 +168,10 @@ class RetransmissionController:
                     if self.mConsequtiveTicks >= self.mCfgCheckInterval:
                         if self.mCfgMaxRetransmissions == 0 or (self.mCfgMaxRetransmissions > 0 and self.mIntervalCount >= self.mCfgMaxRetransmissions):
                             tEvent = DistributorNaggingErrorEvent(pConnection.mIpmg.mInetAddress, pConnection.mIpmg.mPort)
-                            ClientDeliveryController.getInstance().queueEvent(pConnection.mConnectionId, tEvent)
+                            ClientDeliveryController.getInstance().queueEvent(pConnection._connection_id, tEvent)
                         else:
                             self.clear()
                 else:
                     self.clear()
             except Exception as e:
-                self.mConnection.logThrowable(e)
+                self.mConnection.log_throwable(e)

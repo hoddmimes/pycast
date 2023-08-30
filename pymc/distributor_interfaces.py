@@ -2,24 +2,30 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pymc.distributor_configuration import DistributorConfiguration
 from pymc.connection_configuration import ConnectionConfiguration
+from pymc.ipmc import IPMC
 from pymc.msg.segment import Segment
-
+from pymc.msg.xta_update import XtaUpdate
+from pymc.retransmission_controller import RetransmissionController
+from pymc.traffic_statistics import TrafficStatisticTimerTask
 
 
 class PublisherBase(ABC):
     pass
+
+
 class SubscriberBase(ABC):
     pass
 
 
 class ConnectionSenderBase(ABC):
     @abstractmethod
-    def getSenderId(self) -> int:
+    def sender_id(self) -> int:
         pass
 
 
 class ConnectionReceiverBase(ABC):
     pass
+
 
 class ConnectionBase(ABC):
     STATE_INIT = 0
@@ -28,60 +34,82 @@ class ConnectionBase(ABC):
     STATE_ERROR = 3
 
     @abstractmethod
-    def publishUpdate( xtaUpdate ):
+    def publishUpdate(self, xta_update: XtaUpdate):
         pass
 
     @abstractmethod
-    def getConfiguration(self) -> ConnectionConfiguration:
+    def configuration(self) -> ConnectionConfiguration:
         pass
 
     @abstractmethod
-    def getDistributor(selfself) -> DistributorBase:
+    def distributor(self) -> DistributorBase:
         pass
 
     @abstractmethod
-    def getConnectionId(self) -> int:
+    def connection_id(self) -> int:
         pass
 
     @abstractmethod
-    def send(self, segment:Segment ) ->int:
+    def send(self, segment: Segment) -> int:
         pass
 
     @abstractmethod
-    def getMcAddress(self) ->int:
-        pass
-    @abstractmethod
-    def getMcPort(self) ->int:
+    def mc_address(self) -> int:
         pass
 
+    @abstractmethod
+    def mc_port(self) -> int:
+        pass
+
+    @abstractmethod
+    def retransmission_controller(self) -> RetransmissionController:
+        pass
+
+    @abstractmethod
+    def start_time(self) -> int:
+        pass
+
+    @abstractmethod
+    def ipmc(self) -> IPMC:
+        pass
+
+    @abstractmethod
+    def traffic_statistic_task(self) -> TrafficStatisticTimerTask:
+        pass
 class DistributorBase(ABC):
 
     @abstractmethod
-    def getId(self) -> int:
-        pass
-    @staticmethod
-    def getApplName(self) -> str:
+    def distributor_id(self) -> int:
         pass
 
     @abstractmethod
-    def getStartTime(self) -> str:
-        pass
-    @abstractmethod
-    def getLocalInetAddr(self) -> int:
-        pass
-    @abstractmethod
-    def getLocalInetAddrStr(self) -> str:
+    def app_name(self) -> str:
         pass
 
     @abstractmethod
-    def getTXID(self) -> int:
+    def app_id(self) -> int:
         pass
 
     @abstractmethod
-    def getConfiguration(self) -> DistributorConfiguration:
+    def start_time_string(self) -> str:
         pass
 
+    @abstractmethod
+    def local_address(self) -> int:
+        pass
 
     @abstractmethod
-    def isLoggingEnable(self) -> bool:
+    def local_address_string(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_txid(self) -> int:
+        pass
+
+    @abstractmethod
+    def configuration(self) -> DistributorConfiguration:
+        pass
+
+    @abstractmethod
+    def is_logging_enable(self, flag: int) -> bool:
         pass

@@ -1,11 +1,16 @@
 from __future__ import annotations
 from pymc.aux.aux import Aux
 from pymc.msg.segment import Segment
+from pymc.connection import Connection
+from pymc.distributor_configuration import DistributorLogFlags
+from pymc.distributor_events import DistributorNewRemoteConnectionEvent
+from pymc.client_controller import ClientDeliveryController
+from pymc.remote_connection import RemoteConnection
 
 class RemoteConnectionController(object):
-    def __init__(self, pconnection):
-        self.mRemoteConnections = {}
-        self.mConnection = pConnection
+    def __init__(self, connection: Connection):
+        self.mRemoteConnections: dict = {}
+        self.mConnection = connection
 
     def close(self):
         for tRmtConn in self.mRemoteConnections.values():
@@ -16,17 +21,15 @@ class RemoteConnectionController(object):
     def triggerRemoteConfigurationNotifications(self, pCallback):
         for tRemoteConnection in self.mRemoteConnections.values():
             tEvent = DistributorNewRemoteConnectionEvent(
-                InetAddressConverter.inetAddrToInt(tRemoteConnection.mRemoteHostInetAddress),
-                InetAddressConverter.inetAddrToInt(tRemoteConnection.mMca.mInetAddress),
+                tRemoteConnection.mRemoteHostInetAddress,
+                tRemoteConnection.mMca.mInetAddress,
                 tRemoteConnection.mMca.mPort,
                 tRemoteConnection.mRemoteApplicationName,
                 tRemoteConnection.mRemoteAppId,
                 tRemoteConnection.mRemoteSenderId,
                 tRemoteConnection.mRemoteStartTime
             )
-            ClientDeliveryController.getInstance().queueEvent(
-                self.mConnection.mConnectionId, tEvent, pCallback
-            )
+            ClientDeliveryController.getInstance().queueEvent( self.mConnection.mConnectionId, tEvent, pCallback )
 
     def getRemoteConnection(self, pRemoteConnectionId):
         for tRmtConn in self.mRemoteConnections.values():
@@ -41,13 +44,13 @@ class RemoteConnectionController(object):
             if tRemoteConnection is None:
                 tRemoteConnection = RemoteConnection(pSegment, self, self.mConnection)
                 self.mRemoteConnections[pSegment] = tRemoteConnection
-                if self.mConnection.isLogFlagSet(DistributorApplicationConfiguration.LOG_RMTDB_EVENTS):
+                if self.mConnection.isLogFlagSet(DistributorLogFlags.LOG_RMTDB_EVENTS):
                     self.mConnection.log(
                         "Remote Connection [CREATED] (" + hex(pSegment) + ")\n" + tRemoteConnection.toString()
                     )
                 tEvent = DistributorNewRemoteConnectionEvent(
-                    InetAddressConverter.inetAddrToInt(tRemoteConnection.mRemoteHostInetAddress),
-                    InetAddressConverter.inetAddrToInt(tRemoteConnection.mMca.mInetAddress),
+                    tRemoteConnection.mRemoteHostInetAddress,
+                    tRemoteConnection.mMca.mInetAddress,
                     tRemoteConnection.mMca.mPort,
                     tRemoteConnection.mRemoteApplicationName,
                     tRemoteConnection.mRemoteAppId,

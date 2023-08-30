@@ -11,12 +11,13 @@ class DistributorLogFlags:
     LOG_RETRANSMISSION_CACHE = 512
     LOG_DEFAULT_FLAGS = LOG_ERROR_EVENTS + LOG_CONNECTION_EVENTS + LOG_RETRANSMISSION_EVENTS
 
-class DistributorConfiguration:
 
-    def __init__(self, applName:str ):
-        self.applName = applName
-        self.logFlags = DistributorLogFlags.LOG_DEFAULT_FLAGS
-        self.logToConsole = True
-        self.logToFile = True
-        self.logFile = 'Distributor.log'
-        self.ethDevice = None
+class DistributorConfiguration(object):
+
+    def __init__(self, applName: str):
+        self.app_name = applName
+        self.log_flags = DistributorLogFlags.LOG_DEFAULT_FLAGS
+        self.log_to_console = True
+        self.log_to_file = True
+        self.log_file = 'Distributor.log'
+        self.eth_device = None

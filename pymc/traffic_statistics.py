@@ -277,7 +277,7 @@ class TrafficStatisticTimerTask(ConnectionTimerTask, DistributorPublisherStatist
         tResult[5] = str(self.mRcvMsgs)
         return tResult
 
-    def updateXtaStatistics(self, pSegment, pXtaTimeUsec):
+    def updateXtaStatistics(self, pSegment: Segment, pXtaTimeUsec: int):
         self.mXtaMsgs.update(1)
         self.mXtaMsgs1min.update(1)
         self.mXtaMsgs5min.update(1)

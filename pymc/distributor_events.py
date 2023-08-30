@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from pymc.aux.aux import Aux
 from pymc.msg.rcv_segment import Segment, RcvSegment
@@ -5,7 +6,7 @@ from pymc.connection import Connection
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.client_controller import ClientDeliveryController
 
-
+import types
 class AsyncEvent(ABC):
 
     def __init__(self):
@@ -15,12 +16,20 @@ class AsyncEvent(ABC):
     def execute(self, connection):
         pass
 
+
     @abstractmethod
     def toString(self):
         pass
 
     def __str__(self):
         return "[ {} ] {}".format(self.__class__.__name__, self.toString())
+
+    @classmethod
+    def cast( cls, obj: object ) -> AsyncEvent:
+        if isinstance( obj, AsyncEvent):
+            return obj
+        raise Exception('object can not be cast to {}'.format(cls.__name__))
+
 
 
 class DistributorEvent(object):
@@ -33,20 +42,21 @@ class DistributorEvent(object):
     CONNECTION_CLOSING = 107
 
     def __init__(self, event_type: int, message: str = None):
-        self.mSignal: int = event_type
-        self.mMessage: str = message
+        self.event_type: int = event_type
+        self.message: str = message
+
 
     def getMessage(self) -> str:
-        return self.mMessage
+        return self.message
 
     def setMessage(self, message: str):
-        self.mMessage = message
+        self.message = message
 
     def __str__(self):
-        return self.mMessage
+        return self.message
 
     def getEventType(self) -> int:
-        return self.mSignal
+        return self.event_type
 
 
 class DistributorErrorEvent(ABC, DistributorEvent):
@@ -63,7 +73,9 @@ class DistributorCommunicationErrorEvent(DistributorErrorEvent):
         self.mc_port = mc_port
 
         self.setMessage(
-            '{} Connection communication error mc-addr: {} mc-port: {}\n  reason: {} '.format(direction, self.mc_addr,
+
+            '{} Connection communication error mc-addr: {} mc-port: {}\n  reason: {} '.format(direction,
+                                                                                              self.mc_addr_str,
                                                                                               self.mc_port, reason))
 
 

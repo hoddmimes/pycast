@@ -31,16 +31,16 @@ class ConnectionConfiguration():
         self.max_bandwidth_kbit = 0
         self.max_bandwidth_calc_interval_ms = 100
 
-        self.send_holdback_delay_ms = 0             # if update rate if over threshold apply holdback
+        self.send_holdback_delay_ms = 0             # if update rate is over threshold apply holdback
         self.send_holdback_threshold = 100          # max updates per calc_interval
         self.send_holdback_calc_interval_ms = 100   # calc update rate interval
 
-        self.fake_xta_error_rate = 0
-        self.fake_rcv_error_rate = 0
+        self.fake_xta_error_rate = 0 # promille,  number of errors in 1000 msgs
+        self.fake_rcv_error_rate = 0 # promille,  number of errors in 1000 msgs
 
         self.nagging_window_interval_ms = 4000
         self.nagging_check_interval_ms = 60000
 
         self.statistic_interval_sec = 0
 
-        self.receiver_thread = 1
+        self.receiver_threads = 1

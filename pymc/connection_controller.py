@@ -1,59 +1,71 @@
+from __future__ import annotations
+from pymc.aux.distributor_exception import DistributorException
 from pymc.connection import Connection
-from pymc.distributor_interfaces import DistributorBase, AsyncEvent
+from pymc.distributor_events import AsyncEvent
+from pymc.distributor_interfaces import DistributorBase
 from pymc.connection_configuration import ConnectionConfiguration
 import threading
 
 
 class ConnectionController(object):
-    cMutexAccess: threading.RLock = threading.RLock()
-    cMutexRemove: threading.RLock = threading.RLock()
-    cConnections: dict[int, Connection] = {}
+
+    _instance: ConnectionController = None
+
+    def __new__(cls, *args, **kwargs):
+        if not isinstance(cls._instance, cls):
+            cls._instance = object.__new__(cls, *args, **kwargs)
+        return cls._instance
 
     @staticmethod
-    def getConnection(connection_id: int) -> Connection:
-        with ConnectionController.cMutexAccess:
-            return ConnectionController.cConnections.get(connection_id, None)
+    def getInstance() -> ConnectionController:
+        if not ConnectionController._instance:
+            ConnectionController._instance = ConnectionController()
+        return ConnectionController._instance
 
-    @staticmethod
-    def createConnection(distributor: DistributorBase, connection_configuration: ConnectionConfiguration) -> Connection:
+    def __init__(self):
+        self._mutex_access: threading.RLock = threading.RLock()
+        self._mutex_Remove: threading.RLock = threading.RLock()
+        self._connections: dict[int, Connection] = {}
 
-        with ConnectionController.cMutexRemove and ConnectionController.cMutexAccess:
-            for t_conn in ConnectionController.cConnections.values():
-                if t_conn.mIpmc.mGroupAddr == connection_configuration.mca and t_conn.mIpmc.mPort == connection_configuration.mca_port:
-                    ConnectionController.cMutexRemove.release()
-                    ConnectionController.cMutexAccess.release()
-                    raise Exception("Connection for multicast group: {} port: {} has already been created".format(
-                        t_conn.mIpmc.mGroupAddr, connection_configuration.mca_port))
+    def getConnection(self, connection_id: int) -> Connection:
+        with self._mutex_access:
+            return self._connections.get(connection_id, None)
+
+    def createConnection(self, distributor: DistributorBase,
+                         connection_configuration: ConnectionConfiguration) -> Connection:
+
+        with self._mutex_Remove and self._mutex_access:
+            for _conn in self._connections.values():
+                if _conn.mc_address == connection_configuration.mca and _conn.mc_port == connection_configuration.mca_port:
+                    raise DistributorException(
+                        "Connection for multicast group: {} port: {} has already been created".format(
+                            _conn.mc_address, _conn.mc_port))
 
             try:
-                t_conn = Connection(distributor, connection_configuration)
+                _conn = Connection(distributor, connection_configuration)
             except Exception as e:
                 raise e
 
-            return t_conn
+            return _conn
 
-    @staticmethod
-    def getAndLockConnection(connection_id: int) -> Connection:
-        with ConnectionController.cMutexAccess:
-            t_conn: Connection = ConnectionController.getConnection(connection_id)
-            if t_conn:
-                t_conn.lock()
-        return t_conn
+    def getAndLockConnection(self, connection_id: int) -> Connection:
+        with self._mutex_access:
+            _conn: Connection = self.getConnection(connection_id)
+            if _conn:
+                _conn.lock()
+        return _conn
 
-    @staticmethod
-    def unlockConnection(connection: Connection):
+    def unlockConnection(self, connection: Connection):
         connection.unlock()
 
-    @staticmethod
-    def removeConnection(connection_is: int):
-        with ConnectionController.cMutexRemove and ConnectionController.cMutexAccess:
-            ConnectionController.cConnections.pop(connection_is)
+    def removeConnection(self, connection_id: int):
+        with self._mutex_Remove and self._mutex_access:
+            self._connections.pop(connection_id)
 
-    @staticmethod
-    def queueAyncEvent(connection_id: int, async_event: AsyncEvent) -> bool:
-        with ConnectionController.cMutexAccess:
-            t_conn: Connection = ConnectionController.getConnection(connection_id)
-            if not t_conn:
+    def queueAsyncEvent(self, connection_id: int, async_event: AsyncEvent) -> bool:
+        with self._mutex_access:
+            _conn: Connection = self.getConnection(connection_id)
+            if not _conn:
                 return False
-            t_conn.queueAsyncEvent(async_event)
+            _conn.queueAsyncEvent(async_event)
             return True

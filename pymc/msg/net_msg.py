@@ -1,62 +1,71 @@
 from abc import ABC
-from pymc.msg.codec import Encoder,Decoder
+from pymc.msg.codec import Encoder, Decoder
 from pymc.msg.segment import Segment
 
 
-class NetMsg( ABC ):
-
+class NetMsg(ABC, object):
     IGNORE = 0
     SYNCH = 1
     LOWER = 2
     HIGHER = 3
 
-    VERSION:int = 0x0100
+    VERSION: int = 0x0100
 
+    def __init__(self, segment: Segment):
+        self._segment: Segment = segment
 
-    def __init__(self, segment:Segment):
-        self.mSegment = segment
+    @property
+    def segment(self) -> Segment:
+        return self._segment
 
-    def getSegment(self):
-        return self.mSegment
+    @property
+    def encoder(self) -> Encoder:
+        return self._segment.encoder
 
-    def getEncoder(self) -> Encoder:
-        return self.mSegment.getEncoder()
+    @property
+    def decoder(self) -> Decoder:
+        return self._segment.decoder
 
-    def getDecoder(self) -> Decoder:
-        self.mSegment.getDecoder()
+    def setHeader(self, message_type: int, segment_flags: int, local_address: int, sender_id: int,
+                  sender_start_time_sec: int, app_id: int):
+        self._segment.setHeader(NetMsg.VERSION, message_type, segment_flags, local_address, sender_id,
+                                sender_start_time_sec, app_id)
 
-    def setHeader( self, headerVersion:int, messageType:int, segmentFlags:int,
-                   localAddress:int, senderId:int, senderStartTime:int, appId:int):
-        self.mSegment.setHeader(headerVersion, messageType, segmentFlags, localAddress, senderId,senderStartTime,appId)
+    @property
+    def hdr_segment_flags(self) -> int:
+        return self._segment.hdr_segment_flags
 
-    def setHeaderSegmentFlags(self, segmentFlags:int):
-        self.mSegment.mHdrSegmentFlags = segmentFlags
+    @hdr_segment_flags.setter
+    def hdr_segment_flags(self, value: int):
+        self._segment.hdr_segment_flags = value
 
-    def getHeaderLocalSourceAddress( self) -> int:
-        return self.mSegment.mHdrLocalAddress
+    @property
+    def hdr_msg_type(self) -> int:
+        return self._segment.hdr_msg_type
 
-    def getHeaderSegmentFlags(self) -> int:
-        return self.mSegment.mHdrSegmentFlags
+    @hdr_msg_type.setter
+    def hdr_msg_type(self, value: int):
+        self._segment.hdr_msg_type = value
 
-    def getHeaderSenderStartTime(self) -> int:
-        return self.mSegment.mHdrSenderStartTime
+    @property
+    def hdr_local_address(self) -> int:
+        return self._segment.hdr_local_address
 
-    def getHeaderAppId(self) -> int:
-        return self.mSegment.mHdrAppId
+    @property
+    def hdr_sender_start_time_sec(self):
+        return self._segment.hdr_sender_start_time_sec
 
-    def setSeqno(self, seqno:int):
-        self.mSegment.mSeqno = seqno
-
-    def getSeqno(self) -> int:
-        return self.mSegment.mSeqno
+    @property
+    def hdr_app_id(self):
+        return self._segment.hdr_app_id
 
     def encode(self) -> Encoder:
-        self.mSegment.encode()
-        return self.mSegment.mEncoder
+        self._segment.encode()
+        return self._segment.encoder
 
     def decode(self) -> Decoder:
-        self.mSegment.decode()
-        return self.mSegment.mDecoder
+        self._segment.decode()
+        return self._segment.decoder
 
-    def __str__(self) ->str:
-        return self.mSegment.toString()
+    def __str__(self) -> str:
+        return self._segment.__str__()

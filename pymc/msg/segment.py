@@ -1,12 +1,13 @@
 from __future__ import annotations
 from abc import ABC
-from pymc.msg.codec import Encoder,Decoder
+
+from pymc.aux.distributor_exception import DistributorException
+from pymc.msg.codec import Encoder, Decoder
 from io import StringIO
 from pymc.aux.aux import Aux
 
-class Segment(ABC):
 
-    SEGMENT_HEADER_SIZE = 20
+class Segment(ABC, object):
     # +---------------------------------+----------- +
     # | Protocol Version 			    |	  Byte 2 |
     # +---------------------------------+----------- +
@@ -23,6 +24,15 @@ class Segment(ABC):
     # | Application Id 		    		|	  Byte 4 |
     # +---------------------------------+------------+
 
+    HDR_OFFSET_VERSION = 0
+    HDR_OFFSET_MSG_TYPE = HDR_OFFSET_VERSION + 2
+    HDR_OFFSET_MSG_FLAGS = HDR_OFFSET_MSG_TYPE + 1
+    HDR_OFFSET_LOCAL_HOST_ADDR = HDR_OFFSET_MSG_FLAGS + 1
+    HDR_OFFSET_SENDER_ID = HDR_OFFSET_LOCAL_HOST_ADDR + 4
+    HDR_OFFSET_START_TIME = HDR_OFFSET_SENDER_ID + 4
+    HDR_OFFSET_APPL_ID = HDR_OFFSET_START_TIME + 4
+    SEGMENT_HEADER_SIZE = HDR_OFFSET_APPL_ID + 4
+
     MSG_TYPE_UPDATE = 1
     MSG_TYPE_RETRANSMISSION = 2
     MSG_TYPE_HEARTBEAT = 3
@@ -35,168 +45,188 @@ class Segment(ABC):
     FLAG_M_SEGMENT_END = 4
 
     def __init__(self, *args):
-
         if isinstance(args[0], int):
             # The parameter is an integer which indicates that the segment will be
             # to encode a Distributor message
-            self.mSize:int = args[0]
-            self.mEncoder:Encoder = Encoder( self.mSize )
-            self.mDecoder:Decoder = None
+            self._size: int = args[0]
+            self._encoder: Encoder = Encoder(self._size)
+            self._decoder: Decoder = None
         elif isinstance(args[0], bytearray):
             # The parameter is a bytearray which indicates that the segment will be
             # to decode an incoming message to the Distributor
-            self.mEncoder:Encoder = None
-            self.mDecoder.Decoder = Decoder( args[0] )
-            self.mSize = 0
+            self._encoder: Encoder = None
+            self._decoder: Decoder = Decoder(args[0])
+            self._size = len(args[0])
 
-        self.mHashCodeValue:int = 0
-        self.mSeqno:int = 0
+        self._hash_code_value: int = 0
+        self._sequence_number: int = 0
 
-        self.mHdrVersion:int = 0#short
-        self.mHdrMsgType:int = 0 #byte
-        self.mHdrSegmentFlags:int = 0# byte
-        self.mHdrLocalAddress:int = 0 # int
-        self.mHdrSenderId:int = 0
-        self.mHdrSenderStartTime:int = 0
-        self.mHdrAppId:int = 0
+        self._hdr_version: int = 0  # short
+        self._hdr_msg_type: int = 0  # byte
+        self._hdr_segment_flags: int = 0  # byte
+        self._hdr_local_address: int = 0  # int
+        self._hdr_sender_id: int = 0
+        self._hdr_sender_start_time_sec: int = 0
+        self._hdr_app_id: int = 0
 
-    def setHeaderMessageType(self, msg_type):
-        self.mHdrMsgType = msg_type
-        if self.mDecoder:
-            self.mDecoder.putByteAt(2, msg_type)
+
+    @property
+    def length(self) -> int:
+        if self._decoder:
+            return self._decoder.length
         else:
-            self.mEncoder.putByteAt(2, msg_type)
+            return self._encoder.length
 
-    def getHeaderMessageType(self) -> int:
-        if self.mDecoder:
-            return self.mDecoder.getByteAt(2)
-        else:
-            return self.mEncoder.getByteAt(2)
 
-    def getLength(self) -> int:
-        if self.mDecoder:
-            self.mDecoder.getLength()
-        else:
-            self.mEncoder.getLength()
-    def getFreeSpaceLeft(self) ->int:
-        return self.mEncoder.getRemaining()
+    @property
+    def get_free_space_left(self) -> int:
+        return self._encoder.remaining
 
-    def setHeader( self, headerVersion:int, messageType:int, segmentFlags:int,
-                   localAddress:int, senderId:int, senderStartTime:int, appId:int):
-        self.mHdrVersion = headerVersion
-        self.mHdrMsgType = messageType
-        self.mHdrSegmentFlags = segmentFlags
-        self.mHdrLocalAddress = localAddress
-        self.mHdrSenderId = senderId
-        self.mHdrSenderStartTime = senderStartTime
-        self.mHdrAppId = appId
+    def setHeader(self, header_version: int, messsage_type: int, segment_flags: int,
+                  local_address: int, sender_id: int, sender_start_time_sec: int, app_id: int):
+        self._hdr_version = header_version
+        self._hdr_msg_type = messsage_type
+        self._hdr_segment_flags = segment_flags
+        self._hdr_local_address = local_address
+        self._hdr_sender_id = sender_id
+        self._hdr_sender_start_time_sec = sender_start_time_sec
+        self._hdr_app_id = app_id
 
-    def setSeqno( self, seqno:int ):
-        self.mSeqno = seqno;
-        if self.mEncoder:
-            self.mEncoder.putIntAt( Segment.SEGMENT_HEADER_SIZE, seqno)
 
-    def getSeqno(self) -> int:
-        return self.mSeqno
-
-    def encode( self ):
-        self.mEncoder.reset()
-        self.mEncoder.addShort(self.mHdrVersion)
-        self.mEncoder.addByte(self.mHdrMsgType)
-        self.mEncoder.addByte(self.mHdrSegmentFlags)
-        self.mEncoder.addInt(self.mHdrLocalAddress)
-        self.mEncoder.addInt(self.mHdrSenderId)
-        self.mEncoder.addInt(self.mHdrSenderStartTime)
-        self.mEncoder.addInt(self.mHdrAppId)
-
+    def encode(self):
+        self._encoder.reset()
+        self._encoder.addShort(self._hdr_version)
+        self._encoder.addByte(self._hdr_msg_type)
+        self._encoder.addByte(self._hdr_segment_flags)
+        self._encoder.addInt(self._hdr_local_address)
+        self._encoder.addInt(self._hdr_sender_id)
+        self._encoder.addInt(self._hdr_sender_start_time_sec)
+        self._encoder.addInt(self._hdr_app_id)
 
     def decode(self):
-        self.mDecoder.reset()
-        self.mHdrVersion = self.mDecoder.readShort()
-        self.mHdrMsgType = self.mDecoder.readByte()
-        self.mHdrSegmentFlags = self.mDecoder.readByte()
-        self.mHdrLocalAddress = self.mDecoder.readInt()
-        self.mHdrSenderId = self.mDecoder.readInt()
-        self.mHdrSenderStartTime = self.mDecoder.readInt()
-        self.mHdrAppId = self.mDecoder.readInt()
+        self._decoder.reset()
+        self._hdr_version = self._decoder.getShort()
+        self._hdr_msg_type = self._decoder.getByte()
+        self._hdr_segment_flags = self._decoder.getByte()
+        self._hdr_local_address = self._decoder.getInt()
+        self._hdr_sender_id = self._decoder.getInt()
+        self._hdr_sender_start_time_sec = self._decoder.getInt()
+        self._hdr_app_id = self._decoder.getInt()
+
+    @property
+    def hdr_version(self) -> int:
+        return self._hdr_version
+
+    @property
+    def hdr_msg_type(self) -> int:
+        return self._hdr_msg_type
+
+    @hdr_msg_type.setter
+    def hdr_msg_type(self, value:  int):
+        self._hdr_msg_type = value
+
+    @property
+    def hdr_segment_flags(self) -> int:
+        return self._hdr_segment_flags
+
+    @hdr_segment_flags.setter
+    def hdr_segment_flags(self, value:  int):
+        self._hdr_segment_flags = value
+
+    @property
+    def hdr_local_address(self) -> int:
+        return self._hdr_local_address
 
 
-    def getDecoder(self) -> Decoder:
-        return self.mDecoder
+    @property
+    def hdr_sender_id(self) -> int:
+        return self._hdr_sender_id
 
-    def getEncoder(self) -> Encoder:
-        return self.mEncoder
+    @property
+    def hdr_sender_start_time_sec(self) -> int:
+        return self._hdr_sender_start_time_sec
 
+    @property
+    def hdr_app_id(self) -> int:
+        return self._hdr_app_id
 
-    def copy(self) -> Segment:
+    @property
+    def decoder(self) -> Decoder | None:
+        return self._decoder
 
-        if self.mDecoder:
-            _buffer = bytearray[ len(self.mDecoder._buffer) ]
-            _buffer[:] = self.mDecoder._buffer
-            _segment = Segment(_buffer)
-            _segment.mDecoder._pos = self.mDecoder._pos
-            _segment.mDecoder._size = self.mDecoder._size
-        else:
-            _segment = Segment( len(self.mEncoder._buffer))
-            _segment.mEncoder._buffer[:] = self.mEncoder._buffer
-            _segment.mEncoder._pos = self.mEncoder._pos
-            _segment.mEncoder._size = self.mEncoder._size
-
-        _segment.mHdrSegmentFlags = self.mHdrSegmentFlags
-        _segment.mHdrMsgType = self.mHdrMsgType
-        _segment.mSeqno = self.mSeqno
-        _segment.mHdrAppId = self.mHdrAppId
-        _segment.mSize = self.mSize
-        _segment.mHdrVersion = self.mHdrVersion
-        _segment.mHdrSenderId = self.mHdrSenderId
-        _segment.mHdrSenderStartTime = self.mHdrSenderStartTime
-        return _segment
-
+    @property
+    def encoder(self) -> Encoder | None:
+        return self._encoder
 
     # =========================================================================================
 
-    def isUpdateMessage(self) -> bool:
-        if self.mHdrMsgType == Segment.MSG_TYPE_UPDATE or  self.mHdrMsgType == Segment.MSG_TYPE_RETRANSMISSION:
+    @property
+    def is_update_message(self) -> bool:
+        if self._hdr_msg_type == Segment.MSG_TYPE_UPDATE or self._hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION:
             return True
         else:
             return False
 
-    def hashCode(self) -> int:
-        if self.mHashCodeValue == 0:
-            _addr = (self.mHdrLocalAddressmHdrLocalHost  & 0xFF000000) >> 24
-            _sndrid = (self.mHdrSenderId & 0xFF) << 16
-            _time = (self.mHdrSenderStartTime & 0xFFFF)
-            self.mHashCodeValue = _addr + _sndrid + _time
-        return self.mHashCodeValue
+    @property
+    def is_end_segment(self) -> bool:
+        if self._hdr_segment_flags & Segment.FLAG_M_SEGMENT_END != 0:
+            return True
+        else:
+            return False
+    @classmethod
+    def cast(cls, obj: object) -> Segment:
+        if isinstance( obj, Segment):
+            return obj
+        raise Exception('Can not cast object to {}'.format( cls.__name__))
 
-    def equals( self, segment:Segment) -> bool:
+    def __hash__(self):
+        if self._hash_code_value == 0:
+            _addr = (self._hdr_local_address & 0xFF000000) >> 24
+            _sndrid = (self._hdr_sender_id & 0xFF) << 16
+            _time = (self._hdr_sender_start_time_sec & 0xFFFF)
+            self._hash_code_value = _addr + _sndrid + _time
+        return self._hash_code_value
+
+    def __eq__(self, segment: Segment):
         if segment == self:
             return True
 
-        if (self.mHdrLocalAddress == segment.mHdrLocalAddress and
-                self.mHdrSenderId == segment.mHdrSenderId and
-                self.mHdrSenderStartTime == segment.mHdrSenderStartTime):
+        if (self._hdr_local_address == segment._hdr_local_address and
+                self._hdr_sender_id == segment._hdr_sender_id and
+                self._hdr_sender_start_time_sec == segment._hdr_sender_start_time_sec):
             return True
         else:
             return False
 
-    def getFlagsString(self) -> str:
-        if self.mHdrSegmentFlags == 0:
+    def _getFlagsString(self) -> str:
+        if self._hdr_segment_flags == 0:
             return 'None'
 
         _str = ''
 
-        if (self.mHdrSegmentFlags & Segment.FLAG_M_SEGMENT_START) != 0:
+        if (self._hdr_segment_flags & Segment.FLAG_M_SEGMENT_START) != 0:
             _str += 'START+'
 
-        if (self.mHdrSegmentFlags & Segment.FLAG_M_SEGMENT_MORE) != 0:
+        if (self._hdr_segment_flags & Segment.FLAG_M_SEGMENT_MORE) != 0:
             _str += 'MORE+'
 
-        if (self.mHdrSegmentFlags & Segment.FLAG_M_SEGMENT_END) != 0:
+        if (self._hdr_segment_flags & Segment.FLAG_M_SEGMENT_END) != 0:
             _str += 'END+'
 
         return _str[:-1]
 
+    """
+    this is not pretty :-) but since we have added a circuit breaker and of cause 
+    use the property insight manner it will work and do the jobb :-)  
+    """
+    @property
+    def seqno(self) -> int:
+        if self._hdr_msg_type == Segment.MSG_TYPE_UPDATE or self._hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION:
+            if self._decoder:
+                return self._decoder.getIntAt(self.SEGMENT_HEADER_SIZE)
+            else:
+                return self._encoder.getIntAt(self.SEGMENT_HEADER_SIZE)
+        raise DistributorException("used property 'seqno' for a none update message, can not beleive we did that :-)")
 
     @staticmethod
     def getMessageTypeString(msg_type) -> str:
@@ -213,30 +243,29 @@ class Segment(ABC):
         if msg_type == Segment.MSG_TYPE_RETRANSMISSION_NAK:
             return 'RETRANSMISSION_NAK'
 
-        return "unknown-message: {}".format( msg_type )
+        return "unknown-message: {}".format(msg_type)
 
     def __str__(self) -> str:
-        sb:StringIO = StringIO()
-        sb.write('[ Type: {}'.format(self.getMessageTypeString(self.mHdrMsgType)))
-        sb.write(' SndrId: {0:x}'.format( self.mHdrSenderId))
-        sb.write(' Len: {}'.format( self.getLength()));
-        sb.write(' Flgs: {}'.format(  self.getFlagsString() ));
-        sb.write(' LclHst: {}'.format( Aux.ipAddrIntToStr( self.mHdrLocalAddress)));
-        sb.write(' StartTime: {}'.format( Aux.timestampToStr(  self.mHdrSenderStartTime)));
-        sb.write(' Vrs: {0:x}'.format( self.mHdrVersion));
-        sb.write(' AppId: {0:x}'.format( self.mHdrAppId));
+        sb: StringIO = StringIO()
+        sb.write('[ Type: {}'.format(self.getMessageTypeString(self._hdr_msg_type)))
+        sb.write(' SndrId: {0:x}'.format(self._hdr_sender_id))
+        sb.write(' Len: {}'.format(self.length))
+        sb.write(' Flgs: {}'.format(self._getFlagsString()))
+        sb.write(' LclHst: {}'.format(Aux.ipAddrIntToStr(self._hdr_local_address)))
+        sb.write(' StartTime: {}'.format(Aux.time_string(self._hdr_sender_start_time_sec)))
+        sb.write(' Vrs: {0:x}'.format(self._hdr_version))
+        sb.write(' AppId: {0:x}'.format(self._hdr_app_id))
 
-
-        if (self.mHdrMsgType == Segment.MSG_TYPE_UPDATE or
-                self.mHdrMsgType == Segment.MSG_TYPE_RETRANSMISSION):
-
-            _value:int = 0
-            if self.mDecoder:
-                sb.write(' Seqno: {}'.format( self.mDecoder.getIntAt( self.SEGMENT_HEADER_SIZE)))
-                sb.write(' Updcnt: {}'.format(self.mDecoder.getIntAt(self.SEGMENT_HEADER_SIZE)))
+        if self._hdr_msg_type == Segment.MSG_TYPE_UPDATE or self._hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION:
+            _value: int = 0
+            if self._decoder:
+                sb.write(' Seqno: {}'.format(self._decoder.getIntAt(self.SEGMENT_HEADER_SIZE)))
+                sb.write(' Updcnt: {}'.format(self._decoder.getIntAt(self.SEGMENT_HEADER_SIZE+4)))
             else:
-                sb.write(' Seqno: {}'.format(  self.mEncoder.getIntAt( self.SEGMENT_HEADER_SIZE)))
-                sb.write(' Updcnt: {}'.format( self.mEncoder.getIntAt( self.SEGMENT_HEADER_SIZE)))
+                sb.write(' Seqno: {}'.format(self._decoder.getIntAt(self.SEGMENT_HEADER_SIZE)))
+                sb.write(' Updcnt: {}'.format(self._decoder.getIntAt(self.SEGMENT_HEADER_SIZE+4)))
 
-            sb.write('] ')
-            return sb.getvalue()
+        sb.write('] ')
+        return sb.getvalue()
+
+

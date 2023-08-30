@@ -9,5 +9,5 @@ class MessageBase:
     def decode(self, buffer: bytearray):
         raise NotImplementedError("Should have implemented this")
 
-    def toString(self) -> dict:
+    def __str__(self):
         raise NotImplementedError("Should have implemented this")

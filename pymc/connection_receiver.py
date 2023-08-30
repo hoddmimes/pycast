@@ -1,193 +1,155 @@
+from __future__ import annotations
 import random
-
 from distributor_interfaces import ConnectionReceiverBase
-from logging import Logger
-from threading import Thread
-from pymc.aux.aux import Aux, AuxThread
-from pymc.aux.distributor_exception import DistributorTheadExitException, DistributorException
+from pymc.client_controller import ClientDeliveryController
 from pymc.connection import Connection
-from pymc.distributor_events import DistributorCommunicationErrorEvent, AsyncEvent
-from pymc.ipmc import IPMC
+from pymc.msg.rcv_update import RcvUpdate
+from pymc.remote_connection_controller import RemoteConnectionController
+from pymc.distributor_configuration import DistributorLogFlags
+from pymc.msg.rcv_segment import RcvSegmentBatch
 from pymc.msg.segment import Segment
 from pymc.msg.rcv_segment import RcvSegment
 from pymc.msg.net_msg import NetMsg
+from pymc.msg.net_msg_configuration import NetMsgConfiguration
+from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
+from pymc.msg.net_msg_update import NetMsgUpdate
+from pymc.msg.net_msg_retransmission import NetMsgRetransmissionRqst, NetMsgRetransmissionNAK
+from pymc.ipmc_receiver_thread import IpmcReceiverThread
 
+"""
+=====================================================================
+    ConnectionReceiver
+======================================================================
+"""
 
-## =====================================================================
-## ConnectionReceiver
-## ======================================================================
 
 class ConnectionReceiver(ConnectionReceiverBase):
 
-    def __init__(self, connection:Connection):
-        self.mConnection = connection
-        self.mConfiguration = connection.mConfiguration
-        self.mRemoteConnectionController = RemoteConnectionController(connection)
-        self.mReceiverThreads:list[Thread] = []
-        for _i in range(connection.mConfiguration.receiver_thread):
-            _thr = Thread( target=self.mcaReader )
-            self.mReceiverThreads.append( _thr )
+    def __init__(self, connection: Connection):
+        self._connection = connection
+        self._configuration = connection.configuration
+        self._remote_connection_controller = RemoteConnectionController(connection)
+        self._rcv_threads: list[IpmcReceiverThread] = []
+        for _i in range(connection.configuration.receiver_threads):
+            _thr = IpmcReceiverThread(logger=connection.logger,
+                                      ipmc=connection.ipmc,
+                                      connection_id=connection.connection_id,
+                                      index=(_i + 1),
+                                      segment_size=connection.configuration.segment_size)
+            self._rcv_threads.append(_thr)
+            _thr.start()
 
-    def randomError(self, promille) -> bool:
-        x:int = random.randrange(0,1000)
-        if (promille <= x):
-            return True
-        else:
-            return False
+    def triggerRemoteConfigurationNotifications(self, callback):
+        self._remote_connection_controller.triggerRemoteConfigurationNotifications(callback)
 
-
-    def triggerRemoteConfigurationNotifications(self, pCallback):
-        self.mRemoteConnectionController.triggerRemoteConfigurationNotifications(pCallback)
-
-    def checkVersion(self, pSegment):
-        tMajorVersion = ((NetMsg.VERSION >> 8) & 0xff)
-        tMinorVersion = (NetMsg.VERSION & 0xff)
-        tMajorMsgVersion = ((pSegment.getHeaderVersion() >> 8) & 0xff)
-        tMinorMsgVersion = (pSegment.getHeaderVersion() & 0xff)
-        if (tMajorVersion != tMajorMsgVersion):
+    def checkVersion(self, segment: Segment):
+        _major = ((NetMsg.VERSION >> 8) & 0xff)
+        _minor = (NetMsg.VERSION & 0xff)
+        _msg_major = (segment.hdr_version >> 8) & 0xff
+        _msg_minor = (segment.hdr_version & 0xff)
+        if _major != _msg_major:
             self.logInfo("Received a segment with incompatible version Segment: {}.{} Distributor: {}.{}".
-                         format(tMajorMsgVersion, tMinorMsgVersion, tMajorVersion, tMinorVersion)
+                         format(_msg_major, _msg_minor, _major, _minor))
             return False
         else:
             return True
 
     def close(self):
-        for i in range(len(self.mReceiverThreads)):
-            with self.mReceiverThreads[i]:
-                self.mReceiverThreads[i].interrupt()
+        for _thr in self._rcv_threads:
+            _thr.stop()
 
-    def isLogFlagSet(self, pLogFlag):
-        if (self.mConnection.isLogFlagSet(pLogFlag)):
+    def isLogFlagSet(self, log_flag):
+        if self._connection.isLogFlagSet(log_flag):
             return True
         return False
 
-    def processConfigurationMsg(self, pSegment):
-        self.mRemoteConnectionController.processConfigurationMessage(pSegment)
-        if (self.isLogFlagSet(DistributorApplicationConfiguration.LOG_DATA_PROTOCOL_RCV)):
-            tMsg = NetMsgConfiguration(pSegment)
-            tMsg.decode()
-            cLogger.info("PROTOCOL [RCV] " + tMsg.toString())
+    def processConfigurationMsg(self, segment: Segment):
+        self._remote_connection_controller.processConfigurationMessage(segment)
+        if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
+            _msg = NetMsgConfiguration(segment)
+            _msg.decode()
+            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
 
-    def processHeartbeatMsg(self, pSegment):
-        self.mRemoteConnectionController.processHeartbeatMessage(pSegment)
-        if (self.isLogFlagSet(DistributorApplicationConfiguration.LOG_DATA_PROTOCOL_RCV)):
-            tMsg = NetMsgHeartbeat(pSegment)
-            tMsg.decode()
-            cLogger.info("PROTOCOL [RCV] " + tMsg.toString())
+    def processHeartbeatMsg(self, segment: Segment):
+        self._remote_connection_controller.processHeartbeatMessage(segment)
+        if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
+            _msg = NetMsgHeartbeat(segment)
+            _msg.decode()
+            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
 
-    def processUpdateMsg(self, pSegment):
-        if ((self.mConfiguration.getFakeRcvErrorRate() > 0) and (self.randomError(self.mConfiguration.getFakeRcvErrorRate()))):
-            if (self.mConnection.isLogFlagSet(DistributorApplicationConfiguration.LOG_RETRANSMISSION_EVENTS)):
-                self.mConnection.log("RETRANSMISSION:  RCV SIMULATED  Error Segment [" + pSegment.getSeqno() + "] dropped")
+    def processUpdateMsg(self, segment: Segment):
+        _msg = NetMsgUpdate(segment)
+        _msg.decode()
+
+        if self._configuration.fake_rcv_error_rate > 0 and random_error(self._configuration.fake_rcv_error_rate):
+            if self._connection.isLogFlagSet(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
+                self.logInfo("RETRANSMISSION:  RCV SIMULATED  Error Segment [{}] dropped".format(_msg.sequence_no))
         else:
-            self.mRemoteConnectionController.processUpdateSegment(pSegment)
-            if (self.isLogFlagSet(DistributorApplicationConfiguration.LOG_DATA_PROTOCOL_RCV)):
-                tMsg = NetMsgUpdate(pSegment)
-                tMsg.decode()
-                if (pSegment.getHeaderMessageType() == Segment.MSG_TYPE_UPDATE):
-                    cLogger.info("PROTOCOL [RCV] <UPDATE>" + tMsg.toString())
+            self._remote_connection_controller.processUpdateSegment(segment)
+            if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
+                if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
+                    self.logInfo("PROTOCOL [RCV] <UPDATE> {}".format(_msg))
                 else:
-                    cLogger.info("PROTOCOL [RCV] <RETRANSMISSION>" + tMsg.toString())
+                    self.logInfo("PROTOCOL [RCV] <RETRANSMISSION> {}".format(_msg))
 
-    def processRetransmissionNAK(self, pSegment):
-        self.mConnection.mRetransmissionController.processRetransmissionNAK(pSegment)
-        if (self.isLogFlagSet(DistributorApplicationConfiguration.LOG_DATA_PROTOCOL_RCV)):
-            tMsg = NetMsgRetransmissionNAK(pSegment)
-            tMsg.decode()
-            cLogger.info("PROTOCOL [RCV] " + tMsg.toString())
+    def processRetransmissionNAK(self, segment: Segment):
+        self._connection.retransmission_controller.processRetransmissionNAK(segment)
+        if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
+            _msg = NetMsgRetransmissionNAK(segment)
+            _msg.decode()
+            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
 
-    def processRetransmissionRqst(self, pSegment):
-        tMsg = NetMsgRetransmissionRqst(pSegment)
-        tMsg.decode()
-        self.mConnection.mConnectionSender.retransmit(tMsg)
-        if (self.isLogFlagSet(DistributorApplicationConfiguration.LOG_DATA_PROTOCOL_RCV)):
-            tMsg.decode()
-            cLogger.info("PROTOCOL [RCV] " + tMsg.toString())
+    def processRetransmissionRqst(self, segment: Segment):
+        _msg = NetMsgRetransmissionRqst(segment)
+        _msg.decode()
+        self._connection.connection_sender.retransmit(_msg)
+        if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
+            _msg.decode()
+            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
 
-    def processReceivedSegment(self, pSegment):
-        if (pSegment.getHeaderVersion() != NetMsg.VERSION):
-            if (not self.checkVersion(pSegment)):
+    def processReceivedSegment(self, segment: Segment):
+        if segment.hdr_version != NetMsg.VERSION:
+            if not self.checkVersion(segment):
                 return
-        if (self.isLogFlagSet(DistributorApplicationConfiguration.LOG_SEGMENTS_EVENTS)):
-            tNetMsg = NetMsg(pSegment)
-            tNetMsg.decode()
-            cLogger.info("RCV Segment: " + tNetMsg.toString())
-        if (pSegment.getHeaderMessageType() == Segment.MSG_TYPE_CONFIGURATION):
-            self.processConfigurationMsg(pSegment)
-        elif (pSegment.getHeaderMessageType() == Segment.MSG_TYPE_HEARTBEAT):
-            self.processHeartbeatMsg(pSegment)
-        elif (pSegment.getHeaderMessageType() == Segment.MSG_TYPE_RETRANSMISSION):
-            self.processUpdateMsg(pSegment)
-        elif (pSegment.getHeaderMessageType() == Segment.MSG_TYPE_RETRANSMISSION_NAK):
-            self.processRetransmissionNAK(pSegment)
-        elif (pSegment.getHeaderMessageType() == Segment.MSG_TYPE_RETRANSMISSION_RQST):
-            self.processRetransmissionRqst(pSegment)
-        elif (pSegment.getHeaderMessageType() == Segment.MSG_TYPE_UPDATE):
-            self.processUpdateMsg(pSegment)
+        if self.isLogFlagSet(DistributorLogFlags.LOG_SEGMENTS_EVENTS):
+            _net_msg = NetMsg(segment)
+            _net_msg.decode()
+            self.logInfo("RCV Segment: {}".format(_net_msg))
+        if segment.hdr_msg_type == Segment.MSG_TYPE_CONFIGURATION:
+            self.processConfigurationMsg(segment)
+        elif segment.hdr_msg_type == Segment.MSG_TYPE_HEARTBEAT:
+            self.processHeartbeatMsg(segment)
+        elif segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION:
+            self.processUpdateMsg(segment)
+        elif segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION_NAK:
+            self.processRetransmissionNAK(segment)
+        elif segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION_RQST:
+            self.processRetransmissionRqst(segment)
+        elif segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
+            self.processUpdateMsg(segment)
 
-    def processReceiveSegmentBatch(self, pRcvSegmentBatch):
-        tUpdates = pRcvSegmentBatch.getUpdates(self.mConnection.mConnectionId)
-        if (len(tUpdates) == 1):
-            ClientDeliveryController.getInstance().queueUpdate(self.mConnection.mConnectionId, tUpdates[0])
-        else:
-            tRcvUpdateList = []
-            for i in range(len(tUpdates)):
-                tRcvUpdateList.append(tUpdates[i])
-            ClientDeliveryController.getInstance().queueUpdate(self.mConnection.mConnectionId, tRcvUpdateList)
+    def processReceiveSegmentBatch(self, rcv_segment_batch: RcvSegmentBatch):
+        _updates: list[RcvUpdate] = rcv_segment_batch.getUpdates(self._connection.connection_id)
+        ClientDeliveryController.getInstance().queueUpdates(self._connection.connection_id, _updates)
 
     def logInfo(self, msg):
-        self.mConnection.logInfo( msg )
+        self._connection.logInfo(msg)
 
     def logWarning(self, msg):
-        self.mConnection.logWarning( msg )
+        self._connection.logWarning(msg)
 
     def logError(self, msg):
-        self.mConnection.logError( msg )
+        self._connection.logError(msg)
 
-    def logThrowable(self, exception ):
-        self.mConnection.logThrowable( exception )
-
-
-
-    class ReceiverThread(AuxThread):
-        def __init__(self, logger:Logger, ipmc:IPMC, connection_id:int, index:int, segment_size:int):
-            super().__init__()
-            self.mIpmc = ipmc
-            self.mIndex = index
-            self.mLogger  = logger
-            self.mSegmentSize = segment_size
-            self.mConnectionId = connection_id
-
-        def run(self):
-            t_data_addr = None
-            self.setName("DIST_RECEIVER_" + str(self.mIndex) + ":" + str(self.mMca))
-            while (True):
-                tByteBuffer = bytearray(self.mSegmentSize)
-                try:
-                    t_data_addr = self.mIpmc.read()
-                    t_data = t_data_addr[0]
-                    t_mc_addr = t_data_addr[1][0]
-                    t_mc_port = t_data_addr[1][1]
-                except Exception as e:
-                    if self.mConnection.mTimeToDie:
-                        return
-                    e = DistributorException("IPMC read failure", e)
-                    self.mLogger.exception( e )
-                    tEvent = DistributorCommunicationErrorEvent("[RECEIVE]",
-                                                                self.mIpmc.mMcAddr,
-                                                                self.mIpmc.mMcPort,
-                                                                str(e))
-                    tAsyncEvent = AsyncEventSignalEvent(tEvent)
-                    DistributorConnectionController.queueAsyncEvent(self.mDistributorConnectionId, tAsyncEvent)
+    def logThrowable(self, exception):
+        self._connection.logThrowable(exception)
 
 
 
-                if (self.mConnection.mTimeToDie):
-                    return
-                tRcvSegment = RcvSegment(t_data)
-                tRcvSegment.setFromAddress(Aux.ipAddrStrToInt( t_mc_addr))
-                tRcvSegment.setFromPort(t_mc_port)
-                tRcvSegment.decode()
-                tAsyncEvent:AsyncEventReceiveSegment = AsyncEventReceiveSegment(tRcvSegment)
-                DistributorConnectionController.queueAsyncEvent(self.mDistributorConnectionId, tAsyncEvent)
+def random_error(promile) -> bool:
+    x: int = random.randrange(0, 1000)
+    if promile <= x:
+        return True
+    else:
+        return False
 

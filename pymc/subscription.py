@@ -171,7 +171,7 @@ class KeyNode:
     def getActiveSubscriptionsStrings(self, vector:[], prefix:str ):
         if self.mSubscriptions:
             for s in self.mSubscriptions:
-                vector.add("References: {} Topic: {}/{}".format(len(self.mSubscriptions), prefix, self.mKey))
+                vector.queue("References: {} Topic: {}/{}".format(len(self.mSubscriptions), prefix, self.mKey))
 
         if self.mKey == 'ROOT':
             if self.children:

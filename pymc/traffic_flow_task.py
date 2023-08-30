@@ -78,7 +78,7 @@ class TrafficFlowTask(ConnectionTimerTask):
 
 def test():
 	flowTask = TrafficFlowTask( connection_id=0, recalc_interval_ms=100, max_bandwidth_kbit=256)
-	ConnectionTimerExecutor.getInstance().add( delay_ms=flowTask.recalc_interval_ms, task=flowTask, repeat=True)
+	ConnectionTimerExecutor.getInstance().queue(interval=flowTask.recalc_interval_ms, task=flowTask, repeat=True)
 
 	_startTime = Aux.currentMilliseconds()
 	_tot_bytes = 0

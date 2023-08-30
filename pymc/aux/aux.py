@@ -13,12 +13,25 @@ class Aux:
     _allocated_server_sockets = []
 
     @staticmethod
+    def swapInt( value: int ):
+        if value <= 0xffff:
+            return ((value & 0xff)  << 8) + ((value >> 8) & 0xff)
+        elif value <= 0xffffffff:
+            return ((value & 0xff)  << 24) + ((value >> 8 & 0xff)  << 16) + ((value >> 16 & 0xff)  << 8) + (value >> 24 & 0xff)
+        else:
+            return (((value & 0xff) << 56) + ((value >> 8 & 0xff) << 48) + ((value >> 16 & 0xff) << 40) + ((value >> 24 & 0xff) << 32)
+                    + ((value >> 32 & 0xff) << 24) + ((value >> 40 & 0xff) << 16) + ((value >> 48 & 0xff) << 8) + (value >> 56))
+
+
+
+    @staticmethod
     def ipAddrStrToInt( addr_str: str ) -> int :
         arr = socket.inet_aton( addr_str )
         addr = (int(arr[3]) << 24) + (int(arr[2]) << 16) + (int(arr[1]) << 8) + int(arr[0])
-        return addr;
+        return addr
 
-    def ipAddrIntToStr( addr: str ) -> str :
+    @staticmethod
+    def ipAddrIntToStr( addr: int ) -> str :
         array = bytearray(4)
         array[0] = (addr & 0xff)
         array[1] = ((addr >> 8) & 0xff)
@@ -33,13 +46,23 @@ class Aux:
 
     @staticmethod
     def currentSeconds() -> int:
-        _now = datetime.datetime.now()
-        return int(_now.timestamp())
+        _now: int = int(time.time())
+        return _now
 
     @staticmethod
     def timerEvent(callback, args):
         timer = Timer(callback, args)
         timer.start()
+
+    @staticmethod
+    def hash32(string: str) -> int:
+        _hash: int = 1717
+        for x in string.encode():
+            _hash = (37 * _hash) + x
+            # _hash = ((_hash << 5) + _hash) + x
+            _hash = _hash * 3737;
+        return _hash & 0xffffffff
+
 
     @staticmethod
     def sleepMs( time_ms: int ):
@@ -70,7 +93,7 @@ class Aux:
         else:
             if time_stamp == 0:
                 return 'N/A'
-            _tim = datetime.fromtimestamp( float( time_stamp ) / 1000.0)
+            _tim = datetime.datetime.fromtimestamp( float( time_stamp ) / 1000.0)
         return _tim.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
     @staticmethod
@@ -80,7 +103,10 @@ class Aux:
         else:
             if time_stamp == 0:
                 return '00:00:00.000'
-            _tim = datetime.fromtimestamp( float( time_stamp ) / 1000.0)
+            if time_stamp <= 0x7fffffff:
+                _tim = datetime.datetime.fromtimestamp(int(time_stamp))
+            else:
+                _tim = datetime.datetime.fromtimestamp( float( time_stamp ) / 1000.0)
         return _tim.strftime('%H:%M:%S.%f')[:-3]
 
 
@@ -134,10 +160,15 @@ class AuxThread(threading.Thread):
             if thread is self:
                 return id
 
+    @property
+    def is_stopped(self) -> bool:
+        return self._time_to_exit
+
     def stop(self):
+        self._time_to_exit = True
         _id = self.thread_id
         _sts = res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(_id), ctypes.py_object(DistributorTheadExitException))
         #print("id: {} status: {}".format( _id,  _sts ))
 
-    def setName(self, name:str):
+    def setName(self, name: str):
         super().name = name

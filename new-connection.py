@@ -66,7 +66,7 @@ class DistributorConnection(threading.Thread):
                  self.mConnectionSender.mLocalAddress,
                  self.mApplicationConfiguration.getApplicationName())
         tMsg.encode()
-        self.mConnectionSender.sendSegment(XtaSegment(tMsg.mSegment))
+        self.mConnectionSender.send_segment(XtaSegment(tMsg._segment))
         tMsg = None
 
 
@@ -162,7 +162,7 @@ def addSubscription(pSubscriber, pSubjectName, pCallbackObject):
         raise DistributorException("Connection (" + mIpmg.toString() + ") has been closed.")
     if isLogFlagSet(DistributorApplicationConfiguration.LOG_SUBSCRIPTION_EVENTS):
         log("ADD Subscription: " + pSubjectName + " connection: " + mIpmg.toString())
-    return mSubscriptionFilter.add(pSubjectName, pSubscriber.mUpdateCallback, pCallbackObject)
+    return mSubscriptionFilter.queue(pSubjectName, pSubscriber.mUpdateCallback, pCallbackObject)
 
 def removeSubscription(pHandle, pSubjectName):
     if mTimeToDie:
@@ -216,14 +216,14 @@ class LogStatisticsTimerTask(DistributorTimerTask):
     def getLogFileName(self, tConnection):
         tFilename = ""
         tSDF = SimpleDateFormat("-yyyy-MM-dd-HHmmss")
-        if tConnection.mConfiguration.getStatisticFilename() == None:
+        if tConnection._configuration.getStatisticFilename() == None:
             tFilename = tConnection.mApplicationConfiguration.getApplicationName().replaceAll("[\\/:*?\"<>|]","_") + "-Statistics-" + tConnection.mIpmg.mInetAddress.getHostAddress() + "_" + tConnection.mIpmg.mPort + tSDF.format(new Date()) + ".log"
         else:
-            tIndex = tConnection.mConfiguration.getStatisticFilename().lastIndexOf(".")
+            tIndex = tConnection._configuration.getStatisticFilename().lastIndexOf(".")
             if tIndex > 0:
-                tFilename = tConnection.mConfiguration.getStatisticFilename().substring(0, tIndex) + "-" + tSDF.format(new Date()) + tConnection.mIpmg.mInetAddress.getHostAddress() + "_" + tConnection.mIpmg.mPort + tSDF.format(new Date()) + tConnection.mConfiguration.getStatisticFilename().substring(tIndex, tConnection.mConfiguration.getStatisticFilename().length())
+                tFilename = tConnection._configuration.getStatisticFilename().substring(0, tIndex) + "-" + tSDF.format(new Date()) + tConnection.mIpmg.mInetAddress.getHostAddress() + "_" + tConnection.mIpmg.mPort + tSDF.format(new Date()) + tConnection._configuration.getStatisticFilename().substring(tIndex, tConnection._configuration.getStatisticFilename().length())
             else:
-                tFilename = tConnection.mConfiguration.getStatisticFilename()
+                tFilename = tConnection._configuration.getStatisticFilename()
         return tFilename
 
     def execute(self, tConnection):
