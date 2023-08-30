@@ -37,7 +37,7 @@ class NetMsgUpdate(NetMsg):
         # now encode header
         _encoder: Encoder = super().encode()
         _encoder.addInt(self._sequence_no)  # placeholder for the sequence number
-        _encoder.addInt(self._update_count)  # Placeholdet for the update count in this message
+        _encoder.addInt(self._update_count)  # Placeholder for the update count in this message
 
     @property
     def flush_seqno(self) -> int:
@@ -138,7 +138,7 @@ class NetMsgUpdate(NetMsg):
         _encoder.addInt(data_size)
         self._update_count = 1
 
-    def addLargeData(self, update_data: bytearray, update_data_offset: int) -> int:
+    def addLargeData(self, update_data: bytes, update_data_offset: int) -> int:
         _encoder: Encoder = super().encoder
         _data_left: int = len(update_data) - update_data_offset
         _size: int = min(_encoder.remaining, _data_left)

@@ -205,7 +205,7 @@ class Encoder(Codec):
             self._buffer[self._pos: self._pos + len(_bytarr)] = _bytarr
             self._pos += len(_bytarr)
 
-    def addBytes(self, value: bytearray, size: int = None):
+    def addBytes(self, value: bytes, size: int = None):
         if value is None:
             self._capacity_(1)
             self.addBool(False)
@@ -239,10 +239,9 @@ class Encoder(Codec):
     def reset(self):
         self._pos = 0
 
-    def addRaw(self, buffer: bytearray):
+    def addRaw(self, buffer: bytes):
         self._buffer[self._pos: self._pos + len(buffer)] = buffer
         self._pos += len(buffer)
-
 
 
 ########################################################################################################################

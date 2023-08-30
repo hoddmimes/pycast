@@ -8,7 +8,6 @@ from pymc.remote_connection_controller import RemoteConnectionController
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.msg.rcv_segment import RcvSegmentBatch
 from pymc.msg.segment import Segment
-from pymc.msg.rcv_segment import RcvSegment
 from pymc.msg.net_msg import NetMsg
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
@@ -145,11 +144,9 @@ class ConnectionReceiver(ConnectionReceiverBase):
         self._connection.logThrowable(exception)
 
 
-
-def random_error(promile) -> bool:
+def random_error(promille: int) -> bool:
     x: int = random.randrange(0, 1000)
-    if promile <= x:
+    if promille <= x:
         return True
     else:
         return False
-

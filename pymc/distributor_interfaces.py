@@ -10,11 +10,16 @@ from pymc.traffic_statistics import TrafficStatisticTimerTask
 
 
 class PublisherBase(ABC):
-    pass
+
+    @abstractmethod
+    def get_id(self) -> int:
+        pass
 
 
 class SubscriberBase(ABC):
-    pass
+    @abstractmethod
+    def get_id(self) -> int:
+        pass
 
 
 class ConnectionSenderBase(ABC):

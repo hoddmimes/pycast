@@ -16,16 +16,18 @@ from pymc.connection_timers import ConnectionTimerExecutor
 from pymc.distributor_events import AsyncEvent
 from pymc.distributor_interfaces import ConnectionBase, PublisherBase, SubscriberBase
 from pymc.distributor_interfaces import DistributorBase
+from pymc.distributor_configuration import DistributorLogFlags
 from pymc.ipmc import IPMC
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
 from pymc.msg.segment import Segment
 from pymc.msg.xta_update import XtaUpdate
 from pymc.retransmission_controller import RetransmissionController
-from pymc.traffic_statistics import TrafficStatisticTimerTask
+from pymc.subscription import SubscriptionFilter
+from pymc.traffic_statistics import TrafficStatisticTimerTask, DistributorPublisherStatisticsIf, DistributorSubscriberStatisticsIf
+
 
 
 class Connection(ConnectionBase):
-
 
     def __init__(self, distributor: DistributorBase, configuration: ConnectionConfiguration):
         self._connection_id: int = Aux_UUID.getId()
@@ -39,6 +41,7 @@ class Connection(ConnectionBase):
         self._state: int = self.STATE_INIT
         self._mutex: threading.RLock = threading.RLock()
         self._async_event_queue: BlockingQueue = BlockingQueue()
+        self._subscription_filter = SubscriptionFilter()
         self._retransmission_controller = RetransmissionController(self)
         self._ipmc: IPMC = IPMC(configuration.eth_device, configuration.ttl, configuration.ipBufferSize)
         self._ipmc.open(configuration.mca, configuration.mca_port)
@@ -50,9 +53,17 @@ class Connection(ConnectionBase):
         self._traffic_statistic_task = TrafficStatisticTimerTask(self._connection_id)
         ConnectionTimerExecutor.getInstance().queue(interval=1000, task=self._traffic_statistic_task, repeat=True)
 
-
     def lock(self):
         self._mutex.acquire()
+
+    def remove_publisher(self, publisher: PublisherBase):
+        self._publishers.remove(publisher)
+
+    def get_traffic_statistics(self) -> DistributorPublisherStatisticsIf | DistributorSubscriberStatisticsIf:
+        return self._traffic_statistic_task
+
+    def eval_outgoing_traffic_flow(self, bytes_sent: int ) -> int:
+        return self._connection_sender.eval_outgoing_traffic_flow(bytes_sent)
 
     def flushHoldback(self, flush_holback_seqno: int ):
         self._connection_sender.flushHoldback(flush_holback_seqno);
@@ -127,6 +138,16 @@ class Connection(ConnectionBase):
     def unlock(self):
         self._mutex.release()
 
+    def add_subscription(self, subscriber: SubscriberBase, subject: str, callback_parameter: object ):
+        if self.is_time_to_die:
+            raise DistributorException("Connection {} has been closed.".format(self._ipmc))
+
+        if self.isLogFlagSet( DistributorLogFlags.LOG_SUBSCRIPTION_EVENTS):
+            self.logInfo("ADD Subscription: {} connection: {}".format(subject, self._ipmc ))
+
+
+        return self._subscription_filter.add( subject, subscriber.update_callback, callback_parameter)
+
     def queueAsyncEvent(self, async_event: AsyncEvent):
         if not self._time_to_die:
             self._async_event_queue.add(async_event)
@@ -137,7 +158,7 @@ class Connection(ConnectionBase):
     def __str__(self):
         return "mca: {} mca-port: {}".format(self._configuration.mca, self._configuration.mca_port)
 
-    def publishUpdate(self, xta_update: XtaUpdate):
+    def publishUpdate(self, xta_update: XtaUpdate) -> int:
         self._connection_sender.publishUpdate(xta_update)
 
     def checkStatus(self):
@@ -165,10 +186,6 @@ class Connection(ConnectionBase):
 
     def getConfiguration(self):
         return self._configuration
-
-    def queueAsyncEvent(self):
-
-
 
     def pushOutConfiguration(self):
         _cfgmsg = NetMsgConfiguration(Segment(self._configuration.small_segment_size))
@@ -204,7 +221,7 @@ class Connection(ConnectionBase):
 
                 # Execute Async Event
                 _async_event.execute(self)
-                
+
                 if not self._async_event_queue.is_empty():
                     _event_list: list = self._async_event_queue.drain(60)
                     for _async_event in _event_list:

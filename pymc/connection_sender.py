@@ -24,6 +24,7 @@ from pymc.connection import Connection
 from logging import Logger
 
 
+
 def sendHeartbeat(connection: Connection):
     _heartbeat = NetMsgHeartbeat(XtaSegment(connection.configuration.small_segment_size))
     _heartbeat.setHeader(
@@ -200,7 +201,7 @@ class ConnectionSender(ConnectionSenderBase):
 
         return _msg
 
-    def publishUpdate(self, xta_update: XtaUpdate):
+    def publishUpdate(self, xta_update: XtaUpdate) -> int:
         return self.updateToSegment(xta_update)
 
     def flushHolback(self,  flush_request_seqno: int):
@@ -210,7 +211,13 @@ class ConnectionSender(ConnectionSenderBase):
                 self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
 
-    def updateToSegment(self, xta_update: XtaUpdate):
+    def eval_outgoing_traffic_flow(self, bytes_sent: int) -> int:
+        self._traffic_flow_task.increment(bytes_sent)
+        return self._traffic_flow_task.calculateWaitTimeMs()
+
+
+
+    def updateToSegment(self, xta_update: XtaUpdate) -> int:
         if xta_update.size > self._configuration.segment_size - NetMsgUpdate.MIN_UPDATE_HEADER_SIZE:
             self.largeUpdateToSegments(xta_update)
         else:
@@ -226,6 +233,9 @@ class ConnectionSender(ConnectionSenderBase):
                     flush_seqno=self._last_update_flush_seqno)
                 ConnectionTimerExecutor.getInstance().queue(interval=self._configuration.send_holdback_delay_ms,
                                                             task=_timerTask)
+                if self._distributor.is_logging_enable(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
+                    self._cLogger.info("outgoing flow, queue new holdback flush timer seqno: {} holddback time: {} (ms)"
+                                       .format(self._last_update_flush_seqno, self._configuration.send_holdback_delay_ms))
             return 0
         # send message
         return self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)

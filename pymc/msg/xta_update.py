@@ -3,14 +3,11 @@ from __future__ import annotations
 
 class XtaUpdate(object):
 
-    def __init__(self, subject: str, data: bytearray, length: int = None):
-        self._subject = subject
-        if length == None:
-            self._data = data
-            self._data_length = len(data)
-        else:
-            self._data = data[:length]
-            self._data_length = length
+    def __init__(self, subject: str, data: bytes):
+        self._subject: str = subject
+        self._data: bytes = data
+
+
 
     # XtaUpdate encoded layout
     # 1 byte subject present or not
@@ -22,18 +19,18 @@ class XtaUpdate(object):
 
     @property
     def size(self) -> int:
-        return len(self._subject) + (1 + 4 + 1 + 4) + self._data_length
+        return len(self._subject) + (1 + 4 + 1 + 4) + len(self._data)
 
     @property
     def data_length(self) -> int:
-        return self._data_length
+        return len(self._data)
 
     @property
     def subject(self) -> str:
         return self._subject
 
     @property
-    def data(self) -> bytearray:
+    def data(self) -> bytes:
         return self._data
 
     @classmethod

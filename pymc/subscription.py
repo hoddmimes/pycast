@@ -134,7 +134,7 @@ class KeyNode:
             return tKeyNode
 
 
-    def addSubscription(self, subjectName:str, callback: Callable[ [str, bytearray, object, int,  int], None], callbackParameter: object) -> Subscription:
+    def addSubscription(self, subjectName:str, callback: Callable[ [str, bytes, object, int,  int], None], callbackParameter: object) -> Subscription:
         tSubscription:Subscription = Subscription(subjectName, callback, callbackParameter )
         if not self.mSubscriptions:
             self.mSubscriptions = []
@@ -287,7 +287,7 @@ class KeyNode:
 
 
 
-    def matchRecursive(self, subjectName:str,  keys: SubjectTokenParser, data: bytearray, appId:int, queueLength:int):
+    def matchRecursive(self, subjectName:str,  keys: SubjectTokenParser, data: bytes, appId:int, queueLength:int):
         if not keys.hasMore():
             if self.mSubscriptions:
                 for sub in self.mSubscriptions:
@@ -319,7 +319,7 @@ class SubscriptionFilter:
     def getActiveSubscriptions(self) -> int:
         return self.mRoot.countActiveSubscriptions()
 
-    def add(self, subjectName: str,  callback: Callable[[str, bytearray, object, int, int], None],  callbackParameter: object) -> object:
+    def add(self, subjectName: str,  callback: Callable[[str, bytes, object, int, int], None],  callbackParameter: object) -> object:
         tKeys: SubjectTokenParser =  SubjectTokenParser(subjectName)
         if not tKeys.hasMore():
             raise Exception("Invalid pSubjectName: {} ".format(subjectName))
@@ -330,7 +330,7 @@ class SubscriptionFilter:
             tKeyNode = tKeyNode.addChild(tKey)
         return tKeyNode.addSubscription( subjectName, callback, callbackParameter)
 
-    def match( self, subjectName:str , data:bytearray, appId:int, queueLength:int ):
+    def match( self, subjectName:str , data:bytes, appId:int, queueLength:int ):
         tKeys:SubjectTokenParser = SubjectTokenParser(subjectName)
         self.mRoot.matchRecursive(subjectName, tKeys, data, appId, queueLength)
 
@@ -358,7 +358,7 @@ def main_token():
     while stp.hasMore():
         print( stp.getNextElement())
 
-def subscriptionCallback( subjectName:str, data:bytearray, callbackParameter:object, appId:int, queueLength: int):
+def subscriptionCallback( subjectName:str, data:bytes, callbackParameter:object, appId:int, queueLength: int):
     print(" callback subject: {} data: {} param: {}    app-id: {} quelen: {} ".format( subjectName, data.decode('utf-8'), str( callbackParameter), str(appId), str( queueLength)))
 
 
@@ -369,7 +369,7 @@ def main_filter():
     filter.add("/foo/...",subscriptionCallback, "/foo/..." )
     filter.add("/frotz/a/b/c",subscriptionCallback, "/frotz/a/b/c" )
 
-    filter.match("/foo/bar/fie", bytearray("test1".encode()), 4711,1)
+    filter.match("/foo/bar/fie", bytes("test1".encode()), 4711,1)
     print( filter.toString())
 
 if __name__ == '__main__':

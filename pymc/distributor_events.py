@@ -5,8 +5,9 @@ from pymc.msg.rcv_segment import Segment, RcvSegment
 from pymc.connection import Connection
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.client_controller import ClientDeliveryController
-
 import types
+
+
 class AsyncEvent(ABC):
 
     def __init__(self):
@@ -16,7 +17,6 @@ class AsyncEvent(ABC):
     def execute(self, connection):
         pass
 
-
     @abstractmethod
     def toString(self):
         pass
@@ -25,11 +25,10 @@ class AsyncEvent(ABC):
         return "[ {} ] {}".format(self.__class__.__name__, self.toString())
 
     @classmethod
-    def cast( cls, obj: object ) -> AsyncEvent:
-        if isinstance( obj, AsyncEvent):
+    def cast(cls, obj: object) -> AsyncEvent:
+        if isinstance(obj, AsyncEvent):
             return obj
         raise Exception('object can not be cast to {}'.format(cls.__name__))
-
 
 
 class DistributorEvent(object):
@@ -44,7 +43,6 @@ class DistributorEvent(object):
     def __init__(self, event_type: int, message: str = None):
         self.event_type: int = event_type
         self.message: str = message
-
 
     def getMessage(self) -> str:
         return self.message
@@ -73,7 +71,6 @@ class DistributorCommunicationErrorEvent(DistributorErrorEvent):
         self.mc_port = mc_port
 
         self.setMessage(
-
             '{} Connection communication error mc-addr: {} mc-port: {}\n  reason: {} '.format(direction,
                                                                                               self.mc_addr_str,
                                                                                               self.mc_port, reason))
@@ -124,7 +121,7 @@ class DistributorRemoveRemoteConnectionEvent(DistributorEvent):
         self.setMessage(
             "Remote Connection Disconnected host: {} mc-addr: {} mc-port: {} Application: {} App-id: {} Sender-id: {} sender started: {}".
             format(self.remote_addr, self.mc_addr, self.mc_port, self.appl_name,
-                   hex(self.appl_id) , self.sender_id, self.sender_start_time))
+                   hex(self.appl_id), self.sender_id, self.sender_start_time))
 
 
 class DistributorRetransmissionNAKErrorEvent(DistributorErrorEvent):
@@ -136,7 +133,7 @@ class DistributorRetransmissionNAKErrorEvent(DistributorErrorEvent):
 
         super().setMessage(
             'Distributor Connection, failed to recover lost message. Message not in remote cache. mc-addr: {} mc-port: {}'.
-                format(self.mc_addr, self.mc_port))
+            format(self.mc_addr, self.mc_port))
 
 
 class DistributorTooManyRetransmissionRetriesErrorEvent(DistributorErrorEvent):

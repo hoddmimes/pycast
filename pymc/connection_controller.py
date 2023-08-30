@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from pymc.aux.distributor_exception import DistributorException
 from pymc.connection import Connection
 from pymc.distributor_events import AsyncEvent
@@ -8,7 +9,6 @@ import threading
 
 
 class ConnectionController(object):
-
     _instance: ConnectionController = None
 
     def __new__(cls, *args, **kwargs):

@@ -240,33 +240,6 @@ class ClientDeliveryController(object):
                 return _sfc.subscription_filter
         return None
 
-<<<<<<< HEAD
-    def processEvent( self, event: ClientEvent):
-        with self.mLock:
-            if event.mEventType == ClientEvent.UPDATE:
-                _filter = self.getSubscriptionFilter(event.mDistributorConnectionId)
-                _updevt:ClientUpdateEvent = event
-                if _filter:
-                    if _updevt.mRcvUpdate:
-                        _filter.match(_updevt.mRcvUpdate.mSubject, _updevt.mRcvUpdate.mUpdateData,
-                                  _updevt.mRcvUpdate.mAppId, (self.mQueueLength - 1))
-                        self.mQueueLength -= 1
-                    elif _updevt.mRcvUpdateList:
-                        for _upd in _updevt.mRcvUpdateList:
-                            _filter.match(_upd.mSubject, _upd.mUpdateData, _upd.mAppId, (self.mQueueLength - 1))
-                            self.mQueueLength -= 1
-            elif event.mEventType == ClientEvent.APPEVENT:
-                _appevt: ClientAppEvent = event
-                for _evtlst in self.mEventCallbackListeners:
-                    if _evtlst.connection_id == _appevt.mDistributorConnectionId:
-                        _evtlst.callback( _appevt.mEvent )
-                self.mQueueLength -= 1
-
-            elif event.mEventType == ClientEvent.DEDICATED_APPEVENT:
-                _appevt: ClientDedicatedAppEvent = event
-                _appevt.mEventCallbackIf(_appevt.mEvent)
-                self.mQueueLength -= 1
-=======
     def processEvent(self, event: ClientEvent):
         with self._lock:
             if event.event_type == ClientEvent.UPDATE:
@@ -292,7 +265,6 @@ class ClientDeliveryController(object):
                 _appevt: ClientDedicatedAppEvent = ClientDedicatedAppEvent.cast(event)
                 _appevt.event_callback_if(_appevt.event)
                 self._queue_length -= 1
->>>>>>> 881b668 (intermidate commit, work in progress)
 
             else:
                 raise DistributorException('unknown client event ({}'.format(event.event_type))
