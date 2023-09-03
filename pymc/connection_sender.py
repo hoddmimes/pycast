@@ -1,6 +1,6 @@
 import random
 
-from distributor_interfaces import ConnectionBase, ConnectionSenderBase, DistributorBase
+from pymc.distributor_interfaces import ConnectionBase, ConnectionSenderBase, DistributorBase
 from pymc.msg.net_msg_update import NetMsgUpdate
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
@@ -185,6 +185,18 @@ class ConnectionSender(ConnectionSenderBase):
     def current_seqno(self) -> int:
         return self._current_seqno
 
+    def retransmit(self, msg: NetMsgRetransmissionRqst):
+        if msg.sender_start_time == self.sender_start_time and msg.sender_id == self.sender_id:
+             self._connection.updateInRetransmissionStatistics(self._connection.mc_address(),
+                                                               self._connection.mc_port,
+                                                               msg, True)
+             self._retransmission_cache.retransmit(msg.low_sequence_no, msg.high_sequence_no)
+        else:
+            self._connection.updateInRetransmissionStatistics(self._connection.mc_address(),
+                                                              self._connection.mc_port,
+                                                              msg, False)
+
+
     def get_new_current_update(self) -> NetMsgUpdate:
         # should always be None when calling this method
         if self._current_update:
@@ -332,7 +344,7 @@ class ConnectionSender(ConnectionSenderBase):
                                                                                                 mc_addr=self._connection.mc_address(),
                                                                                                 mc_port=self._connection.mc_port(),
                                                                                                 reason=str(e))
-                ClientDeliveryController.getInstance().queueEvent(connection_id=self._connection.connection_id(), event=_event)
+                ClientDeliveryController.get_instance().queue_event(connection_id=self._connection.connection_id(), event=_event)
 
             if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
                 self._retransmission_cache.addSentUpdate(segment)

@@ -1,12 +1,14 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from logging import Logger
+
 from pymc.distributor_configuration import DistributorConfiguration
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.ipmc import IPMC
+from pymc.msg.net_msg_retransmission import NetMsgRetransmissionRqst
 from pymc.msg.segment import Segment
 from pymc.msg.xta_update import XtaUpdate
 from pymc.retransmission_controller import RetransmissionController
-from pymc.traffic_statistics import TrafficStatisticTimerTask
 
 
 class PublisherBase(ABC):
@@ -24,7 +26,7 @@ class SubscriberBase(ABC):
 
 class ConnectionSenderBase(ABC):
     @abstractmethod
-    def sender_id(self) -> int:
+    def retransmit(self) -> int:
         pass
 
 
@@ -79,7 +81,42 @@ class ConnectionBase(ABC):
         pass
 
     @abstractmethod
-    def traffic_statistic_task(self) -> TrafficStatisticTimerTask:
+    def logger(self) -> Logger:
+        pass
+
+    @abstractmethod
+    def is_logging_enable(self, flag: int) -> bool:
+        pass
+
+    @abstractmethod
+    def log_info(self, msg: str):
+        pass
+
+    @abstractmethod
+    def log_warn(self, msg: str):
+        pass
+
+    @abstractmethod
+    def log_error(self, msg: str):
+        pass
+
+    @abstractmethod
+    def log_exception(self, msg: str):
+        pass
+
+    @abstractmethod
+    def connection_sender(self) -> ConnectionSenderBase:
+        pass
+
+    @abstractmethod
+    def connection_receiver(self) -> ConnectionReceiverBase:
+        pass
+
+    @abstractmethod
+    def update_in_retransmission_statistics(self, mc_addr: int, mc_port: int, msg: NetMsgRetransmissionRqst, to_this_node: bool):
+        pass
+    @abstractmethod
+    def async_event_to_client(self, event):
         pass
 class DistributorBase(ABC):
 
@@ -115,6 +152,5 @@ class DistributorBase(ABC):
     def configuration(self) -> DistributorConfiguration:
         pass
 
-    @abstractmethod
-    def is_logging_enable(self, flag: int) -> bool:
-        pass
+
+

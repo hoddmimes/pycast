@@ -27,7 +27,7 @@ class DistributorConnection(threading.Thread):
         self.mSubscribers = []
 
         self.mTrafficStatisticsTask = TrafficStatisticTimerTask(self.mConnectionId)
-        DistributorTimers.getInstance().queue(1000, 1000, self.mTrafficStatisticsTask)
+        DistributorTimers.get_instance().queue(1000, 1000, self.mTrafficStatisticsTask)
 
         self.mIpmg = Ipmg(pConfiguration.getMca(), pConfiguration.getMcaNetworkInterface(), pConfiguration.getMcaPort(), pConfiguration.getIpBufferSize(), pConfiguration.getTTL())
         self.mMcaConnectionId = self.mIpmg.getMcaConnectionId()
@@ -38,10 +38,10 @@ class DistributorConnection(threading.Thread):
 
         self.mRetransmissionController = RetransmissionController(self)
         self.mSubscriptionFilter = DistributorSubscriptionFilter()
-        ClientDeliveryController.getInstance().addSubscriptionFilter(self.mConnectionId, self.mSubscriptionFilter)
+        ClientDeliveryController.get_instance().add_subscription_filter(self.mConnectionId, self.mSubscriptionFilter)
         if self.mConfiguration.getStatisticsLogInterval() > 0:
             self.mLogStatisticTask = LogStatisticsTimerTask(self.mConnectionId)
-            DistributorTimers.getInstance().queue(self.mConfiguration.getStatisticsLogInterval(), self.mConfiguration.getStatisticsLogInterval(), self.mLogStatisticTask)
+            DistributorTimers.get_instance().queue(self.mConfiguration.getStatisticsLogInterval(), self.mConfiguration.getStatisticsLogInterval(), self.mLogStatisticTask)
         else:
             self.mLogStatisticTask = None
         if isLogFlagSet(DistributorApplicationConfiguration.LOG_CONNECTION_EVENTS):
@@ -76,7 +76,7 @@ def createPublisher(pEventCallback):
     mPublishers.append(tPublisher)
     pushOutConfiguration()
     if pEventCallback is not None:
-        ClientDeliveryController.getInstance().addEventListener(mConnectionId, pEventCallback)
+        ClientDeliveryController.get_instance().addEventListener(mConnectionId, pEventCallback)
         self.mConnectionReceiver.triggerRemoteConfigurationNotifications(pEventCallback)
     return tPublisher
 
@@ -93,7 +93,7 @@ def close():
     lock()
     if mTimeToDie:
         return
-    ClientDeliveryController.getInstance().removeSubscriptionFilter(mConnectionId, mSubscriptionFilter)
+    ClientDeliveryController.get_instance().remove_subscription_filter(mConnectionId, mSubscriptionFilter)
     DistributorConnectionController.removeConnection(mConnectionId)
     mState = RunningStateType.CLOSED
     mTimeToDie = True
@@ -148,14 +148,14 @@ def removePublisher(pPublisher):
         raise DistributorException("Distrbutor Connection (" + mIpmg.toString() + ") has been closed.")
     mPublishers.remove(pPublisher)
     if pPublisher.mEventCallback != None:
-        ClientDeliveryController.getInstance().removeEventListener(mConnectionId, pPublisher.mEventCallback)
+        ClientDeliveryController.get_instance().removeEventListener(mConnectionId, pPublisher.mEventCallback)
 
 def removeSubscriber(pSubscriber):
     if mTimeToDie:
         raise DistributorException("Connection (" + mIpmg.toString() + ") has been closed.")
     mSubscribers.remove(pSubscriber)
     if pSubscriber.mEventCallback != None:
-        ClientDeliveryController.getInstance().removeEventListener(mConnectionId, pSubscriber.mEventCallback)
+        ClientDeliveryController.get_instance().removeEventListener(mConnectionId, pSubscriber.mEventCallback)
 
 def addSubscription(pSubscriber, pSubjectName, pCallbackObject):
     if mTimeToDie:
@@ -243,7 +243,7 @@ class LogStatisticsTimerTask(DistributorTimerTask):
             tSB.append("\t RCV Update Rate        " + tConnection.mTrafficStatisticsTask.mRcvUpdates.getValueSec() + "\n")
             tSB.append("\t RCV Total Segments     " + tConnection.mTrafficStatisticsTask.getTotalRcvSegments() + "\n")
             tSB.append("\t RCV Total Updates      " + tConnection.mTrafficStatisticsTask.getTotalRcvUpdates() + "\n")
-            tSB.append("\t Delivery Queue         " + ClientDeliveryController.getInstance().getQueueLength() + "\n")
+            tSB.append("\t Delivery Queue         " + ClientDeliveryController.get_instance().getQueueLength() + "\n")
             tSB.append("\t Maximum Memory         " + Runtime.getRuntime().maxMemory() + "\n")
             tSB.append("\t Total Memory           " + Runtime.getRuntime().totalMemory() + "\n")
             tSB.append("\t Free Memory            " + Runtime.getRuntime().freeMemory() + "\n")

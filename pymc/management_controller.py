@@ -137,7 +137,7 @@ def serveDistExploreConnectionRqst(pNetMsg):
     tResponse.getConnection().setMcaPort(tConnection.mIpmg.mPort)
     tResponse.getConnection().setOutRetransmissions(tConnection.mRetransmissionStatistics.total_out)
     tResponse.getConnection().setInRetransmissions(tConnection.mRetransmissionStatistics.total_in)
-    tResponse.getConnection().setDeliverUpdateQueue(ClientDeliveryController.getInstance().getQueueSize())
+    tResponse.getConnection().setDeliverUpdateQueue(ClientDeliveryController.get_instance().get_queue_size())
     tResponse.getConnection().setPublishers(tConnection.mPublishers.size())
     tResponse.getConnection().setSubscribers(tConnection.mSubscribers.size())
     tResponse.getConnection().setRcvTotalBytes(tConnection.mTrafficStatisticsTask.getTotalRcvBytes())

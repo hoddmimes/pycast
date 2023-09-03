@@ -2,7 +2,6 @@ from __future__ import annotations
 import random
 import threading
 import time
-<<<<<<< HEAD
 import os
 from abc import ABC
 import types
@@ -11,95 +10,72 @@ from io import StringIO
 from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor, Future
 from concurrent.futures import ThreadPoolExecutor, Future
-
-class Event(object):
-
-    def __init__(self, int_value:int, str_value:str ):
-        self.mIntValue = int_value
-        self.mStrValue = str_value
-
-    def __str__(self):
-        return "int: {} str: {}".format(self.mIntValue, self.mStrValue)
-
-class TestBase(ABC):
-
-    def __init__(self, event: Event):
-        self.mEvent = event
-
-    def __str__(self):
-        return "[ {} ] {}".format( self.__class__.__name__, self.mEvent)
-
-
-class TestClass(TestBase):
-
-    def __init__(self, event: Event):
-        super().__init__(event)
-
-
-def main():
-    evt = Event(42, 'kalle')
-    tc = TestClass(evt)
-    print( tc )
-=======
-
+from typing import Any
+from pymc.msg.segment import Segment
 from pymc.aux.aux import Aux
 
-rnd = random.Random()
 
-class Message(object):
+class TestClass(object):
+    def __init__(self, msg: str, value: int):
+        self._message: str = msg
+        self._value = value
 
-    def __init__(self):
-        self._length: int = 0
-        self._value: str = None
+    @property
+    def message(self) ->str:
+        return self._message
 
-    def set(self, value: str ):
-        self._length = len( value )
+    @message.setter
+    def message(self, value: str):
+        self._message = value
+
+    @property
+    def value(self) -> int:
+        return self._value
+
+    @value.setter
+    def value(self, value:  int):
         self._value = value
 
     def __str__(self):
-        return "len: {} string: {}".format(self._length, self._value)
+        return "message: {} value: {}".format( self._message, self._value)
 
-class TestClass(object):
-    def __init__(self, msg: Message):
-        self._message: Message = msg
+    def __hash__(self):
+        return Aux.hash32( self._message)
 
-    def send(self, message: Message) -> None:
-        print(" Sending Message: {}".format( message))
-        return None
-
-    def test(self):
-        self._message = self.send( self._message)
-
-    def to_string(self):
-        if self._message is None:
-            print("message value is None")
+    def __eq__(self, other: TestClass):
+        if self._message == other.message and self.value == other.value:
+            return True
         else:
-            print(" Message: {}".format( self._message))
-
-
-
-
-def getKey( mc_address: int,  mc_port: int, host_address: int) -> int:
-    tValue = (Aux.swapInt(mc_address) << 40) + (Aux.swapInt(host_address) << 16) + (Aux.swapInt(mc_port) & 0xffff)
-    return tValue
+            return False
 
 
 
 
 def main():
->>>>>>> 881b668 (intermidate commit, work in progress)
+   segment = Segment(1024)
+   addr: int = Aux.ipAddrStrToInt('192.168.42.11')
+   segment.setHeader(header_version=0x11,
+                     messsage_type=Segment.MSG_TYPE_CONFIGURATION,
+                     segment_flags=Segment.FLAG_M_SEGMENT_START+Segment.FLAG_M_SEGMENT_END,
+                     local_address=addr,
+                     sender_id=0x1234,
+                     sender_start_time_sec=Aux.currentSeconds(),
+                     app_id=0x9876)
 
+   print(segment)
+   print("time: {}".format(hex(segment.hdr_sender_start_time_sec)))
+   print("segment hash: {}".format( hex(segment.__hash__())))
+   map: dict[int, str] = {}
+   map[segment] = 'segment-string'
+   print('=============================')
+   kk = 0
+   for k in map.keys():
+       print("map-key: {}".format(k))
+       kk= k
+   map.pop(kk)
 
-   local_address: int = Aux.ipAddrStrToInt(Aux.getIpAddress(''))
-   mc_address: int = Aux.ipAddrStrToInt('224.10.10.12')
-   mc_port: int = 5432
-
-   key = getKey( mc_address, mc_port, local_address)
-   print("key: {0:x}".format(key))
-   print("host: {0:x}".format(local_address))
-   print("mca: {0:x}".format(mc_address))
-   print("port: {0:x}".format(mc_port))
-
+   for k in map.keys():
+       print("post-map-key: {}".format(k))
 
 
 

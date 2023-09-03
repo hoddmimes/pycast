@@ -1,6 +1,6 @@
 from pymc.aux.aux import Aux
 from pymc.aux.atomic import AtomicInt, AtomicLong
-from connection_timers import ConnectionTimerTask
+from pymc.connection_timers import ConnectionTimerTask
 import pymc.msg.net_msg_update as netmsg
 from pymc.msg.segment import Segment
 from abc import ABC, abstractmethod
@@ -25,7 +25,7 @@ class CounterElement(object):
         return self.mMaxValueSec
 
     def getPeakTime(self) -> str:
-        return Aux.timestampToStr(self.mMaxValueSecTime)
+        return Aux.time_string(self.mMaxValueSecTime)
 
     def getValueSec(self) -> int:
         return self.mValueSec

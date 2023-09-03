@@ -6,7 +6,7 @@ from logging import Logger
 from pymc.aux.aux_uuid import Aux_UUID
 from pymc.aux.distributor_exception import DistributorException
 from pymc.aux.log_manager import LogManager
-from pymc.connection import Connection
+from pymc.distributor_interfaces import ConnectionBase
 from pymc.connection_controller import ConnectionController
 from pymc.distributor_events import DistributorEvent
 from pymc.distributor_interfaces import PublisherBase
@@ -34,7 +34,7 @@ class Publisher(PublisherBase):
         else:
             _data = bytes(data_bytes[:data_len])
 
-        _connection: Connection = ConnectionController.getInstance().getAndLockConnection(self._connection_id)
+        _connection: ConnectionBase = ConnectionController.getInstance().getAndLockConnection(self._connection_id)
 
         if not _connection:
             raise DistributorException("Distributor connection is closed or no longer valid")

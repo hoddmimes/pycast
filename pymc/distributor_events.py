@@ -1,11 +1,12 @@
 from __future__ import annotations
+import types
+import pymc.distributor_interfaces as interface
 from abc import ABC, abstractmethod
 from pymc.aux.aux import Aux
 from pymc.msg.rcv_segment import Segment, RcvSegment
-from pymc.connection import Connection
 from pymc.distributor_configuration import DistributorLogFlags
-from pymc.client_controller import ClientDeliveryController
-import types
+
+
 
 
 class AsyncEvent(ABC):
@@ -14,7 +15,7 @@ class AsyncEvent(ABC):
         pass
 
     @abstractmethod
-    def execute(self, connection):
+    def execute(self, connection: interface.ConnectionBase):
         pass
 
     @abstractmethod
@@ -161,16 +162,17 @@ class DistributorConnectionClosedErrorEvent(DistributorErrorEvent):
 class AsyncEventSignalEvent(AsyncEvent, ABC):
 
     def __init__(self, event: DistributorEvent):
-        self.mEvent: DistributorEvent = event
+        super().__init__()
+        self.event: DistributorEvent = event
 
-    def toString(self) -> str:
-        return self.__str__()
+    def __str__(self) -> str:
+        return "AsyncEventSignalEvent event: {}".format(self.event)
 
-    def execute(self, connection: Connection):
-        if connection.isLoggingEnabled(DistributorLogFlags.LOG_ERROR_EVENTS):
-            connection.logInfo("APPLICATION ERROR EVENT Event: {}".format(self.mEvent))
+    def execute(self, connection: interface.ConnectionBase):
+        if connection.is_logging_enabled(DistributorLogFlags.LOG_ERROR_EVENTS):
+            connection.logInfo("APPLICATION ERROR EVENT Event: {}".format(self.event))
 
-        ClientDeliveryController.getInstance().queueEvent(connection_id=connection.mConnectionId, event=self.mEvent)
+        connection.async_event_to_client(self.event)
 
 
 class AsyncEventFlushSender(AsyncEvent, ABC):
@@ -178,7 +180,7 @@ class AsyncEventFlushSender(AsyncEvent, ABC):
     def __init__(self, current_flush_seqno):
         self.mCurrentFlushSeqno = current_flush_seqno
 
-    def execute(self, connection: Connection):
+    def execute(self, connection: interface.ConnectionBase):
         connection.mConnectionSender.flushHoldback(self.mCurrentFlushSeqno)
 
     def toString(self) -> str:
@@ -189,7 +191,7 @@ class AsyncEventReceiveSegment(AsyncEvent, ABC):
     def __init__(self, rcv_segment: RcvSegment):
         self.mRcvSegment = rcv_segment
 
-    def execute(self, connection: Connection):
+    def execute(self, connection: interface.ConnectionBase):
         connection.mTrafficStatisticsTask.updateRcvStatistics(self.mRcvSegment)
         connection.mConnectionReceiver.processReceivedSegment(self.mRcvSegment)
 

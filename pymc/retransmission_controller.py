@@ -94,7 +94,7 @@ class RetransmissionController:
                 self.mConnection.log(
                     f"RETRANSMISSION: RCV NAK (NakSeqNo: {pNakSeqNo})  Remote Addr: {tRemoteConnection.mRemoteHostAddressString} Remote Sender Id: {tRemoteConnection.mRemoteSenderId} LowSeqNo: {self.mLowSeqNo} HighSeqNo: {tRemoteConnection.mHighiestSeenSeqNo}"
                 )
-            ClientDeliveryController.getInstance().queueEvent(self.mConnection._connection_id, tEvent)
+            ClientDeliveryController.get_instance().queue_event(self.mConnection._connection_id, tEvent)
 
         def adjustSeqNo(self, pSeqNo):
             if pSeqNo > self.mHighSeqNo or pSeqNo < self.mLowSeqNo:
@@ -143,7 +143,7 @@ class RetransmissionController:
                         self.mConnection.log(
                             f"RETRANSMISSION: RCV TO MANY RETRANSMISSION  Remote Addr: {tRemoteConnection.mRemoteHostAddressString} Remote Sender Id: {tRemoteConnection.mRemoteSenderId} LowSeqNo: {self.mLowSeqNo} HighSeqNo: {self.mHighSeqNo}"
                         )
-                    ClientDeliveryController.getInstance().queueEvent(self.mConnection._connection_id, tEvent)
+                    ClientDeliveryController.get_instance().queue_event(self.mConnection._connection_id, tEvent)
             except Exception as e:
                 print(e)
 
@@ -168,7 +168,7 @@ class RetransmissionController:
                     if self.mConsequtiveTicks >= self.mCfgCheckInterval:
                         if self.mCfgMaxRetransmissions == 0 or (self.mCfgMaxRetransmissions > 0 and self.mIntervalCount >= self.mCfgMaxRetransmissions):
                             tEvent = DistributorNaggingErrorEvent(pConnection.mIpmg.mInetAddress, pConnection.mIpmg.mPort)
-                            ClientDeliveryController.getInstance().queueEvent(pConnection._connection_id, tEvent)
+                            ClientDeliveryController.get_instance().queue_event(pConnection._connection_id, tEvent)
                         else:
                             self.clear()
                 else:

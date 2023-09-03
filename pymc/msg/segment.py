@@ -180,11 +180,13 @@ class Segment(ABC, object):
         raise Exception('Can not cast object to {}'.format( cls.__name__))
 
     def __hash__(self):
+
         if self._hash_code_value == 0:
             _addr = (self._hdr_local_address & 0xFF000000) >> 24
-            _sndrid = (self._hdr_sender_id & 0xFF) << 16
-            _time = (self._hdr_sender_start_time_sec & 0xFFFF)
+            _sndrid = (self._hdr_sender_id & 0xFF) << 8
+            _time = (self._hdr_sender_start_time_sec & 0xFFFF) << 16
             self._hash_code_value = _addr + _sndrid + _time
+        print("segment-hash: {}".format(hex(self._hash_code_value)) )
         return self._hash_code_value
 
     def __eq__(self, segment: Segment):

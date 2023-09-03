@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from threading import Thread
 
 from time import perf_counter
-from pymc.connection import Connection
+from pymc.connection_timer_task import ConnectionTimerTask
 from pymc.connection_controller import ConnectionController
 from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.aux import Aux
@@ -14,33 +14,6 @@ from pymc.aux.aux import Aux
 import time
 
 
-class ConnectionTimerTask(ABC):
-
-    def __init__(self, connection_id):
-        self._connection_id = connection_id
-        self._canceled = False
-
-    def cancel(self):
-        self._canceled = True
-
-    @abstractmethod
-    def execute(self, connection: Connection):
-        pass
-
-    @property
-    def connection_id(self) -> int:
-        return self._connection_id
-
-    @property
-    def canceled(self) -> bool:
-        return self._canceled
-
-    @classmethod
-    def cast(cls, obj: object) -> TimerTaskWraper:
-        if isinstance(obj, TimerTaskWraper):
-            return obj
-        else:
-            raise Exception("object can no be cast to {}".format(cls.__name__))
 
 
 class TimerTaskWraper(object):
@@ -77,8 +50,7 @@ class TimerTaskWraper(object):
 def _timer_executor_(timer_task: TimerTaskWraper):
     Aux.sleepMs(timer_task.overhead)
 
-    connection: Connection = ConnectionController.getInstance().getAndLockConnection(
-        connection_id=timer_task.task.connection_id)
+    connection = ConnectionController.getInstance().getAndLockConnection(connection_id=timer_task.task.connection_id)
     try:
         timer_task.task.execute(connection)
         if timer_task.repeat and not timer_task.task.canceled:
@@ -131,7 +103,7 @@ class _TestTask(ConnectionTimerTask):
         self.startTime = perf_counter()
         self.interval = interval
 
-    def execute(self, connection: Connection):
+    def execute(self, connection):
         _exectime = (perf_counter() - self.startTime) * 1000.0
         print('interval: {} time: {}'.format(self.interval, _exectime))
 

@@ -28,16 +28,16 @@ class CleanRetransmissionQueueTask(ConnectionTimerTask):
         t_removed_elements: int = 0
         t_cache_threshold_time = Aux.currentSeconds() - connection.mConfiguration.retrans_cache_life_time_sec
         t_cache: RetransmissionCache = connection.mConnectionSender.mRetransmissionCache
-        if connection.isLoggingEnabled(DistributorLogFlags.LOG_RETRANSMISSION_CACHE):
+        if connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_CACHE):
             t_first_item: RetransQueItm = t_cache.mQueue.peekFirst()
             t_last_item: RetransQueItm = t_cache.mQueue.peekLast()
             if t_first_item:
                 t_time_diff = t_first_item.mQueueTime - t_last_item.mQueueTime  # Diff in seconds
-                connection.logInfo(
+                connection.log_info(
                     "RETRANSMISSON CACHE STATISTICS Connection: {}\n    size: {} elements: {} time-span: {} (sec)".
                     format(str(connection.mIpmc), t_cache.mCacheSize, t_cache.mQueue.size(), t_time_diff))
             else:
-                connection.logInfo(
+                connection.log_info(
                     "RETRANSMISSON CACHE STATISTICS Connection: {}\n    size: 0 elements: 0 time-span: 0 (sec)".
                     format(str(connection.mIpmc)))
 
@@ -131,8 +131,8 @@ class RetransmissionCache(object):
         for tQueItm in retrans_list:
             tQueItm.mResentCount += 1
             if self.mConnection.isLogFlagSet(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
-                self.mConnection.logInfo("RETRANSMISSION: XTA RE-SENDING Segment [{}] resent-count: {}".
-                                         format(tQueItm.mSeqNo, tQueItm.mResentCount))
+                self.mConnection.log_info("RETRANSMISSION: XTA RE-SENDING Segment [{}] resent-count: {}".
+                                          format(tQueItm.mSeqNo, tQueItm.mResentCount))
             self.mSender.send_segment(tQueItm.mSegment)
             tQueItm.mInProgress = False
 
@@ -142,12 +142,12 @@ class RetransmissionCache(object):
 
         if self.mConnection.isLogFlagSet(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
             if self.mQueue.isEmpty():
-                self.mConnection.logInfo("RETRANSMISSION: RCV Request for resending Segment [{}:{}] Cache is empty!".
-                                         format(low_seqno, high_seqno))
+                self.mConnection.log_info("RETRANSMISSION: RCV Request for resending Segment [{}:{}] Cache is empty!".
+                                          format(low_seqno, high_seqno))
             else:
                 _first: RetransQueItm = self.mQueue.peekFirst()
                 _last: RetransQueItm = self.mQueue.peekLast()
-                self.mConnection.logInfo(
+                self.mConnection.log_info(
                     "RETRANSMISSION: RCV Request for resending Segment [{}:{}] Cache Segment [{}:{}]".
                     format(low_seqno, high_seqno, _first.mSeqNo, _last.mSeqNo))
             if self.mQueue.isEmpty():

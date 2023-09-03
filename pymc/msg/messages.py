@@ -1,5 +1,4 @@
-from pymc.msg.decoder import Decoder
-from pymc.msg.encoder import Encoder
+from pymc.msg.codec import Decoder, Encoder
 from pymc.msg.messageif import MessageBase
 
 class MessageAux:

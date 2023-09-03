@@ -9,19 +9,24 @@ from pymc.aux.aux_uuid import Aux_UUID
 from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.distributor_exception import DistributorException
 from pymc.aux.log_manager import LogManager
+from pymc.client_controller import ClientDeliveryController
 from pymc.connection_configuration import ConnectionConfiguration
+from pymc.connection_controller import ConnectionController
 from pymc.connection_receiver import ConnectionReceiver
 from pymc.connection_sender import ConnectionSender
 from pymc.connection_timers import ConnectionTimerExecutor
-from pymc.distributor_events import AsyncEvent
+from pymc.distributor_events import AsyncEvent, DistributorEvent
 from pymc.distributor_interfaces import ConnectionBase, PublisherBase, SubscriberBase
 from pymc.distributor_interfaces import DistributorBase
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.ipmc import IPMC
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
+from pymc.msg.net_msg_retransmission import NetMsgRetransmissionRqst
 from pymc.msg.segment import Segment
 from pymc.msg.xta_update import XtaUpdate
+from pymc.remote_connection import RemoteConnection
 from pymc.retransmission_controller import RetransmissionController
+from pymc.retransmission_statistics import RetransmissionStatistics
 from pymc.subscription import SubscriptionFilter
 from pymc.traffic_statistics import TrafficStatisticTimerTask, DistributorPublisherStatisticsIf, DistributorSubscriberStatisticsIf
 
@@ -43,6 +48,7 @@ class Connection(ConnectionBase):
         self._async_event_queue: BlockingQueue = BlockingQueue()
         self._subscription_filter = SubscriptionFilter()
         self._retransmission_controller = RetransmissionController(self)
+        self._retransmission_statistics = RetransmissionStatistics();
         self._ipmc: IPMC = IPMC(configuration.eth_device, configuration.ttl, configuration.ipBufferSize)
         self._ipmc.open(configuration.mca, configuration.mca_port)
         self._ipmc.startReader(self.ipmcReadComplete, self.ipmcReadException)
@@ -143,7 +149,7 @@ class Connection(ConnectionBase):
             raise DistributorException("Connection {} has been closed.".format(self._ipmc))
 
         if self.isLogFlagSet( DistributorLogFlags.LOG_SUBSCRIPTION_EVENTS):
-            self.logInfo("ADD Subscription: {} connection: {}".format(subject, self._ipmc ))
+            self.log_info("ADD Subscription: {} connection: {}".format(subject, self._ipmc))
 
 
         return self._subscription_filter.add( subject, subscriber.update_callback, callback_parameter)
@@ -181,11 +187,16 @@ class Connection(ConnectionBase):
         self._ipmc.send(segment.encoder.buffer)
         return int((perf_counter() - _start_time) * 1000000)  # return usec
 
-    def isLoggingEnabled(self, log_flag: int) -> bool:
-        return self._distributor.is_logging_enable(log_flag)
-
     def getConfiguration(self):
         return self._configuration
+
+    def get_remote_connection(self, remote_connection_id: int) -> RemoteConnection:
+        return self._connection_receiver.get_remote_connection(remote_connection_id)
+    def update_in_retransmission_statistics(self, mc_addr: int, mc_port: int, msg: NetMsgRetransmissionRqst, to_this_node: bool):
+        self._retransmission_statistics.updateInStatistics( mc_addr, mc_port, msg, to_this_node)
+
+    def async_event_to_client(self, event: DistributorEvent):
+        ClientDeliveryController.get_instance().queue_event(connection_id=self.connection_id, event=self.event)
 
     def pushOutConfiguration(self):
         _cfgmsg = NetMsgConfiguration(Segment(self._configuration.small_segment_size))
@@ -228,19 +239,20 @@ class Connection(ConnectionBase):
                         if self._state == ConnectionBase.STATE_RUNNING:
                             _async_event.execute(self)
 
-    def logInfo(self, msg):
+    def log_info(self, msg):
         self._logger.info(msg)
 
-    def logWarning(self, msg):
+    def log_warning(self, msg):
         self._logger.warning(msg)
 
-    def logError(self, msg):
+    def log_error(self, msg):
         self._logger.error(msg)
 
-    def logThrowable(self, exception):
+    def log_exception(self, exception):
         self._logger.exception(exception)
 
-    def isLogFlagSet(self, flag: int) -> bool:
-        if (self._distributor.configuration().log_flags & flag) != 0:
-            return True
-        return False
+    def is_logging_enabled(self, log_flag: int) -> bool:
+        return self._distributor.is_logging_enable(log_flag)
+
+def connection_locator( connection_id: int) -> Connection:
+    return ConnectionController.getInstance().getAndLockConnection(connection_id=timer_task.task.connection_id)

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from pymc.aux.distributor_exception import DistributorException
-from pymc.connection import Connection
 from pymc.distributor_events import AsyncEvent
-from pymc.distributor_interfaces import DistributorBase
+from pymc.connection import DistributorBase, ConnectionBase
 from pymc.connection_configuration import ConnectionConfiguration
 import threading
 
@@ -25,14 +24,14 @@ class ConnectionController(object):
     def __init__(self):
         self._mutex_access: threading.RLock = threading.RLock()
         self._mutex_Remove: threading.RLock = threading.RLock()
-        self._connections: dict[int, Connection] = {}
+        self._connections: dict[int, ConnectionBase] = {}
 
-    def getConnection(self, connection_id: int) -> Connection:
+    def getConnection(self, connection_id: int) -> ConnectionBase:
         with self._mutex_access:
             return self._connections.get(connection_id, None)
 
     def createConnection(self, distributor: DistributorBase,
-                         connection_configuration: ConnectionConfiguration) -> Connection:
+                         connection_configuration: ConnectionConfiguration) -> ConnectionBase:
 
         with self._mutex_Remove and self._mutex_access:
             for _conn in self._connections.values():
@@ -48,7 +47,7 @@ class ConnectionController(object):
 
             return _conn
 
-    def getAndLockConnection(self, connection_id: int) -> Connection:
+    def getAndLockConnection(self, connection_id: int) -> ConnectionBase:
         with self._mutex_access:
             _conn: Connection = self.getConnection(connection_id)
             if _conn:
