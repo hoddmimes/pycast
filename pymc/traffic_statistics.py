@@ -1,10 +1,9 @@
 from pymc.aux.aux import Aux
 from pymc.aux.atomic import AtomicInt, AtomicLong
 from pymc.connection_timers import ConnectionTimerTask
-import pymc.msg.net_msg_update as netmsg
+import pymc.msg.generated.net_messages as netmsg
 from pymc.msg.segment import Segment
 from abc import ABC, abstractmethod
-from distributor_interfaces import ConnectionBase
 from threading import Lock
 
 class CounterElement(object):
@@ -41,7 +40,7 @@ class CounterElement(object):
                 self.mValueSec = (self.mCurrValueSec * 1000)  # time_diff
                 if self.mValueSec > self.mMaxValueSec:
                     self.mMaxValueSec = self.mValueSec
-                    self.mMaxValueSecTime = Aux.currentMilliseconds()
+                    self.mMaxValueSecTime = Aux.current_milliseconds()
 
     def __str__(self) ->str:
         _tim_str = Aux.time_string( self.mMaxValueSecTime)
@@ -153,7 +152,7 @@ class DistributorPublisherStatisticsIf(ABC):
 class TrafficStatisticTimerTask(ConnectionTimerTask, DistributorPublisherStatisticsIf, DistributorSubscriberStatisticsIf):
     def __init__(self, pDistributorConnectionId):
         super().__init__(pDistributorConnectionId)
-        _now = Aux.currentMilliseconds()
+        _now = Aux.current_milliseconds()
         self.mStartTime:int = _now
         self.mLastTimeStamp = _now
         self.mLastTimeStamp_1_min = _now
@@ -187,11 +186,11 @@ class TrafficStatisticTimerTask(ConnectionTimerTask, DistributorPublisherStatist
         self.mXtaUpdFillTotalUpdateBytes:AtomicLong = AtomicLong(0)
         self.mXtaUpdPackages:AtomicLong = AtomicLong(0)
 
-    def transform(self, pCE) -> netmsg.DataRateItem:
+    def transform(self, pCE) -> netmsg:
         tDR = netmsg.DataRateItem()
-        tDR.setCurrValue(pCE.getValueSec())
-        tDR.setPeakValue(pCE.getPeakPerSec())
-        tDR.setPeakTime(pCE.getPeakTime())
+        tDR.setCurr_value(pCE.getValueSec())
+        tDR.setPeak_value(pCE.getPeakPerSec())
+        tDR.setPeak_time(pCE.getPeakTime())
         tDR.setTotal(pCE.getTotal())
         return tDR
 
@@ -320,8 +319,8 @@ class TrafficStatisticTimerTask(ConnectionTimerTask, DistributorPublisherStatist
                 self.mRcvUpdates5min.update(tUpdateCount)
                 self.mRcvTotalUpdates += tUpdateCount
 
-    def execute(self, connection:ConnectionBase):
-        _current_time = Aux.currentMilliseconds()
+    def execute(self, connection:'Connection'):
+        _current_time = Aux.current_milliseconds()
         _tim_diff = _current_time - self.mLastTimeStamp
         self.mLastTimeStamp = _current_time
         self.mXtaMsgs.calculate(_tim_diff)
@@ -409,5 +408,5 @@ class TrafficStatisticTimerTask(ConnectionTimerTask, DistributorPublisherStatist
         return Aux.time_string( self.mStartTime)
 
     def getSecondsSinceInit(self) ->int:
-        tSec = (Aux.currentMilliseconds() - self.mStartTime) / 1000
+        tSec = (Aux.current_milliseconds() - self.mStartTime) / 1000
         return int(tSec & 0xffffffff)

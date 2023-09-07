@@ -32,7 +32,7 @@ class IPMC:
 
         self._mc_addr_string = address
         self._mc_port = port
-        self._mc_addr = Aux.ipAddrStrToInt( address )
+        self._mc_addr = Aux.ip_addr_str_to_int(address)
 
         # Create UDP datagram socket
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP )
@@ -55,7 +55,7 @@ class IPMC:
 
     @property
     def local_address(self) -> int:
-        return Aux.ipAddrStrToInt(self._local_address_string)
+        return Aux.ip_addr_str_to_int(self._local_address_string)
 
     @property
     def mc_address(self) -> int:

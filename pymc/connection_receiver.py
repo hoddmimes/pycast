@@ -6,8 +6,6 @@ from pymc.connection_configuration import ConnectionConfiguration
 from pymc.distributor_interfaces import ConnectionReceiverBase, ConnectionBase
 from pymc.client_controller import ClientDeliveryController
 from pymc.msg.rcv_update import RcvUpdate
-from pymc.remote_connection import RemoteConnection
-from pymc.remote_connection_controller import RemoteConnectionController
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.msg.rcv_segment import RcvSegmentBatch
 from pymc.msg.segment import Segment
@@ -29,8 +27,9 @@ class ConnectionReceiver(ConnectionReceiverBase):
 
     def __init__(self, connection: ConnectionBase):
         self._connection: ConnectionBase = connection
-        self._start_time = Aux.currentSeconds()
+        self._start_time = Aux.current_seconds()
         self._configuration: ConnectionConfiguration = connection.configuration()
+        from pymc.remote_connection_controller import RemoteConnectionController
         self._remote_connection_controller = RemoteConnectionController(connection)
         self._rcv_threads: list[IpmcReceiverThread] = []
         for _i in range(self._configuration.receiver_threads):
@@ -51,8 +50,8 @@ class ConnectionReceiver(ConnectionReceiverBase):
         _msg_major = (segment.hdr_version >> 8) & 0xff
         _msg_minor = (segment.hdr_version & 0xff)
         if _major != _msg_major:
-            self.logInfo("Received a segment with incompatible version Segment: {}.{} Distributor: {}.{}".
-                         format(_msg_major, _msg_minor, _major, _minor))
+            self.log_info("Received a segment with incompatible version Segment: {}.{} Distributor: {}.{}".
+                          format(_msg_major, _msg_minor, _major, _minor))
             return False
         else:
             return True
@@ -71,14 +70,14 @@ class ConnectionReceiver(ConnectionReceiverBase):
         if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg = NetMsgConfiguration(segment)
             _msg.decode()
-            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
+            self.log_info("PROTOCOL [RCV] {}".format(_msg))
 
     def processHeartbeatMsg(self, segment: Segment):
         self._remote_connection_controller.processHeartbeatMessage(segment)
         if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg = NetMsgHeartbeat(segment)
             _msg.decode()
-            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
+            self.log_info("PROTOCOL [RCV] {}".format(_msg))
 
     def processUpdateMsg(self, segment: Segment):
         _msg = NetMsgUpdate(segment)
@@ -86,21 +85,21 @@ class ConnectionReceiver(ConnectionReceiverBase):
 
         if self._configuration.fake_rcv_error_rate > 0 and random_error(self._configuration.fake_rcv_error_rate):
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
-                self.logInfo("RETRANSMISSION:  RCV SIMULATED  Error Segment [{}] dropped".format(_msg.sequence_no))
+                self.log_info("RETRANSMISSION:  RCV SIMULATED  Error Segment [{}] dropped".format(_msg.sequence_no))
         else:
             self._remote_connection_controller.processUpdateSegment(segment)
             if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
                 if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
-                    self.logInfo("PROTOCOL [RCV] <UPDATE> {}".format(_msg))
+                    self.log_info("PROTOCOL [RCV] <UPDATE> {}".format(_msg))
                 else:
-                    self.logInfo("PROTOCOL [RCV] <RETRANSMISSION> {}".format(_msg))
+                    self.log_info("PROTOCOL [RCV] <RETRANSMISSION> {}".format(_msg))
 
     def processRetransmissionNAK(self, segment: Segment):
         self._connection.retransmission_controller.processRetransmissionNAK(segment)
         if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg = NetMsgRetransmissionNAK(segment)
             _msg.decode()
-            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
+            self.log_info("PROTOCOL [RCV] {}".format(_msg))
 
     def processRetransmissionRqst(self, segment: Segment):
         _msg = NetMsgRetransmissionRqst(segment)
@@ -108,7 +107,7 @@ class ConnectionReceiver(ConnectionReceiverBase):
         self._connection.connection_sender.retransmit(_msg)
         if self.isLogFlagSet(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg.decode()
-            self.logInfo("PROTOCOL [RCV] {}".format(_msg))
+            self.log_info("PROTOCOL [RCV] {}".format(_msg))
 
 
     def processReceivedSegment(self, segment: Segment):
@@ -118,7 +117,7 @@ class ConnectionReceiver(ConnectionReceiverBase):
         if self.isLogFlagSet(DistributorLogFlags.LOG_SEGMENTS_EVENTS):
             _net_msg = NetMsg(segment)
             _net_msg.decode()
-            self.logInfo("RCV Segment: {}".format(_net_msg))
+            self.log_info("RCV Segment: {}".format(_net_msg))
         if segment.hdr_msg_type == Segment.MSG_TYPE_CONFIGURATION:
             self.processConfigurationMsg(segment)
         elif segment.hdr_msg_type == Segment.MSG_TYPE_HEARTBEAT:
@@ -132,23 +131,23 @@ class ConnectionReceiver(ConnectionReceiverBase):
         elif segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
             self.processUpdateMsg(segment)
 
-    def processReceiveSegmentBatch(self, rcv_segment_batch: RcvSegmentBatch):
+    def process_receive_segment_batch(self, rcv_segment_batch: RcvSegmentBatch):
         _updates: list[RcvUpdate] = rcv_segment_batch.getUpdates(self._connection.connection_id())
         ClientDeliveryController.get_instance().queue_updates(self._connection.connection_id(), _updates)
 
-    def logInfo(self, msg):
-        self._connection.logInfo(msg)
+    def log_info(self, msg):
+        self._connection.log_info(msg)
 
-    def logWarning(self, msg):
-        self._connection.logWarning(msg)
+    def log_warning(self, msg):
+        self._connection.log_warn(msg)
 
-    def logError(self, msg):
-        self._connection.logError(msg)
+    def log_error(self, msg):
+        self._connection.log_error(msg)
 
-    def logThrowable(self, exception):
-        self._connection.logThrowable(exception)
+    def log_exception(self, exception):
+        self._connection.log_exception(exception)
 
-    def get_remote_connection(self, remote_connection_id: int) -> RemoteConnection:
+    def get_remote_connection(self, remote_connection_id: int) -> 'RemoteConnection':
         return self._remote_connection_controller.getRemoteConnection(remote_connection_id);
 
 def random_error(promille: int) -> bool:

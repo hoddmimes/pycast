@@ -53,12 +53,12 @@ def testMany():
     segment:Segment = Segment( 8192 )
     netUpdate: NetMsgUpdate = NetMsgUpdate( segment )
 
-    netUpdate.setHeader( messageType=Segment.MSG_TYPE_UPDATE,
-                         segmentFlags=Segment.FLAG_M_SEGMENT_START+Segment.FLAG_M_SEGMENT_END,
-                         localAddress=0x0A0A0A0A,
-                         senderId=2222,
-                         senderStartTime=Aux.currentSeconds(),
-                         appId=9999 )
+    netUpdate.setHeader(messageType=Segment.MSG_TYPE_UPDATE,
+                        segmentFlags=Segment.FLAG_M_SEGMENT_START+Segment.FLAG_M_SEGMENT_END,
+                        localAddress=0x0A0A0A0A,
+                        senderId=2222,
+                        senderStartTime=Aux.current_seconds(),
+                        appId=9999)
 
     for i in range(10):
         xtaUpd: XtaUpdate = creXtaUpd( i )
@@ -113,8 +113,8 @@ def testInherit():
 
 
 def testTime():
-    ms = Aux.currentMilliseconds()
-    ss = Aux.currentSeconds()
+    ms = Aux.current_milliseconds()
+    ss = Aux.current_seconds()
     print("ms: {} ss: {}".format( ms, ss))
     print("ms: {} ss: {}".format(Aux.time_string(ms) , Aux.time_string(ss)))
 
@@ -122,12 +122,12 @@ def testMany():
     segment:Segment = Segment( 8192 )
     netUpdate: NetMsgUpdate = NetMsgUpdate( segment )
 
-    netUpdate.setHeader( message_type=Segment.MSG_TYPE_UPDATE,
-                         segment_flags=Segment.FLAG_M_SEGMENT_START+Segment.FLAG_M_SEGMENT_END,
-                         local_address=0x0A0A0A0A,
-                         sender_id=2222,
-                         sender_start_time_sec=Aux.currentSeconds(),
-                         app_id=9999 )
+    netUpdate.setHeader(message_type=Segment.MSG_TYPE_UPDATE,
+                        segment_flags=Segment.FLAG_M_SEGMENT_START+Segment.FLAG_M_SEGMENT_END,
+                        local_address=0x0A0A0A0A,
+                        sender_id=2222,
+                        sender_start_time_sec=Aux.current_seconds(),
+                        app_id=9999)
 
     for i in range(10):
         xtaUpd: XtaUpdate = creXtaUpd( i )
@@ -151,12 +151,12 @@ def get_net_update() -> NetMsgUpdate:
     segment: Segment = Segment(8192)
     netUpdate: NetMsgUpdate = NetMsgUpdate(segment)
 
-    netUpdate.setHeader( message_type=Segment.MSG_TYPE_UPDATE,
-                         segment_flags=Segment.FLAG_M_SEGMENT_START,
-                         local_address=0x0A0A0A0A,
-                         sender_id=2222,
-                         sender_start_time_sec=Aux.currentSeconds(),
-                         app_id=9999)
+    netUpdate.setHeader(message_type=Segment.MSG_TYPE_UPDATE,
+                        segment_flags=Segment.FLAG_M_SEGMENT_START,
+                        local_address=0x0A0A0A0A,
+                        sender_id=2222,
+                        sender_start_time_sec=Aux.current_seconds(),
+                        app_id=9999)
 
     return netUpdate
 

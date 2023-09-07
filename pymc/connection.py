@@ -11,13 +11,10 @@ from pymc.aux.distributor_exception import DistributorException
 from pymc.aux.log_manager import LogManager
 from pymc.client_controller import ClientDeliveryController
 from pymc.connection_configuration import ConnectionConfiguration
-from pymc.connection_controller import ConnectionController
 from pymc.connection_receiver import ConnectionReceiver
 from pymc.connection_sender import ConnectionSender
 from pymc.connection_timers import ConnectionTimerExecutor
 from pymc.distributor_events import AsyncEvent, DistributorEvent
-from pymc.distributor_interfaces import ConnectionBase, PublisherBase, SubscriberBase
-from pymc.distributor_interfaces import DistributorBase
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.ipmc import IPMC
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
@@ -28,20 +25,23 @@ from pymc.remote_connection import RemoteConnection
 from pymc.retransmission_controller import RetransmissionController
 from pymc.retransmission_statistics import RetransmissionStatistics
 from pymc.subscription import SubscriptionFilter
-from pymc.traffic_statistics import TrafficStatisticTimerTask, DistributorPublisherStatisticsIf, DistributorSubscriberStatisticsIf
+from pymc.traffic_statistics import TrafficStatisticTimerTask, DistributorPublisherStatisticsIf, \
+    DistributorSubscriberStatisticsIf
 
 
+class Connection(object):
+    STATE_INIT = 0
+    STATE_RUNNING = 1
+    STATE_CLOSED = 2
+    STATE_ERROR = 3
 
-class Connection(ConnectionBase):
-
-    def __init__(self, distributor: DistributorBase, configuration: ConnectionConfiguration):
+    def __init__(self, configuration: ConnectionConfiguration):
         self._connection_id: int = Aux_UUID.getId()
         self._time_to_die: bool = False
-        self._publishers: [PublisherBase] = []
-        self._subscribers: [SubscriberBase] = []
-        self._distributor: DistributorBase = distributor
+        self._publishers: ['Publisher'] = []
+        self._subscribers: ['Subscriber'] = []
         self._configuration: ConnectionConfiguration = configuration
-        self._logger: logging.Logger = LogManager.getInstance().getLogger(module_name='DistributorConnection')
+        self._logger: logging.Logger = LogManager.get_instance().get_logger(module_name='DistributorConnection')
         self._last_known_error = None
         self._state: int = self.STATE_INIT
         self._mutex: threading.RLock = threading.RLock()
@@ -55,24 +55,28 @@ class Connection(ConnectionBase):
         self._working_thread = threading.Thread(target=self.connectionWorker(), name="connection-working")
         self._connection_sender = ConnectionSender(self)
         self._connection_receiver = ConnectionReceiver(self)
-        self._start_time = Aux.currentSeconds()
+        self._start_time = Aux.current_seconds()
         self._traffic_statistic_task = TrafficStatisticTimerTask(self._connection_id)
         ConnectionTimerExecutor.getInstance().queue(interval=1000, task=self._traffic_statistic_task, repeat=True)
 
     def lock(self):
         self._mutex.acquire()
 
-    def remove_publisher(self, publisher: PublisherBase):
+    def unlock(self):
+        self._mutex.release()
+
+    def remove_publisher(self, publisher: 'Publisher'):
         self._publishers.remove(publisher)
 
     def get_traffic_statistics(self) -> DistributorPublisherStatisticsIf | DistributorSubscriberStatisticsIf:
         return self._traffic_statistic_task
 
-    def eval_outgoing_traffic_flow(self, bytes_sent: int ) -> int:
+    def eval_outgoing_traffic_flow(self, bytes_sent: int) -> int:
         return self._connection_sender.eval_outgoing_traffic_flow(bytes_sent)
 
-    def flushHoldback(self, flush_holback_seqno: int ):
-        self._connection_sender.flushHoldback(flush_holback_seqno);
+    def flushHoldback(self, flush_holback_seqno: int):
+        self._connection_sender.flush_holback(flush_holback_seqno)
+
     @property
     def mc_port(self) -> int:
         return self._ipmc.mc_port
@@ -114,11 +118,11 @@ class Connection(ConnectionBase):
         return self._connection_receiver
 
     @property
-    def subscribers(self) -> list[SubscriberBase]:
+    def subscribers(self) -> list['Subscriber']:
         return self._subscribers
 
     @property
-    def publishers(self) -> list[PublisherBase]:
+    def publishers(self) -> list['Publisher']:
         return self._publishers
 
     @property
@@ -134,25 +138,17 @@ class Connection(ConnectionBase):
         return self._time_to_die
 
     @property
-    def distributor(self) -> DistributorBase:
-        return self._distributor
-
-    @property
     def traffic_statistic_task(self) -> TrafficStatisticTimerTask:
         return self._traffic_statistic_task
 
-    def unlock(self):
-        self._mutex.release()
-
-    def add_subscription(self, subscriber: SubscriberBase, subject: str, callback_parameter: object ):
+    def add_subscription(self, subscriber: 'Subscriber', subject: str, callback_parameter: object):
         if self.is_time_to_die:
             raise DistributorException("Connection {} has been closed.".format(self._ipmc))
 
-        if self.isLogFlagSet( DistributorLogFlags.LOG_SUBSCRIPTION_EVENTS):
+        if self.is_logging_enabled(DistributorLogFlags.LOG_SUBSCRIPTION_EVENTS):
             self.log_info("ADD Subscription: {} connection: {}".format(subject, self._ipmc))
 
-
-        return self._subscription_filter.add( subject, subscriber.update_callback, callback_parameter)
+        return self._subscription_filter.add(subject, subscriber.update_callback, callback_parameter)
 
     def queueAsyncEvent(self, async_event: AsyncEvent):
         if not self._time_to_die:
@@ -165,16 +161,16 @@ class Connection(ConnectionBase):
         return "mca: {} mca-port: {}".format(self._configuration.mca, self._configuration.mca_port)
 
     def publishUpdate(self, xta_update: XtaUpdate) -> int:
-        self._connection_sender.publishUpdate(xta_update)
+        return self._connection_sender.publish_update(xta_update)
 
     def checkStatus(self):
-        if self._state == ConnectionBase.STATE_RUNNING:
+        if self._state == Connection.STATE_RUNNING:
             return
 
-        if self._state == ConnectionBase.STATE_CLOSED:
+        if self._state == Connection.STATE_CLOSED:
             raise DistributorException("Connection is not in a running state, has been closed.")
 
-        if self._state == ConnectionBase.STATE_ERROR:
+        if self._state == Connection.STATE_ERROR:
             if not self._last_known_error:
                 raise DistributorException(
                     "Connection in error state, not in a trustworthy state, last error signale:\n   {}".
@@ -192,13 +188,18 @@ class Connection(ConnectionBase):
 
     def get_remote_connection(self, remote_connection_id: int) -> RemoteConnection:
         return self._connection_receiver.get_remote_connection(remote_connection_id)
-    def update_in_retransmission_statistics(self, mc_addr: int, mc_port: int, msg: NetMsgRetransmissionRqst, to_this_node: bool):
-        self._retransmission_statistics.updateInStatistics( mc_addr, mc_port, msg, to_this_node)
+
+    def update_in_retransmission_statistics(self, mc_addr: int,
+                                            mc_port: int,
+                                            msg: NetMsgRetransmissionRqst,
+                                            to_this_node: bool):
+        self._retransmission_statistics.updateInStatistics(mc_addr, mc_port, msg.hdr_local_address, to_this_node)
 
     def async_event_to_client(self, event: DistributorEvent):
-        ClientDeliveryController.get_instance().queue_event(connection_id=self.connection_id, event=self.event)
+        ClientDeliveryController.get_instance().queue_event(connection_id=self.connection_id, event=event)
 
     def pushOutConfiguration(self):
+        from pymc.distributor import Distributor
         _cfgmsg = NetMsgConfiguration(Segment(self._configuration.small_segment_size))
 
         _cfgmsg.setHeader(message_type=Segment.MSG_TYPE_CONFIGURATION,
@@ -206,7 +207,7 @@ class Connection(ConnectionBase):
                           local_address=self._ipmc.local_address,
                           sender_id=self._connection_sender.sender_id,
                           sender_start_time_sec=self._connection_sender.sender_start_time,
-                          app_id=self._distributor.app_id())
+                          app_id=Distributor.get_instance().app_id)
 
         _cfgmsg.set(mc_addr=self.ipmc.mc_address,
                     mc_port=self.ipmc.mc_port,
@@ -214,19 +215,19 @@ class Connection(ConnectionBase):
                     start_time_sec=self.connection_sender.sender_start_time,
                     heartbeat_interval=self.configuration.heartbeat_interval_ms,
                     config_interval=self.configuration.configuration_interval_ms,
-                    host_addr=self.distributor.local_address(),
-                    app_id=self.distributor.app_id(),
-                    app_name=self.distributor.app_name())
+                    host_addr=Distributor.get_instance().local_address,
+                    app_id=Distributor.get_instance().app_id,
+                    app_name=Distributor.get_instance().app_name)
 
         _cfgmsg.encode()
         self.connection_sender.send_segment(_cfgmsg.segment)
 
     def connectionWorker(self):
-        while self._state == ConnectionBase.STATE_RUNNING or self._state == ConnectionBase.STATE_INIT:
+        while self._state == Connection.STATE_RUNNING or self._state == Connection.STATE_INIT:
             _async_event: AsyncEvent = AsyncEvent.cast(self._async_event_queue.take())
 
             with self._mutex:
-                if not self._state == ConnectionBase.STATE_RUNNING:
+                if not self._state == Connection.STATE_RUNNING:
                     self._async_event_queue.clear()
                     return
 
@@ -236,7 +237,7 @@ class Connection(ConnectionBase):
                 if not self._async_event_queue.is_empty():
                     _event_list: list = self._async_event_queue.drain(60)
                     for _async_event in _event_list:
-                        if self._state == ConnectionBase.STATE_RUNNING:
+                        if self._state == Connection.STATE_RUNNING:
                             _async_event.execute(self)
 
     def log_info(self, msg):
@@ -252,7 +253,6 @@ class Connection(ConnectionBase):
         self._logger.exception(exception)
 
     def is_logging_enabled(self, log_flag: int) -> bool:
-        return self._distributor.is_logging_enable(log_flag)
-
-def connection_locator( connection_id: int) -> Connection:
-    return ConnectionController.getInstance().getAndLockConnection(connection_id=timer_task.task.connection_id)
+        from pymc.distributor import Distributor
+        _distributor = Distributor.get_instance()
+        return _distributor.is_logging_enable(log_flag)

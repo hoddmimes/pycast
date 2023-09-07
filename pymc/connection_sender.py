@@ -1,6 +1,5 @@
 import random
 
-from pymc.distributor_interfaces import ConnectionBase, ConnectionSenderBase, DistributorBase
 from pymc.msg.net_msg_update import NetMsgUpdate
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
@@ -11,21 +10,18 @@ from pymc.msg.segment import Segment
 from pymc.aux.aux import Aux
 from pymc.distributor_events import DistributorCommunicationErrorEvent
 from pymc.aux.aux_uuid import Aux_UUID
-from pymc.aux.log_manager import LogManager
 from pymc.retransmission_cache import RetransmissionCache
 from pymc.traffic_flow_task import TrafficFlowTask
-from connection_configuration import ConnectionConfiguration
-from aux.distributor_exception import DistributorException
+from pymc.connection_configuration import ConnectionConfiguration
+from pymc.aux.distributor_exception import DistributorException
 from pymc.send_holdback_task import SenderHoldbackTimerTask
 from pymc.connection_timers import ConnectionTimerExecutor, ConnectionTimerTask
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.client_controller import ClientDeliveryController
-from pymc.connection import Connection
-from logging import Logger
 
 
 
-def sendHeartbeat(connection: Connection):
+def sendHeartbeat(connection: 'Connection'):
     _heartbeat = NetMsgHeartbeat(XtaSegment(connection.configuration.small_segment_size))
     _heartbeat.setHeader(
         message_type=Segment.MSG_TYPE_HEARTBEAT,
@@ -41,6 +37,7 @@ def sendHeartbeat(connection: Connection):
         sender_id=connection.connection_sender.sender_id,
         sequence_no=connection.connection_sender.current_seqno)
     _heartbeat.encode()
+    from pymc.connection import Connection
     connection.connection_sender.send_segment(_heartbeat.segment)
 
 
@@ -52,7 +49,7 @@ class SendHeartbeatTask(ConnectionTimerTask):
     def dataHasBeenPublished(self):
         self._connection_is_sending = True
 
-    def execute(self, connection: Connection):
+    def execute(self, connection: 'Connection'):
         if connection.is_time_to_die:
             super().cancel()
             return
@@ -63,7 +60,7 @@ class SendHeartbeatTask(ConnectionTimerTask):
         self._connection_is_sending = False
 
 
-def sendConfiguration(connection: Connection):
+def sendConfiguration(connection: 'Connection'):
     connection.pushOutConfiguration()
     connection.pushOutConfiguration()
 
@@ -72,7 +69,7 @@ class SendConfigurationTask(ConnectionTimerTask):
     def __init__(self, connection_id: int):
         super().__init__(connection_id)
 
-    def execute(self, connection: Connection):
+    def execute(self, connection: 'Connection'):
         if connection.is_time_to_die:
             self.cancel()
             return
@@ -88,90 +85,88 @@ class SendConfigurationTask(ConnectionTimerTask):
 """
 
 
-def logInfo(msg):
-    ConnectionSender.logger().info(msg)
+def random_error(probability: int):  # n/1000
+    x = random.randrange(0, 1000)
+    if x <= probability:
+        return True
+    return False
 
 
-def logWarning(msg):
-    ConnectionSender.logger().warning(msg)
-
-
-def logError(msg):
-    ConnectionSender.logger().error(msg)
-
-
-def logThrowable(exception):
-    ConnectionSender.logger().exception(exception)
-
-
-def logProtocolData(segment: Segment):
-    _msg_type = segment.hdr_msg_type
-
-    if _msg_type == Segment.MSG_TYPE_CONFIGURATION:
-        _msg = NetMsgConfiguration(segment)
-        _msg.decode()
-        logInfo("PROTOCOL [XTA] " + str(_msg))
-    elif _msg_type == Segment.MSG_TYPE_HEARTBEAT:
-        _msg = NetMsgHeartbeat(segment)
-        _msg.decode()
-        logInfo("PROTOCOL [XTA] " + str(_msg))
-    elif _msg_type == Segment.MSG_TYPE_RETRANSMISSION:
-        _msg = NetMsgUpdate(segment)
-        _msg.decode()
-        logInfo("PROTOCOL [XTA] <retrans>" + str(_msg))
-    elif _msg_type == Segment.MSG_TYPE_RETRANSMISSION_NAK:
-        _msg = NetMsgRetransmissionNAK(segment)
-        _msg.decode()
-        logInfo("PROTOCOL [XTA] " + str(_msg))
-    elif _msg_type == Segment.MSG_TYPE_RETRANSMISSION_RQST:
-        _msg = NetMsgRetransmissionRqst(segment)
-        _msg.decode()
-        logInfo("PROTOCOL [XTA] " + str(_msg))
-    elif _msg_type == Segment.MSG_TYPE_UPDATE:
-        _msg = NetMsgUpdate(segment)
-        _msg.decode()
-        logInfo("PROTOCOL [XTA] " + str(_msg))
-    else:
-        logInfo("PROTOCOL [XTA] unknown message: " + Segment.getMessageTypeString(_msg_type))
-
-
-def log_throwable(exception):
-    ConnectionSender.logger().exception(exception)
-
-
-class ConnectionSender(ConnectionSenderBase):
-    _cLogger: Logger = None
-
-    def __init__(self, connection_base: ConnectionBase):
+class ConnectionSender(object):
+    def __init__(self, connection: 'Connection'):
         self._sender_id: int = Aux_UUID.getId()
         self._error_signaled: bool = False
-        self._sender_start_time = Aux.currentSeconds()
+        self._sender_start_time = Aux.current_seconds()
         self._last_update_flush_seqno: int = 0
-        self._connection: ConnectionBase = connection_base
-        self._configuration: ConnectionConfiguration = connection_base.configuration()
-        self._distributor: DistributorBase = connection_base.distributor()
+        self._connection: 'Connection' = connection
+        self._configuration: ConnectionConfiguration = connection.configuration()
         self._current_update: NetMsgUpdate = self.get_new_current_update()  # initialize self.mCurrentUpdate:NetMsgUpdate
-        self._heartbeat_timer_task = SendHeartbeatTask(connection_id=connection_base.connection_id)
-        if ConnectionSender._cLogger is None:
-            ConnectionSender._cLogger = LogManager.getInstance().getLogger('ConnectionSender')
+        self._heartbeat_timer_task = SendHeartbeatTask(connection_id=connection.connection_id)
+        self._logger = connection.logger
 
         if self._configuration.sender_id_port == 0:
-            self._sender_id = Aux.allocateServerPortId(self._configuration.sender_id_port_offset)
+            self._sender_id = Aux.allocate_server_port_id(self._configuration.sender_id_port_offset)
         else:
             self._sender_id = self._configuration.sender_id_port
 
-        self._local_address: int = self._distributor.local_address()
+        from pymc.distributor import Distributor
+        self._local_address: int = Distributor.get_instance().local_address
+        self._app_id: int = Distributor.get_instance().app_id
         self._current_seqno: int = 0
-        self._traffic_flow_task: TrafficFlowTask = TrafficFlowTask(connection_id=self._connection.connection_id())
+        self._traffic_flow_task: TrafficFlowTask = TrafficFlowTask(connection_id=self._connection.connection_id(),
+                                                                   recalc_interval_ms=100,
+                                                                   max_bandwidth_kbit=self._configuration.max_bandwidth_kbit)
+
         self._retransmission_cache = RetransmissionCache(self)
+
+    def is_logging_enabled(self, flags) -> bool:
+        return self._connection.is_logging_enable(flags)
+
+    def log_info(self, msg):
+        self._logger.info(msg)
+
+    def log_warning(self, msg):
+        self._logger.warning(msg)
+
+    def log_error(self, msg):
+        self._logger.info.error(msg)
+
+    def log_exception(self, exception):
+        self._logger.exception(exception)
+
+    def log_protocol_data(self, segment: Segment):
+        _msg_type = segment.hdr_msg_type
+
+        if _msg_type == Segment.MSG_TYPE_CONFIGURATION:
+            _msg = NetMsgConfiguration(segment)
+            _msg.decode()
+            self.log_info("PROTOCOL [XTA] " + str(_msg))
+        elif _msg_type == Segment.MSG_TYPE_HEARTBEAT:
+            _msg = NetMsgHeartbeat(segment)
+            _msg.decode()
+            self.log_info("PROTOCOL [XTA] " + str(_msg))
+        elif _msg_type == Segment.MSG_TYPE_RETRANSMISSION:
+            _msg = NetMsgUpdate(segment)
+            _msg.decode()
+            self.log_info("PROTOCOL [XTA] <retrans>" + str(_msg))
+        elif _msg_type == Segment.MSG_TYPE_RETRANSMISSION_NAK:
+            _msg = NetMsgRetransmissionNAK(segment)
+            _msg.decode()
+            self.log_info("PROTOCOL [XTA] " + str(_msg))
+        elif _msg_type == Segment.MSG_TYPE_RETRANSMISSION_RQST:
+            _msg = NetMsgRetransmissionRqst(segment)
+            _msg.decode()
+            self.log_info("PROTOCOL [XTA] " + str(_msg))
+        elif _msg_type == Segment.MSG_TYPE_UPDATE:
+            _msg = NetMsgUpdate(segment)
+            _msg.decode()
+            self.log_info("PROTOCOL [XTA] " + str(_msg))
+        else:
+            self.log_info("PROTOCOL [XTA] unknown message: " + Segment.getMessageTypeString(_msg_type))
 
     @property
     def local_address(self) -> int:
         return self._local_address
-
-    @staticmethod
-    def logger() -> Logger:
-        return ConnectionSender._cLogger
 
     @property
     def sender_id(self) -> int:
@@ -185,17 +180,24 @@ class ConnectionSender(ConnectionSenderBase):
     def current_seqno(self) -> int:
         return self._current_seqno
 
+    @property
+    def retransmission_cache(self) -> RetransmissionCache:
+        return self._retransmission_cache
+
+    @property
+    def connection(self) -> 'Connection':
+        return self._connection
+
     def retransmit(self, msg: NetMsgRetransmissionRqst):
         if msg.sender_start_time == self.sender_start_time and msg.sender_id == self.sender_id:
-             self._connection.updateInRetransmissionStatistics(self._connection.mc_address(),
-                                                               self._connection.mc_port,
-                                                               msg, True)
-             self._retransmission_cache.retransmit(msg.low_sequence_no, msg.high_sequence_no)
+            self._connection.updateInRetransmissionStatistics(self._connection.mc_address(),
+                                                              self._connection.mc_port,
+                                                              msg, True)
+            self._retransmission_cache.retransmit(msg.low_sequence_no, msg.high_sequence_no)
         else:
             self._connection.updateInRetransmissionStatistics(self._connection.mc_address(),
                                                               self._connection.mc_port,
                                                               msg, False)
-
 
     def get_new_current_update(self) -> NetMsgUpdate:
         # should always be None when calling this method
@@ -209,35 +211,32 @@ class ConnectionSender(ConnectionSenderBase):
                        local_address=self._local_address,
                        sender_id=self._sender_id,
                        sender_start_time_sec=self._sender_start_time,
-                       app_id=self._distributor.distributor_id())
+                       app_id=self._app_id)
 
         return _msg
 
-    def publishUpdate(self, xta_update: XtaUpdate) -> int:
-        return self.updateToSegment(xta_update)
+    def publish_update(self, xta_update: XtaUpdate) -> int:
+        return self.update_to_segment(xta_update)
 
-    def flushHolback(self,  flush_request_seqno: int):
+    def flush_holback(self, flush_request_seqno: int):
         if (self._current_update and
-            flush_request_seqno == self._current_update.flush_seqno and
-            self._current_update.update_count > 0):
-                self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
-
+                flush_request_seqno == self._current_update.flush_seqno and
+                self._current_update.update_count > 0):
+            self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
     def eval_outgoing_traffic_flow(self, bytes_sent: int) -> int:
         self._traffic_flow_task.increment(bytes_sent)
-        return self._traffic_flow_task.calculateWaitTimeMs()
+        return self._traffic_flow_task.calculate_wait_time_ms
 
-
-
-    def updateToSegment(self, xta_update: XtaUpdate) -> int:
+    def update_to_segment(self, xta_update: XtaUpdate) -> int:
         if xta_update.size > self._configuration.segment_size - NetMsgUpdate.MIN_UPDATE_HEADER_SIZE:
-            self.largeUpdateToSegments(xta_update)
+            self.large_update_to_segments(xta_update)
         else:
-            self.smallUpdateToSegment(xta_update)
+            self.small_update_to_segment(xta_update)
 
         if (self._configuration.send_holdback_delay_ms > 0 and
-                self._traffic_flow_task.getUpdateRate() > self._configuration.send_holdback_threshold and
-                Aux.currentMilliseconds() - self._current_update.create_time < self._configuration.send_holdback_delay_ms):
+                self._traffic_flow_task.get_update_rate() > self._configuration.send_holdback_threshold and
+                Aux.current_milliseconds() - self._current_update.create_time < self._configuration.send_holdback_delay_ms):
             if self._last_update_flush_seqno < self._current_update.flush_seqno:
                 self._last_update_flush_seqno = self._current_update.flush_seqno
                 _timerTask: SenderHoldbackTimerTask = SenderHoldbackTimerTask(
@@ -245,24 +244,24 @@ class ConnectionSender(ConnectionSenderBase):
                     flush_seqno=self._last_update_flush_seqno)
                 ConnectionTimerExecutor.getInstance().queue(interval=self._configuration.send_holdback_delay_ms,
                                                             task=_timerTask)
-                if self._distributor.is_logging_enable(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
-                    self._cLogger.info("outgoing flow, queue new holdback flush timer seqno: {} holddback time: {} (ms)"
-                                       .format(self._last_update_flush_seqno, self._configuration.send_holdback_delay_ms))
+                if self._connection.is_logging_enable(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
+                    self.log_info("outgoing flow, queue new holdback flush timer seqno: {} holddback time: {} (ms)"
+                                  .format(self._last_update_flush_seqno, self._configuration.send_holdback_delay_ms))
             return 0
         # send message
-        return self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
+        return self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
-    def smallUpdateToSegment(self, xta_update: XtaUpdate):
+    def small_update_to_segment(self, xta_update: XtaUpdate):
         if not self._current_update.addUpdate(xta_update):
             # send current segment and allocate a new empty one
-            self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
+            self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
             if not self._current_update.addUpdate(xta_update):
                 raise DistributorException('Update did not fit into segment, {} bytes'.format(xta_update.size))
 
-    def largeUpdateToSegments(self, xta_update: XtaUpdate):
+    def large_update_to_segments(self, xta_update: XtaUpdate):
         # If we have updates in the current segment, queue and get a new segment
-        self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
+        self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
         _offset: int = 0
         _segment_count = 0
@@ -273,14 +272,14 @@ class ConnectionSender(ConnectionSenderBase):
             _offset += self._current_update.addLargeData(xta_update.data, _offset)
             self._current_update.update_count = 1
             if _segment_count == 0:
-                self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_START)
+                self.queue_current_update(Segment.FLAG_M_SEGMENT_START)
             elif _offset == xta_update.data_length:
-                self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_END)
+                self.queue_current_update(Segment.FLAG_M_SEGMENT_END)
             else:
-                self.queueCurrentUpdate(Segment.FLAG_M_SEGMENT_MORE)
+                self.queue_current_update(Segment.FLAG_M_SEGMENT_MORE)
             _segment_count += 1
 
-    def queueCurrentUpdate(self, segment_flags: int) -> int:
+    def queue_current_update(self, segment_flags: int) -> int:
 
         if self._current_update.update_count == 0:
             return 0  # No updates in segment we can continue to use this one
@@ -294,21 +293,6 @@ class ConnectionSender(ConnectionSenderBase):
         self._current_update = self.get_new_current_update()
         return _send_delay
 
-    def is_logging_enabled(self, flag: int):
-        if self._distributor.configuration().log_flags() & flag:
-            return True
-        else:
-            return False
-
-    def log_info(self, message: str):
-        ConnectionSender.logger().info(message)
-
-    def random_error(self, probability: int):  # n/1000
-        x = random.randrange(0, 1000)
-        if x <= probability:
-            return True
-        return False
-
     def send_segment(self, segment: Segment):
 
         _send_time_usec: int = 0
@@ -319,19 +303,19 @@ class ConnectionSender(ConnectionSenderBase):
         if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
             if self._configuration.max_bandwidth_kbit > 0:
                 self._traffic_flow_task.increment(segment.length)
-                _wait_ms = self._traffic_flow_task.calculateWaitTimeMs()
-                Aux.sleepMs(_wait_ms)
+                _wait_ms = self._traffic_flow_task.calculate_wait_time_ms
+                Aux.sleep_ms(_wait_ms)
 
         if self.is_logging_enabled(DistributorLogFlags.LOG_SEGMENTS_EVENTS):
-            logInfo('XTA Segment: {}'.format(segment))
+            self.log_info('XTA Segment: {}'.format(segment))
 
         if self.is_logging_enabled(DistributorLogFlags.LOG_DATA_PROTOCOL_XTA):
-            logProtocolData(segment)
+            self.log_protocol_data(segment)
 
         if (self._configuration.fake_xta_error_rate > 0 and
-                self.random_error(self._configuration.fake_xta_error_rate) and
+                random_error(self._configuration.fake_xta_error_rate) and
                 segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE):
-            logInfo('SIMULATED XTA Error Segment [{}] dropped'.format(segment.seqno))
+            self.log_info('SIMULATED XTA Error Segment [{}] dropped'.format(segment.seqno))
 
         else:
             try:
@@ -339,16 +323,16 @@ class ConnectionSender(ConnectionSenderBase):
                 self._connection.traffic_statistic_task().updateXtaStatistics(segment, _send_time_usec)
             except Exception as e:
                 self._error_signaled = True
-                logThrowable(e)
+                self.log_exception(e)
                 _event: DistributorCommunicationErrorEvent = DistributorCommunicationErrorEvent(direction="[SEND]",
                                                                                                 mc_addr=self._connection.mc_address(),
                                                                                                 mc_port=self._connection.mc_port(),
                                                                                                 reason=str(e))
-                ClientDeliveryController.get_instance().queue_event(connection_id=self._connection.connection_id(), event=_event)
+                ClientDeliveryController.get_instance().queue_event(connection_id=self._connection.connection_id(),
+                                                                    event=_event)
 
             if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
                 self._retransmission_cache.addSentUpdate(segment)
                 self._heartbeat_timer_task.dataHasBeenPublished()
-
 
         return _send_time_usec

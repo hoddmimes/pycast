@@ -253,7 +253,7 @@ class Segment(ABC, object):
         sb.write(' SndrId: {0:x}'.format(self._hdr_sender_id))
         sb.write(' Len: {}'.format(self.length))
         sb.write(' Flgs: {}'.format(self._getFlagsString()))
-        sb.write(' LclHst: {}'.format(Aux.ipAddrIntToStr(self._hdr_local_address)))
+        sb.write(' LclHst: {}'.format(Aux.ip_addr_int_to_str(self._hdr_local_address)))
         sb.write(' StartTime: {}'.format(Aux.time_string(self._hdr_sender_start_time_sec)))
         sb.write(' Vrs: {0:x}'.format(self._hdr_version))
         sb.write(' AppId: {0:x}'.format(self._hdr_app_id))

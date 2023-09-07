@@ -18,7 +18,7 @@ class IpmcReceiverThread(AuxThread):
 
     def run(self):
         _data_addr = None
-        self.setName("DIST_RECEIVER_" + str(self._index) + ":" + Aux.ipAddrIntToStr(self._ipmc.mc_address))
+        self.setName("DIST_RECEIVER_" + str(self._index) + ":" + Aux.ip_addr_int_to_str(self._ipmc.mc_address))
         while (True):
             _byte_buffer = bytearray(self._segment_size)
             try:
@@ -37,7 +37,7 @@ class IpmcReceiverThread(AuxThread):
                                                             self._ipmc.mc_port,
                                                             str(e))
                 _async_event = AsyncEventSignalEvent(_event)
-                ConnectionController.getInstance().queueAsyncEvent(self._connection_id, _async_event)
+                ConnectionController.get_instance().queueAsyncEvent(self._connection_id, _async_event)
                 return
 
 
@@ -47,4 +47,4 @@ class IpmcReceiverThread(AuxThread):
             _rcv_segment.from_port = _mc_port
             _rcv_segment.decode()
             _async_event :AsyncEventReceiveSegment = AsyncEventReceiveSegment(_rcv_segment)
-            ConnectionController.getInstance().queueAsyncEvent(self._connection_id, _async_event)
+            ConnectionController.get_instance().queueAsyncEvent(self._connection_id, _async_event)

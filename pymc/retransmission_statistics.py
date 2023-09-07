@@ -1,14 +1,14 @@
 import socket
 
 from pymc.aux.aux import Aux
-from pymc.msg.generated.NetMessage import DistExploreRetransmissonsRsp
+from pymc.msg.generated.net_messages import DistExploreRetransmissonsRsp
 
 
 class NodeEntry:
     def __init__(self, mc_address, mc_port, host_address):
-        self.mc_address_str: str = Aux.ipAddrIntToStr(mc_address)
+        self.mc_address_str: str = Aux.ip_addr_int_to_str(mc_address)
         self.mc_port: int = mc_port
-        self.host_address_str: str = Aux.ipAddrIntToStr(host_address)
+        self.host_address_str: str = Aux.ip_addr_int_to_str(host_address)
         self.to_this_node_count: int = 0
         self.to_remote_node_count: int = 0
         self.total_retransmission_seen: int = 0
@@ -24,7 +24,7 @@ class NodeEntry:
 
 
 def getKey(mc_address: int, mc_port: int, host_address: int) -> int:
-    _key = (Aux.swapInt(mc_address) << 40) + (Aux.swapInt(host_address) << 16) + (Aux.swapInt(mc_port) & 0xffff)
+    _key = (Aux.swap_int(mc_address) << 40) + (Aux.swap_int(host_address) << 16) + (Aux.swap_int(mc_port) & 0xffff)
     return _key
 
 

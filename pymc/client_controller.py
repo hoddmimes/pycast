@@ -8,7 +8,7 @@ from pymc.aux.distributor_exception import DistributorException
 from pymc.clients_events import SubscriptionFiltersCntx, EventCallbackCntx, ClientUpdateEvent, ClientDedicatedAppEvent
 from pymc.clients_events import ClientAppEvent, ClientEvent
 from pymc.distributor_events import DistributorEvent
-from pymc.msg.generated.NetMessage import QueueSizeItem
+from pymc.msg.generated.net_messages import QueueSizeItem
 from pymc.msg.rcv_update import RcvUpdate
 from pymc.subscription import SubscriptionFilter
 
@@ -59,7 +59,7 @@ class ClientDeliveryController(object):
             self._queue_length += 1
             if self._queue_length > self._peak_length:
                 self._peak_length = self._queue_length
-                self._peak_time = Aux.currentMilliseconds()
+                self._peak_time = Aux.current_milliseconds()
 
         self._queue.add(ClientUpdateEvent(connection_id, rcv_update))
 
@@ -69,7 +69,7 @@ class ClientDeliveryController(object):
                 self._queue_length += 1
                 if self._queue_length > self._peak_length:
                     self._peak_length = self._queue_length
-                    self._peak_time = Aux.currentMilliseconds()
+                    self._peak_time = Aux.current_milliseconds()
                 self._queue.add(ClientUpdateEvent(connection_id, _upd))
 
     def queue_event_dedicated(self, connection_id: int, event: DistributorEvent,
@@ -78,7 +78,7 @@ class ClientDeliveryController(object):
             self._queue_length += 1
             if self._queue_length > self._peak_length:
                 self._peak_length = self._queue_length
-                self._peak_time = Aux.currentMilliseconds()
+                self._peak_time = Aux.current_milliseconds()
         self._queue.add(ClientDedicatedAppEvent(connection_id, event, callback))
 
     def queue_event(self, connection_id: int, event: DistributorEvent):
@@ -86,7 +86,7 @@ class ClientDeliveryController(object):
             self._queue_length += 1
             if self._queue_length > self._peak_length:
                 self._peak_length = self._queue_length
-                self._peak_time = Aux.currentMilliseconds()
+                self._peak_time = Aux.current_milliseconds()
         self._queue.add(ClientAppEvent(connection_id, event))
 
     def getQueueLength(self):

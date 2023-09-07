@@ -11,9 +11,9 @@ from pymc.remote_connection import RemoteConnection
 
 
 class RemoteConnectionController(object):
-    def __init__(self, connection_base: ConnectionBase):
+    def __init__(self, connection):
         self._remote_connections: dict[int, RemoteConnection] = {}
-        self._connection_base: ConnectionBase = connection_base
+        self._connection = connection
         self._mutex: threading.Lock = threading.Lock()
 
     def close(self):
@@ -33,7 +33,7 @@ class RemoteConnectionController(object):
                 _rmt_conn.remote_sender_id,
                 _rmt_conn.remote_start_time
             )
-            ClientDeliveryController.get_instance().queue_event(self._connection_base.connection_id(), tEvent)
+            ClientDeliveryController.get_instance().queue_event(self._connection.connection_id(), tEvent)
 
     def getRemoteConnection(self, segment: Segment) -> RemoteConnection | None:
         with self._mutex:
@@ -43,10 +43,10 @@ class RemoteConnectionController(object):
         with self._mutex:
             _remote_connection = self._remote_connections.get(segment.__hash__())
             if _remote_connection is None:
-                _remote_connection = RemoteConnection(segment, self, self._connection_base)
+                _remote_connection = RemoteConnection(segment, self, self._connection)
                 self._remote_connections[segment.__hash__()] = _remote_connection
-                if self._connection_base.is_logging_enable(DistributorLogFlags.LOG_RMTDB_EVENTS):
-                    self._connection_base.log_info("Remote Connection [CREATED] ({})\n    {}"
+                if self._connection.is_logging_enable(DistributorLogFlags.LOG_RMTDB_EVENTS):
+                    self._connection.log_info("Remote Connection [CREATED] ({})\n    {}"
                                                    .format(hex(segment.__hash__()), _remote_connection))
                 _event = DistributorNewRemoteConnectionEvent(
                     _remote_connection.remote_host_address,
@@ -56,7 +56,7 @@ class RemoteConnectionController(object):
                     _remote_connection.remote_application_id,
                     _remote_connection.remote_sender_id,
                     _remote_connection.remote_start_time)
-                ClientDeliveryController.get_instance().queue_event(self._connection_base.connection_id(), _event)
+                ClientDeliveryController.get_instance().queue_event(self._connection.connection_id(), _event)
             _remote_connection.is_configuration_active = True
             return _remote_connection
 

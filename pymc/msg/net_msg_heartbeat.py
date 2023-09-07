@@ -54,7 +54,7 @@ class NetMsgHeartbeat(NetMsg):
         sb = StringIO()
         sb.write(super().__str__())
         sb.write("\n    <")
-        sb.write("mc_addr: " + Aux.ipAddrIntToStr(self._mc_address))
+        sb.write("mc_addr: " + Aux.ip_addr_int_to_str(self._mc_address))
         sb.write(" mc_port: " + str(self._mc_port))
         sb.write(" sender_dd: " + hex(self._sender_id))
         sb.write(" sequence#: " + str(self._sequence_no))

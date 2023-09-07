@@ -40,7 +40,7 @@ class Subscriber(SubscriberBase, ABC):
         return self._update_callback
 
     def add_subscription(self, subject: str, callback_parameter: object):
-        _connection = ConnectionController.getInstance().getAndLockConnection(self._connection_id)
+        _connection = ConnectionController.get_instance().get_and_lock_connection(self._connection_id)
         if _connection is None:
             raise DistributorException("Distributor connects is closed or no longer valid")
 

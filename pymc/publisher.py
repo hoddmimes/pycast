@@ -26,7 +26,7 @@ class Publisher(PublisherBase):
         self._is_flood_regulated = is_flood_regulated
         self._callback: Callable[[DistributorEvent], None] = distributor_event_callback
         if Publisher.cLogger is None:
-            self.cLogger = LogManager.getInstance().getLogger('Publisher')
+            self.cLogger = LogManager.get_instance().get_logger('Publisher')
 
     def publish(self, subject: str, data_bytes: bytearray, data_len: int = None):
         if data_len is None:
@@ -34,7 +34,7 @@ class Publisher(PublisherBase):
         else:
             _data = bytes(data_bytes[:data_len])
 
-        _connection: ConnectionBase = ConnectionController.getInstance().getAndLockConnection(self._connection_id)
+        _connection: ConnectionBase = ConnectionController.get_instance().get_and_lock_connection(self._connection_id)
 
         if not _connection:
             raise DistributorException("Distributor connection is closed or no longer valid")
@@ -48,9 +48,9 @@ class Publisher(PublisherBase):
             if _wait_time > 0:
                 if _connection.isLogFlagSet(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
                     self.cLogger.info("outgoing flow regulated, wait: {} ms)  xta_time: {}".format(_wait_time, _xta_time))
-                Aux.sleepMs(_wait_time)
+                Aux.sleep_ms(_wait_time)
 
-        ConnectionController.getInstance().unlockConnection(_connection)
+        ConnectionController.get_instance().unlockConnection(_connection)
         return _xta_time
 
     @property
@@ -58,21 +58,21 @@ class Publisher(PublisherBase):
         return self._id
 
     def close(self):
-        _connection: Connection = ConnectionController.getInstance().getAndLockConnection(self._connection_id)
+        _connection: Connection = ConnectionController.get_instance().get_and_lock_connection(self._connection_id)
 
         if _connection is None:
             raise DistributorException("Distributor connection is closed or no longer valid")
         _connection.checkStatus()
         _connection.remove_publisher(self)
 
-        ConnectionController.getInstance().unlockConnection(_connection)
+        ConnectionController.get_instance().unlockConnection(_connection)
 
     def getStatistics(self) -> DistributorPublisherStatisticsIf:
-        _connection: Connection = ConnectionController.getInstance().getAndLockConnection(self._connection_id)
+        _connection: Connection = ConnectionController.get_instance().get_and_lock_connection(self._connection_id)
 
         if _connection is None:
             raise DistributorException("Distributor connection is closed or no longer valid")
         _connection.checkStatus()
         _statistics: DistributorPublisherStatisticsIf = _connection.get_traffic_statistics()
-        ConnectionController.getInstance().unlockConnection(_connection)
+        ConnectionController.get_instance().unlockConnection(_connection)
         return _statistics

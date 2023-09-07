@@ -21,7 +21,6 @@ class TimerTaskWraper(object):
         self._task: ConnectionTimerTask = connection_timer_task
         self._delay_ms: int = delay_ms
         self._repeat: bool = repeat
-        self._queue_time: float = perf_counter()
 
     @classmethod
     def cast(cls, obj: object) -> TimerTaskWraper:
@@ -29,10 +28,6 @@ class TimerTaskWraper(object):
             return obj
         else:
             raise Exception("can not cast object to {}".format(cls.__name__))
-
-    @property
-    def overhead(self) -> int:
-        return int((perf_counter() - self._queue_time) * 1000.0)
 
     @property
     def task(self) -> ConnectionTimerTask:
@@ -48,19 +43,22 @@ class TimerTaskWraper(object):
 
 
 def _timer_executor_(timer_task: TimerTaskWraper):
-    Aux.sleepMs(timer_task.overhead)
+    # Always execute one time
+    _first_execution: bool = True
+    while timer_task.repeat or _first_execution:
+        if timer_task.task.canceled:
+            return
 
-    connection = ConnectionController.getInstance().getAndLockConnection(connection_id=timer_task.task.connection_id)
-    try:
-        timer_task.task.execute(connection)
-        if timer_task.repeat and not timer_task.task.canceled:
-            ConnectionTimerExecutor.getInstance().queue(interval=timer_task.delay_ms, task=timer_task.task,
-                                                        repeat=timer_task.repeat)
-    except Exception as e:
-        print(e)
-    finally:
-        if connection:
-            connection.unlock()
+        _first_execution = False
+        Aux.sleep_ms(timer_task.delay_ms)
+        connection = ConnectionController.get_instance().get_and_lock_connection(connection_id=timer_task.task.connection_id)
+        try:
+            timer_task.task.execute(connection)
+        except Exception as e:
+            print(e)
+        finally:
+            if connection:
+                connection.unlock()
 
 
 class ConnectionTimerExecutor(object):
@@ -79,7 +77,7 @@ class ConnectionTimerExecutor(object):
 
     def __init__(self):
         self._queue = BlockingQueue()
-        self._executor = ThreadPoolExecutor()
+        self._executor = ThreadPoolExecutor(max_workers=200)
         self._dispatcher = Thread(target=self._timer_task_dispatcher)
         self._dispatcher.start()
 
@@ -98,14 +96,21 @@ class ConnectionTimerExecutor(object):
 # ===================================================================
 class _TestTask(ConnectionTimerTask):
 
-    def __init__(self, connection_id, interval):
+    def __init__(self, connection_id, interval, thread_id):
         super().__init__(connection_id)
         self.startTime = perf_counter()
         self.interval = interval
+        self.thread_id = thread_id
+        self._count = 0
+        self._overhead = 0
 
     def execute(self, connection):
+        self._count += 1
         _exectime = (perf_counter() - self.startTime) * 1000.0
-        print('interval: {} time: {}'.format(self.interval, _exectime))
+        self._overhead += _exectime - self.interval
+        self.startTime = perf_counter()
+        if ((self._count % 200) == 0):
+            print('thread: {} interval: {} time: {} overhead: {}'.format(self.thread_id, self.interval, _exectime, (self._overhead/ self._count)))
 
 
 """
@@ -117,12 +122,17 @@ class _TestTask(ConnectionTimerTask):
 
 def test():
     executor = ConnectionTimerExecutor.getInstance()
+    '''
+        _task = _TestTask(0, 765)
+        executor.queue(interval=765, task=_task, repeat=True)
+        time.sleep(200)
+    '''
+   
     for i in range(10):
-        _delay = random.randrange(start=10, stop=46)
-        _task = _TestTask(0, _delay)
-        executor.queue(interval=_delay, task=_task)
-        time.sleep(3)
-
+        _delay = random.randrange(start=100, stop=460)
+        _task = _TestTask(0, _delay, (i+1))
+        executor.queue(interval=_delay, task=_task, repeat=True)
+    time.sleep(300)
 
 if __name__ == '__main__':
     test()

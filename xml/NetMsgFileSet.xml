@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MessageFiles>
-	<MessageFile  file="./xml/NetMessage.xml" outPath="./pymc/msg/generated/" corePackage="pymc.msg" package="pymc.msg.generated" allInOneFile="true"/>
+	<MessageFile  file="./xml/net_messages.xml" outPath="./pymc/msg/generated/" corePackage="pymc.msg" package="pymc.msg.generated" allInOneFile="true"/>
 </MessageFiles>
 
 

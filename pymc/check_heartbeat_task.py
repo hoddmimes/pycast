@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from pymc.client_controller import ClientDeliveryController
 from pymc.connection_timers import ConnectionTimerTask
-from pymc.connection import Connection
 from pymc.distributor_events import DistributorRemoveRemoteConnectionEvent
-from pymc.remote_connection import RemoteConnection
 from pymc.distributor_configuration import DistributorLogFlags
-from pymc.remote_connection_controller import RemoteConnectionController
+
 
 
 class CheckHeartbeatTask(ConnectionTimerTask):
@@ -14,8 +12,8 @@ class CheckHeartbeatTask(ConnectionTimerTask):
         super().__init__(connection_id)
         self._remote_connection_id = remote_connection_id
 
-    def execute(self, connection: Connection):
-        _remote_connection: RemoteConnection = connection.get_remote_connection(  self._remote_connection_id )
+    def execute(self, connection: 'Connection'):
+        _remote_connection: 'RemoteConnection' = connection.get_remote_connection(  self._remote_connection_id )
         if _remote_connection is None:
             self.cancel()
             return
@@ -37,6 +35,7 @@ class CheckHeartbeatTask(ConnectionTimerTask):
                                                                 _remote_connection.remote_application_id)
                 ClientDeliveryController.get_instance().queue_event(connection.connection_id, _event)
                 self.cancel()
+                from pymc.remote_connection_controller import RemoteConnectionController
                 RemoteConnectionController.removeRemoteConnection(self)
             else:
                 _remote_connection.is_heartbeat_active = False

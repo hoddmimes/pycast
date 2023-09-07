@@ -12,7 +12,7 @@ class LogManager(object):
         return class_._instance
 
     @staticmethod
-    def setConfiguration(to_console=True, to_file=True, file_name='Distributor.log', level=logging.DEBUG):
+    def set_configuration(to_console=True, to_file=True, file_name='Distributor.log', level=logging.DEBUG):
         if not LogManager._instance:
             LogManager._instance = LogManager()
         LogManager._instance.to_console = to_console
@@ -21,12 +21,12 @@ class LogManager(object):
         LogManager._instance.level = level
 
     @staticmethod
-    def getInstance() -> LogManager:
+    def get_instance() -> LogManager:
         if not LogManager._instance:
             LogManager._instance = LogManager()
         return LogManager._instance
 
-    def getLogger(self, module_name: str) -> logging.Logger:
+    def get_logger(self, module_name: str) -> logging.Logger:
         _logger = logging.Logger(module_name)
         if not LogManager._instance.to_console and not LogManager._instance.to_file:
             _logger.addHandler(logging.NullHandler())
@@ -56,8 +56,8 @@ class LogManager(object):
 ============================================ """
 
 def main():
-    LogManager.setConfiguration(True, True, 'test.log', logging.DEBUG)
-    log = LogManager.getInstance().getLogger('foobar')
+    LogManager.set_configuration(True, True, 'test.log', logging.DEBUG)
+    log = LogManager.get_instance().get_logger('foobar')
     log.info("test info message")
     log.error("test error message")
     try:

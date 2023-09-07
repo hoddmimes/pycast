@@ -16,9 +16,9 @@ class DistributorManagementController(DistributorEventCallbackIf, DistributorUpd
         )
         tConfiguration.setMcaNetworkInterface(self.mApplicationConfiguration.getCMAInterface())
         tConfiguration.setCmaConnection(True)
-        self.mConnection = pDistributor.createConnection(tConfiguration)
-        self.mPublisher = pDistributor.createPublisher(self.mConnection, self)
-        self.mSubscriber = pDistributor.createSubscriber(self.mConnection, None, self)
+        self.mConnection = pDistributor.create_connection(tConfiguration)
+        self.mPublisher = pDistributor.create_publisher(self.mConnection, self)
+        self.mSubscriber = pDistributor.create_subscriber(self.mConnection, None, self)
         self.mSubscriber.addSubscription(self.cConsoleSubjectControlTopic, None)
         self.mLocalHostName = "localhost"
         try:

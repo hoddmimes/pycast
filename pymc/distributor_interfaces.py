@@ -35,10 +35,7 @@ class ConnectionReceiverBase(ABC):
 
 
 class ConnectionBase(ABC):
-    STATE_INIT = 0
-    STATE_RUNNING = 1
-    STATE_CLOSED = 2
-    STATE_ERROR = 3
+
 
     @abstractmethod
     def publishUpdate(self, xta_update: XtaUpdate):

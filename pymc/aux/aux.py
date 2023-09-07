@@ -13,7 +13,7 @@ class Aux:
     _allocated_server_sockets = []
 
     @staticmethod
-    def swapInt( value: int ):
+    def swap_int(value: int):
         if value <= 0xffff:
             return ((value & 0xff)  << 8) + ((value >> 8) & 0xff)
         elif value <= 0xffffffff:
@@ -25,13 +25,13 @@ class Aux:
 
 
     @staticmethod
-    def ipAddrStrToInt( addr_str: str ) -> int :
+    def ip_addr_str_to_int(addr_str: str) -> int :
         arr = socket.inet_aton( addr_str )
         addr = (int(arr[3]) << 24) + (int(arr[2]) << 16) + (int(arr[1]) << 8) + int(arr[0])
         return addr
 
     @staticmethod
-    def ipAddrIntToStr( addr: int ) -> str :
+    def ip_addr_int_to_str(addr: int) -> str :
         array = bytearray(4)
         array[0] = (addr & 0xff)
         array[1] = ((addr >> 8) & 0xff)
@@ -40,12 +40,12 @@ class Aux:
         return "{}.{}.{}.{}".format(array[0],array[1], array[2], array[3])
 
     @staticmethod
-    def currentMilliseconds() -> int:
+    def current_milliseconds() -> int:
         _now = datetime.datetime.now()
         return int(_now.timestamp() * 1000)
 
     @staticmethod
-    def currentSeconds() -> int:
+    def current_seconds() -> int:
         _now: int = int(time.time())
         return _now
 
@@ -65,7 +65,7 @@ class Aux:
 
 
     @staticmethod
-    def sleepMs( time_ms: int ):
+    def sleep_ms(time_ms: int):
         _time_sec:float = float(time_ms) / 1000.0
         _start_time = time.perf_counter()
         while True:
@@ -73,13 +73,15 @@ class Aux:
             _remaining_time = _time_sec - _elapsed_time
             if _remaining_time <= 0:
                 break
-            if _remaining_time > 0.02:  # Sleep for 5ms if remaining time is greater
+            elif _remaining_time >= 0.02:  # 20 ms
+                time.sleep(_remaining_time / 1.42)  # Sleep for the remaining time or minimum sleep interval
+            elif _remaining_time > 0.01:  # 20
                 time.sleep(max(_remaining_time/2, 0.0001))  # Sleep for the remaining time or minimum sleep interval
             else:
                 pass
 
     @staticmethod
-    def getApplicationId() -> int:
+    def get_application_id() -> int:
         _ipAddr:str = Aux.getIpAddress('')
         _addr:bytearray = socket.inet_aton( _ipAddr )
         _pid = os.getpid()
@@ -111,7 +113,7 @@ class Aux:
 
 
     @staticmethod
-    def allocateServerPortId( portOffset:int ):
+    def allocate_server_port_id(portOffset:int):
         _srv_port = portOffset
         while True:
             _srv_addr = ('127.0.0.1', _srv_port)
@@ -142,7 +144,7 @@ class Aux:
             return '127.0.0.1'
 
     @staticmethod
-    def getUUID4() -> str:
+    def get_uuid4() -> str:
        return uuid.uuid4().hex
 
 
@@ -170,5 +172,5 @@ class AuxThread(threading.Thread):
         _sts = res = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(_id), ctypes.py_object(DistributorTheadExitException))
         #print("id: {} status: {}".format( _id,  _sts ))
 
-    def setName(self, name: str):
+    def set_name(self, name: str):
         super().name = name

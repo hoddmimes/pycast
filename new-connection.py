@@ -256,7 +256,7 @@ def flushHoldback(pFlushHoldbackSeqno):
     mConnectionSender.flushHoldback(pFlushHoldbackSeqno)
 
 def publishUpdate(pXtaUpdate):
-    return mConnectionSender.publishUpdate(pXtaUpdate)
+    return mConnectionSender.publish_update(pXtaUpdate)
 
 def logThrowable(e):
     mLogger.error("[Distributor mca: " + mIpmg.toString() + "]", e)

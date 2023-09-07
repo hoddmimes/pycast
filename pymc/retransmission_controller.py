@@ -2,15 +2,48 @@ import logging
 from collections import deque
 from threading import Timer
 
+from pymc.client_controller import ClientDeliveryController
+from pymc.connection_configuration import ConnectionConfiguration
+from pymc.distributor_events import DistributorNaggingErrorEvent
+
+
+class NaggingMonitorTask:
+    def __init__(self, configuration: ConnectionConfiguration):
+        self._interval_count:int = 0
+        self._last_interval_count:int = 0
+        self._consequtive_ticks:int = 0
+        self._cfg_window_interval:int = configuration.nagging_window_interval_ms()
+        self._cfg_check_interval:int= configuration.nagging_check_interval_ms
+        self._cfg_max_retransmissions:int  = configuration.nagging_max_retransmit()
+
+    def clear(self):
+        self._interval_count = 0
+        self._last_interval_count = 0
+        self._consequtive_ticks = 0
+
+    def execute(self, connection: 'Connection'):
+        try:
+            if self._interval_count > self._last_interval_count:
+                self._consequtive_ticks += self._cfg_window_interval
+                if self._consequtive_ticks >= self._cfg_check_interval:
+                    if self._cfg_max_retransmissions == 0 or (0 < self._cfg_max_retransmissions <= self._interval_count):
+                        _event = DistributorNaggingErrorEvent(connection.mIpmg.mInetAddress, connection.mIpmg.mPort)
+                        ClientDeliveryController.get_instance().queue_event(connection.connection_id, _event)
+                    else:
+                        self.clear()
+            else:
+                self.clear()
+        except Exception as e:
+            connection.log_exception(e)
+
+
 class RetransmissionController:
-    def __init__(self, pConnection):
-        self.cLogger = logging.getLogger(__name__)
-        self.mConnection = pConnection
-        self.mNaggingMonitor = self.NaggingMonitorTask(pConnection._connection_id, pConnection._configuration)
+    def __init__(self, connection: 'Connection'):
+        self._connection = connection
+        self._nagging_monitor = NaggingMonitorTask(connection.connection_id, connection.configuration)
         self.mRetransmissionRequestQueue = deque()
-        if pConnection._configuration.getNaggingWindowInterval() > 0:
-            tInterval = pConnection._configuration.getNaggingWindowInterval()
-            Timer(tInterval, self.mNaggingMonitor).start()
+        if connection.configuration.nagging_window_interval > 0:
+            Timer(connection.configuration.nagging_window_interval, self._nagging_monitor.start()
 
     def close(self):
         if not self.mRetransmissionRequestQueue:
@@ -19,12 +52,12 @@ class RetransmissionController:
             for item in self.mRetransmissionRequestQueue:
                 item.cancel()
             self.mRetransmissionRequestQueue.clear()
-        self.mNaggingMonitor.cancel()
+        self._nagging_monitor.cancel()
 
     def createRetransmissionRequest(self, pRemoteConnection, pLowSeqNo, pHighSeqNo):
-        tRqstTask = self.RetransmissionRequestItem(self.mConnection._connection_id, pRemoteConnection.mRemoteConnectionId, pLowSeqNo, pHighSeqNo)
+        tRqstTask = self.RetransmissionRequestItem(self._connection._connection_id, pRemoteConnection.mRemoteConnectionId, pLowSeqNo, pHighSeqNo)
         self.mRetransmissionRequestQueue.append(tRqstTask)
-        Timer(0, self.mConnection._configuration.getRetransmissionTimeout(), tRqstTask).start()
+        Timer(0, self._connection._configuration.getRetransmissionTimeout(), tRqstTask).start()
 
     def updateRetransmissions(self, pSegment):
         if not self.mRetransmissionRequestQueue:
@@ -45,7 +78,7 @@ class RetransmissionController:
                 for item in self.mRetransmissionRequestQueue:
                     tRqst = item
                     if tNakSeqNo[i] >= tRqst.mLowSeqNo and tNakSeqNo[i] <= tRqst.mHighSeqNo:
-                        tRemoteConnection = self.mConnection.mConnectionReceiver.mRemoteConnectionController.getConnection(pSegment)
+                        tRemoteConnection = self._connection.mConnectionReceiver.mRemoteConnectionController.getConnection(pSegment)
                         tRqst.requestNakSmoked(tRemoteConnection, tNakSeqNo[i])
                         self.mRetransmissionRequestQueue.remove(item)
 
@@ -147,31 +180,3 @@ class RetransmissionController:
             except Exception as e:
                 print(e)
 
-    class NaggingMonitorTask:
-        def __init__(self, DistributorConnectionId, pConfiguration):
-            self.mIntervalCount = 0
-            self.mLastIntervalCount = 0
-            self.mConsequtiveTicks = 0
-            self.mCfgWindowInterval = pConfiguration.getNaggingWindowInterval()
-            self.mCfgCheckInterval = pConfiguration.getNaggingCheckInterval()
-            self.mCfgMaxRetransmissions = pConfiguration.getNaggingMaxRetransmissions()
-
-        def clear(self):
-            self.mIntervalCount = 0
-            self.mLastIntervalCount = 0
-            self.mConsequtiveTicks = 0
-
-        def execute(self, pConnection):
-            try:
-                if self.mIntervalCount > self.mLastIntervalCount:
-                    self.mConsequtiveTicks += self.mCfgWindowInterval
-                    if self.mConsequtiveTicks >= self.mCfgCheckInterval:
-                        if self.mCfgMaxRetransmissions == 0 or (self.mCfgMaxRetransmissions > 0 and self.mIntervalCount >= self.mCfgMaxRetransmissions):
-                            tEvent = DistributorNaggingErrorEvent(pConnection.mIpmg.mInetAddress, pConnection.mIpmg.mPort)
-                            ClientDeliveryController.get_instance().queue_event(pConnection._connection_id, tEvent)
-                        else:
-                            self.clear()
-                else:
-                    self.clear()
-            except Exception as e:
-                self.mConnection.log_throwable(e)

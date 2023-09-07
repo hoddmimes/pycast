@@ -20,7 +20,7 @@ class NetMsgUpdate(NetMsg):
         self._sequence_no: int = 0
         self._update_count: int = 0  # Number of updates in segment
         self._flush_sequence_number: int = 0
-        self._create_time: int = Aux.currentMilliseconds()  # Time when the NetMessage was created
+        self._create_time: int = Aux.current_milliseconds()  # Time when the NetMessage was created
 
         self._large_subject_name: str = None
         self._large_message_size: int = 0

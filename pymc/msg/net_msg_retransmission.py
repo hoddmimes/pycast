@@ -82,7 +82,7 @@ class NetMsgRetransmissionRqst(NetMsg):
         sb = StringIO
         sb.write(super().__str__())
         sb.write("\n    <")
-        sb.write("Rqstr addr: " + Aux.ipAddrIntToStr(self.requestor_addr))
+        sb.write("Rqstr addr: " + Aux.ip_addr_int_to_str(self.requestor_addr))
         sb.write(" Rqstr appl name: " + self.app_name)
         sb.write(" SndrId: " + hex(self.sender_id))
         sb.write(" StartTime: " + Aux.time_string(self.sender_start_time))

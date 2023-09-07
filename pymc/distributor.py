@@ -1,39 +1,53 @@
+from __future__ import annotations
+
 import sys
 import logging
 from pymc.aux.aux import Aux
 from pymc.aux.aux_uuid import Aux_UUID
+from pymc.aux.distributor_exception import DistributorException
 from pymc.aux.log_manager import LogManager
-from pymc.distributor_interfaces import DistributorBase
-from pymc.publisher import Publisher
-from pymc.subscriber import Subscriber
 from pymc.distributor_configuration import DistributorConfiguration
-
 from pymc.connection_configuration import ConnectionConfiguration
-from pymc.connection import Connection
+from pymc.connection_controller import ConnectionController
 
 
-class Distributor(DistributorBase):
+class Distributor(object):
+    _instance = None
 
     def __init__(self, application_name: str, configuration: DistributorConfiguration = None):
         self._aux_uuid: Aux_UUID = Aux_UUID()
         self._configuration: DistributorConfiguration = configuration or DistributorConfiguration(application_name)
-        LogManager.setConfiguration(configuration.log_to_console, configuration.log_to_file, configuration.log_file,
-                                    logging.DEBUG)
-        self._logger: logging.Logger = LogManager.getLogger('Distributor')
-        self._id: int = Aux.getApplicationId()
+        LogManager.set_configuration(self.configuration.log_to_console,
+                                     self.configuration.log_to_file,
+                                     self.configuration.log_file,
+                                     logging.DEBUG)
+
+        self._logger: logging.Logger = LogManager.get_instance().get_logger('Distributor')
+        self._id: int = Aux.get_application_id()
         self._start_time_string: str = Aux.datetime_string()
         self._local_address_string: str = Aux.getIpAddress('')
-        self._local_address: int = Aux.ipAddrStrToInt(self._local_address_string)
+        self._local_address: int = Aux.ip_addr_str_to_int(self._local_address_string)
         self._logger.info("==== Distributor [{}] Started at {} ID {} local address: {} ====".
-                          format(configuration.app_name, self._start_time_string, self._id, self._local_address_string))
+                          format(self.configuration.app_name, self._start_time_string, hex(self._id),
+                                 self._local_address_string))
+        if Distributor._instance is None:
+            self._instance = self
+        else:
+            raise DistributorException("Distributor instance is already instantiated")
 
-    def createConnection(self, configuration: ConnectionConfiguration) -> Connection:
-        return Connection(self, configuration)
+    @staticmethod
+    def get_instance() -> Distributor:
+        if Distributor._instance is None:
+            raise DistributorException("Distributor is not yet instantiated, is that possible")
+        return Distributor._instance
 
-    def createPublisher(self, connection: Connection) -> Publisher:
+    def create_connection(self, configuration: ConnectionConfiguration) -> 'Connection':
+        return ConnectionController.get_instance().create_connection(connection_configuration=configuration)
+
+    def create_publisher(self, connection: 'Connection') -> 'Publisher':
         pass
 
-    def createSubscriber(self, connection: Connection) -> Subscriber:
+    def create_subscriber(self, connection: 'Connection') -> 'Subscriber':
         pass
 
     @property

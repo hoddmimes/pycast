@@ -40,6 +40,7 @@ class ConnectionConfiguration():
 
         self.nagging_window_interval_ms = 4000
         self.nagging_check_interval_ms = 60000
+        self.nagging_max_retransmit = 200
 
         self.statistic_interval_sec = 0
 

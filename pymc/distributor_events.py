@@ -7,15 +7,13 @@ from pymc.msg.rcv_segment import Segment, RcvSegment
 from pymc.distributor_configuration import DistributorLogFlags
 
 
-
-
 class AsyncEvent(ABC):
 
     def __init__(self):
         pass
 
     @abstractmethod
-    def execute(self, connection: interface.ConnectionBase):
+    def execute(self, connection: 'Connection'):
         pass
 
     @abstractmethod
@@ -68,7 +66,7 @@ class DistributorCommunicationErrorEvent(DistributorErrorEvent):
 
     def __init__(self, direction: str, mc_addr: int, mc_port: int, reason: str):
         super().__init__(DistributorEvent.COMMUNICATION_FAILURE)
-        self.mc_addr_str: str = Aux.ipAddrIntToStr(mc_addr)
+        self.mc_addr_str: str = Aux.ip_addr_int_to_str(mc_addr)
         self.mc_port = mc_port
 
         self.setMessage(
@@ -81,7 +79,7 @@ class DistributorNaggingErrorEvent(DistributorErrorEvent):
 
     def __init__(self, mc_addr: int, mc_port: int):
         super().__init__(DistributorEvent.NAGGING_EXCEPTION)
-        self.mc_addr: str = Aux.ipAddrIntToStr(mc_addr)
+        self.mc_addr: str = Aux.ip_addr_int_to_str(mc_addr)
         self.mc_port: int = mc_port
 
         super().setMessage('This connection mc-addr: {} mc-port: {} is nagging'.format(self.mc_addr, self.mc_port))
@@ -92,9 +90,9 @@ class DistributorNewRemoteConnectionEvent(DistributorEvent):
     def __init__(self, source_addr: int, mc_addr: int, mc_port: int, appl_name: str,
                  appl_id: int, sender_id: int, sender_start_time):
         super().__init__(DistributorEvent.REMOTE_CONNECTION_CREATED)
-        self.mc_addr: str = Aux.ipAddrIntToStr(mc_addr)
+        self.mc_addr: str = Aux.ip_addr_int_to_str(mc_addr)
         self.mc_port: int = mc_port
-        self.remote_addr: str = Aux.ipAddrIntToStr(source_addr)
+        self.remote_addr: str = Aux.ip_addr_int_to_str(source_addr)
         self.appl_name: str = appl_name
         self.appl_id: int = appl_id
         self.sender_id: int = sender_id
@@ -111,9 +109,9 @@ class DistributorRemoveRemoteConnectionEvent(DistributorEvent):
     def __init__(self, source_addr: int, mc_addr: int, mc_port: int, appl_name: str,
                  appl_id: int, sender_id: int, sender_start_time):
         super().__init__(DistributorEvent.REMOTE_CONNECTION_REMOVED)
-        self.mc_addr: str = Aux.ipAddrIntToStr(mc_addr)
+        self.mc_addr: str = Aux.ip_addr_int_to_str(mc_addr)
         self.mc_port: int = mc_port
-        self.remote_addr: str = Aux.ipAddrIntToStr(source_addr)
+        self.remote_addr: str = Aux.ip_addr_int_to_str(source_addr)
         self.appl_name: str = appl_name
         self.appl_id: int = appl_id
         self.sender_id: int = sender_id
@@ -129,7 +127,7 @@ class DistributorRetransmissionNAKErrorEvent(DistributorErrorEvent):
 
     def __init__(self, mc_addr: int, mc_port: int):
         super().__init__(DistributorEvent.RETRANSMISSION_NAK)
-        self.mc_addr: str = Aux.ipAddrIntToStr(mc_addr)
+        self.mc_addr: str = Aux.ip_addr_int_to_str(mc_addr)
         self.mc_port: int = mc_port
 
         super().setMessage(
@@ -141,7 +139,7 @@ class DistributorTooManyRetransmissionRetriesErrorEvent(DistributorErrorEvent):
 
     def __init__(self, mc_addr: int, mc_port: int):
         super().__init__(DistributorEvent.TOO_MANY_RETRIES)
-        self.mc_addr: str = Aux.ipAddrIntToStr(mc_addr)
+        self.mc_addr: str = Aux.ip_addr_int_to_str(mc_addr)
         self.mc_port: int = mc_port
 
         super().setMessage(
@@ -153,7 +151,7 @@ class DistributorConnectionClosedErrorEvent(DistributorErrorEvent):
 
     def __init__(self, mc_addr: int, mc_port: int):
         super().__init__(DistributorEvent.CONNECTION_CLOSING)
-        self.mc_addr: str = Aux.ipAddrIntToStr(mc_addr)
+        self.mc_addr: str = Aux.ip_addr_int_to_str(mc_addr)
         self.mc_port: int = mc_port
 
         super().setMessage("Distributor Connection Closing mc-addr: {} mc-port: {}".format(self.mc_addr, self.mc_port))

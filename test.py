@@ -52,31 +52,10 @@ class TestClass(object):
 
 
 def main():
-   segment = Segment(1024)
-   addr: int = Aux.ipAddrStrToInt('192.168.42.11')
-   segment.setHeader(header_version=0x11,
-                     messsage_type=Segment.MSG_TYPE_CONFIGURATION,
-                     segment_flags=Segment.FLAG_M_SEGMENT_START+Segment.FLAG_M_SEGMENT_END,
-                     local_address=addr,
-                     sender_id=0x1234,
-                     sender_start_time_sec=Aux.currentSeconds(),
-                     app_id=0x9876)
-
-   print(segment)
-   print("time: {}".format(hex(segment.hdr_sender_start_time_sec)))
-   print("segment hash: {}".format( hex(segment.__hash__())))
-   map: dict[int, str] = {}
-   map[segment] = 'segment-string'
-   print('=============================')
-   kk = 0
-   for k in map.keys():
-       print("map-key: {}".format(k))
-       kk= k
-   map.pop(kk)
-
-   for k in map.keys():
-       print("post-map-key: {}".format(k))
-
+    for i in range(20):
+        s = time.perf_counter()
+        Aux.sleep_ms(46)
+        print('time: {}'.format( time.perf_counter()- s))
 
 
 if __name__ == '__main__':
