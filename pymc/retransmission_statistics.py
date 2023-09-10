@@ -23,7 +23,7 @@ class NodeEntry:
                 format(self.host_address_str, self.to_remote_node_count, self.total_retransmission_out))
 
 
-def getKey(mc_address: int, mc_port: int, host_address: int) -> int:
+def get_key(mc_address: int, mc_port: int, host_address: int) -> int:
     _key = (Aux.swap_int(mc_address) << 40) + (Aux.swap_int(host_address) << 16) + (Aux.swap_int(mc_port) & 0xffff)
     return _key
 
@@ -85,8 +85,8 @@ class RetransmissionStatistics:
             _rsp.set_out_hosts([])
         return _rsp
 
-    def updateInStatistics(self, mc_address: int, mc_port: int, host_address: int, to_this_application: bool):
-        _key = getKey(mc_address=mc_address, mc_port=mc_port, host_address=host_address)
+    def update_in_statistics(self, mc_address: int, mc_port: int, host_address: int, to_this_application: bool):
+        _key = get_key(mc_address=mc_address, mc_port=mc_port, host_address=host_address)
         _entry = self.in_statistics.get(_key)
         if not _entry:
             _entry = NodeEntry(mc_address, mc_port, host_address)
@@ -100,8 +100,8 @@ class RetransmissionStatistics:
             self.total_out += 1
             _entry.to_remote_node_count += 1
 
-    def updateOutStatistics(self, mc_address, mc_port, host_address):
-        _key = getKey(mc_address, mc_port, host_address)
+    def update_out_statistics(self, mc_address: int, mc_port: int, host_address: int):
+        _key = get_key(mc_address, mc_port, host_address)
         _entry = self.out_statistics.get(_key)
         if not _entry:
             _entry = NodeEntry(mc_address, mc_port, host_address)

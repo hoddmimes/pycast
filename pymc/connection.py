@@ -141,6 +141,16 @@ class Connection(object):
     def traffic_statistic_task(self) -> TrafficStatisticTimerTask:
         return self._traffic_statistic_task
 
+    @property
+    def local_address(self) -> int:
+        from distributor import Distributor
+        return Distributor.get_instance().local_address
+
+    @property
+    def retransmission_statistics(self):
+        return self._retransmission_statistics
+
+
     def add_subscription(self, subscriber: 'Subscriber', subject: str, callback_parameter: object):
         if self.is_time_to_die:
             raise DistributorException("Connection {} has been closed.".format(self._ipmc))
@@ -187,7 +197,7 @@ class Connection(object):
         return self._configuration
 
     def get_remote_connection(self, remote_connection_id: int) -> RemoteConnection:
-        return self._connection_receiver.get_remote_connection(remote_connection_id)
+        return self._connection_receiver.get_remote_connection_by_id(remote_connection_id)
 
     def update_in_retransmission_statistics(self, mc_addr: int,
                                             mc_port: int,

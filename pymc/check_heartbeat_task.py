@@ -13,7 +13,7 @@ class CheckHeartbeatTask(ConnectionTimerTask):
         self._remote_connection_id = remote_connection_id
 
     def execute(self, connection: 'Connection'):
-        _remote_connection: 'RemoteConnection' = connection.get_remote_connection(  self._remote_connection_id )
+        _remote_connection: 'RemoteConnection' = connection.get_remote_connection_by_id(self._remote_connection_id)
         if _remote_connection is None:
             self.cancel()
             return

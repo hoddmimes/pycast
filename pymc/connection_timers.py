@@ -17,10 +17,12 @@ import time
 
 
 class TimerTaskWraper(object):
-    def __init__(self, delay_ms: int, connection_timer_task: ConnectionTimerTask, repeat: bool = False):
+    def __init__(self, delay_ms: int, connection_timer_task: ConnectionTimerTask, init_delay: int, repeat: bool):
         self._task: ConnectionTimerTask = connection_timer_task
         self._delay_ms: int = delay_ms
         self._repeat: bool = repeat
+        self._init_delay = init_delay or delay_ms
+
 
     @classmethod
     def cast(cls, obj: object) -> TimerTaskWraper:
@@ -41,6 +43,10 @@ class TimerTaskWraper(object):
     def repeat(self) -> bool:
         return self._repeat
 
+    @property
+    def init_delay(self) -> int:
+        return self._init_delay
+
 
 def _timer_executor_(timer_task: TimerTaskWraper):
     # Always execute one time
@@ -49,8 +55,12 @@ def _timer_executor_(timer_task: TimerTaskWraper):
         if timer_task.task.canceled:
             return
 
-        _first_execution = False
-        Aux.sleep_ms(timer_task.delay_ms)
+        if _first_execution:
+            Aux.sleep_ms(timer_task.init_delay)
+            _first_execution = False
+        else:
+            Aux.sleep_ms(timer_task.delay_ms)
+
         connection = ConnectionController.get_instance().get_and_lock_connection(connection_id=timer_task.task.connection_id)
         try:
             timer_task.task.execute(connection)
@@ -86,8 +96,8 @@ class ConnectionTimerExecutor(object):
             timer_task: TimerTaskWraper = TimerTaskWraper.cast(self._queue.take())
             self._executor.submit(_timer_executor_, timer_task)
 
-    def queue(self, interval: int, task: ConnectionTimerTask, repeat: bool = True):
-        timer_task: TimerTaskWraper = TimerTaskWraper(delay_ms=interval, connection_timer_task=task, repeat=repeat)
+    def queue(self, interval: int, task: ConnectionTimerTask, init_delay: int = None, repeat: bool = True):
+        timer_task: TimerTaskWraper = TimerTaskWraper(delay_ms=interval, connection_timer_task=task, init_delay=init_delay, repeat=repeat)
         self._queue.add(timer_task)
 
 
@@ -106,11 +116,11 @@ class _TestTask(ConnectionTimerTask):
 
     def execute(self, connection):
         self._count += 1
-        _exectime = (perf_counter() - self.startTime) * 1000.0
-        self._overhead += _exectime - self.interval
+        _exec_time = (perf_counter() - self.startTime) * 1000.0
+        self._overhead += _exec_time - self.interval
         self.startTime = perf_counter()
-        if ((self._count % 200) == 0):
-            print('thread: {} interval: {} time: {} overhead: {}'.format(self.thread_id, self.interval, _exectime, (self._overhead/ self._count)))
+        if (self._count % 200) == 0:
+            print('thread: {} interval: {} time: {} overhead: {}'.format(self.thread_id, self.interval, _exec_time, (self._overhead/ self._count)))
 
 
 """

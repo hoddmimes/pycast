@@ -49,14 +49,14 @@ class TestClass(object):
             return False
 
 
+def timer_callback( arg1, arg2, arg3 ):
+    print(arg3)
 
 
 def main():
-    for i in range(20):
-        s = time.perf_counter()
-        Aux.sleep_ms(46)
-        print('time: {}'.format( time.perf_counter()- s))
-
+   t = threading.Timer( interval=3, function=timer_callback, args=(42,'frotz','foo'))
+   t.start()
+   time.sleep(200)
 
 if __name__ == '__main__':
     main()

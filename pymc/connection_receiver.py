@@ -109,7 +109,6 @@ class ConnectionReceiver(ConnectionReceiverBase):
             _msg.decode()
             self.log_info("PROTOCOL [RCV] {}".format(_msg))
 
-
     def processReceivedSegment(self, segment: Segment):
         if segment.hdr_version != NetMsg.VERSION:
             if not self.checkVersion(segment):
@@ -147,8 +146,9 @@ class ConnectionReceiver(ConnectionReceiverBase):
     def log_exception(self, exception):
         self._connection.log_exception(exception)
 
-    def get_remote_connection(self, remote_connection_id: int) -> 'RemoteConnection':
-        return self._remote_connection_controller.getRemoteConnection(remote_connection_id);
+    def get_remote_connection_by_id(self, remote_connection_id: int) -> 'RemoteConnection':
+        return self._remote_connection_controller.get_remote_connection(remote_connection_id);
+
 
 def random_error(promille: int) -> bool:
     x: int = random.randrange(0, 1000)

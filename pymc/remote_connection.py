@@ -89,6 +89,10 @@ class RemoteConnection(object):
         return self._remote_host_address
 
     @property
+    def remote_host_address_string(self) -> str:
+        return Aux.ip_addr_int_to_str(self._remote_host_address)
+
+    @property
     def is_heartbeat_active(self) -> bool:
         return self._hb_active
 
@@ -112,6 +116,14 @@ class RemoteConnection(object):
     def remote_connection_id(self) -> int:
         return self._remote_connection_id
 
+    @property
+    def connection(self) -> 'Connection':
+        return self._connection
+
+    @property
+    def highiest_seen_seqno(self) -> int:
+        return self._highiest_seen_seqno
+
     def cancel(self):
         self._check_configuration_task.cancel()
         self._check_heartbeat_task.cancel()
@@ -133,8 +145,8 @@ class RemoteConnection(object):
         _msg.decode()
         self._hb_active = True
         if self._start_synchronized and self._highiest_seen_seqno < _msg.sequence_no:
-            self._retransmission_controller.createRetransmissionRequest(self, self._highiest_seen_seqno + 1,
-                                                                        _msg.sequence_no)
+            self._retransmission_controller.create_retransmission_request(self, self._highiest_seen_seqno + 1,
+                                                                          _msg.sequence_no)
             self._highiest_seen_seqno = _msg.sequence_no
 
     def check_message_sequence(self, msg: NetMsgUpdate):
@@ -226,8 +238,8 @@ class RemoteConnection(object):
             return
         elif _action == NetMsg.HIGHER:
             if _msg.sequence_no > self._highiest_seen_seqno + 1:
-                self._retransmission_controller.createRetransmissionRequest(this, self._highiest_seen_seqno,
-                                                                            _msg.sequence_no - 1)
+                self._retransmission_controller.create_retransmission_request(this, self._highiest_seen_seqno,
+                                                                              _msg.sequence_no - 1)
             self._highiest_seen_seqno = _msg.sequence_no
 
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
@@ -243,7 +255,7 @@ class CheckConfigurationTask(ConnectionTimerTask):
         self.mRemoteConnectionId = remote_connection_id
 
     def execute(self, pConnection):
-        tRemoteConnection = pConnection.mConnectionReceiver.mRemoteConnectionController.getRemoteConnection(
+        tRemoteConnection = pConnection.mConnectionReceiver.mRemoteConnectionController.get_remote_connection_by_id(
             self.mRemoteConnectionId)
         if tRemoteConnection == None:
             self.cancel()

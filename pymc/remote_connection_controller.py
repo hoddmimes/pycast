@@ -35,9 +35,17 @@ class RemoteConnectionController(object):
             )
             ClientDeliveryController.get_instance().queue_event(self._connection.connection_id(), tEvent)
 
-    def getRemoteConnection(self, segment: Segment) -> RemoteConnection | None:
+    def get_remote_connection(self, segment: Segment) -> RemoteConnection | None:
         with self._mutex:
             return self._remote_connections.get(segment.__hash__())
+
+    def get_remote_connection_by_id(self, remote_connection_id: int) -> RemoteConnection | None:
+        with self._mutex:
+            for _rmt_conn in self._remote_connections.values():
+                if _rmt_conn._remote_connection_id == remote_connection_id:
+                    return _rmt_conn
+            return None
+
 
     def processConfigurationMessage(self, segment: Segment):
         with self._mutex:
@@ -60,7 +68,7 @@ class RemoteConnectionController(object):
             _remote_connection.is_configuration_active = True
             return _remote_connection
 
-    def getConnection(self, segment: Segment):
+    def get_connection(self, segment: Segment):
         with self._mutex:
             _remote_connection = self._remote_connections.get(segment.__hash__())
             if _remote_connection is not None:
