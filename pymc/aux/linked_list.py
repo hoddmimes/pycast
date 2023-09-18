@@ -72,7 +72,6 @@ class LinkedList:
         else:
             self._mutex = DummyLock()
 
-    @property
     def is_empty(self) -> bool:
         if self._header._blink == self._header:
             return True
@@ -87,7 +86,6 @@ class LinkedList:
     @property
     def size(self) -> int:
         return self._size
-
 
 
     def peekFirst(self) -> object | None:

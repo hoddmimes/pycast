@@ -11,8 +11,6 @@ from pymc.aux.log_manager import LogManager
 from pymc.distributor_configuration import DistributorConfiguration
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.connection_controller import ConnectionController
-from pymc.event_api.event_api_create_publisher import EventApiCreatePublisher
-from pymc.event_api.event_api_create_subscriber import EventApiCreateSubscriber
 
 
 class Distributor(object):
@@ -51,25 +49,21 @@ class Distributor(object):
             raise DistributorException("Distributor is not yet instantiated, is that possible")
         return Distributor._instance
 
-    '''
-    The creation of Connection instances is a bit special. A Connection instance is the async coordinator 
-    Normally all action are scheduled via a Cordinator instance for synchronisation but since this is the creation
-    of a Conection is goes via the Connection controller
-    '''
     def create_connection(self, configuration: ConnectionConfiguration) -> 'Connection':
         return ConnectionController.get_instance().create_connection(connection_configuration=configuration)
 
     def create_publisher(self, connection: 'Connection',
                          event_callback: Callable[['DistributorEvent'], None]) -> 'Publisher':
+        with connection:
+            return connection.create_publisher(event_callback=event_callback)
 
-        event: EventApiCreatePublisher = EventApiCreatePublisher(event_callback)
-        return ConnectionController.get_instance().schedule_async_event( connection.connection_id, event, wait=True)
 
     def create_subscriber(self, connection: 'Connection',
                           event_callback: Callable[['DistributorEvent'], None],
                           update_callback: Callable[[str, bytes, object, int, int], None]) -> 'Subscriber':
-        event: EventApiCreateSubscriber = EventApiCreateSubscriber(event_callback,update_callback)
-        return ConnectionController.get_instance().schedule_async_event(connection.connection_id, event, wait=True)
+        with connection:
+            return connection.create_subscriber( event_callback=event_callback, update_callback=update_callback)
+
 
     @property
     def distributor_id(self) -> int:

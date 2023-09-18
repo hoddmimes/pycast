@@ -167,7 +167,7 @@ class AsyncEventSignalEvent(AsyncEvent, ABC):
 
     def execute(self, connection: 'Connection'):
         if connection.is_logging_enabled(DistributorLogFlags.LOG_ERROR_EVENTS):
-            connection.logInfo("APPLICATION ERROR EVENT Event: {}".format(self.event))
+            connection.log_info("APPLICATION ERROR EVENT Event: {}".format(self.event))
 
         connection.async_event_to_client(self.event)
 
@@ -175,6 +175,7 @@ class AsyncEventSignalEvent(AsyncEvent, ABC):
 class AsyncEventFlushSender(AsyncEvent, ABC):
 
     def __init__(self, current_flush_seqno):
+        super().__init__()
         self.mCurrentFlushSeqno = current_flush_seqno
 
     def execute(self, connection: 'Connection'):
@@ -185,12 +186,22 @@ class AsyncEventFlushSender(AsyncEvent, ABC):
 
 
 class AsyncEventReceiveSegment(AsyncEvent, ABC):
+<<<<<<< HEAD:pymc/event_api/events_to_clients.py
     def __init__(self, segment: Segment):
         self.segment = segment
 
     def execute(self, connection: 'Connection'):
         connection.traffic_statistic_task.update_rcv_statistics(self.segment)
         connection.connection_receiver.process_received_segment(self.segment)
+=======
+    def __init__(self, rcv_segment: RcvSegment):
+        super().__init__()
+        self.mRcvSegment = rcv_segment
+
+    def execute(self, connection: 'Connection'):
+        connection.traffic_statistic_task.update_rcv_statistics(self.mRcvSegment)
+        connection.connection_receiver.process_received_segment(self.mRcvSegment)
+>>>>>>> a7ba884 (old dispatch modell and publish -> subscribe is up):pymc/distributor_events.py
 
     def toString(self) -> str:
         return self.mRcvSegment.__str__()

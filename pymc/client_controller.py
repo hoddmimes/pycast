@@ -7,7 +7,7 @@ from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.distributor_exception import DistributorException
 from pymc.clients_events import SubscriptionFiltersCntx, EventCallbackCntx, ClientUpdateEvent, ClientDedicatedAppEvent
 from pymc.clients_events import ClientAppEvent, ClientEvent
-from pymc.event_api.events_to_clients import DistributorEvent
+from pymc.distributor_events import DistributorEvent
 from pymc.msg.generated.net_messages import QueueSizeItem
 from pymc.msg.rcv_update import RcvUpdate
 from pymc.subscription import SubscriptionFilter

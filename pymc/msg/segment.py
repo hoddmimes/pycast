@@ -236,15 +236,14 @@ class Segment(ABC, object):
             _sndrid = (self._hdr_sender_id & 0xFF) << 8
             _time = (self._hdr_sender_start_time_sec & 0xFFFF) << 16
             self._hash_code_value = _addr + _sndrid + _time
+        # print("segment-hash: {}".format(hex(self._hash_code_value)) )
         return self._hash_code_value
 
     def __eq__(self, segment: Segment):
-        if segment == self:
-            return True
 
-        if (self._hdr_local_address == segment._hdr_local_address and
-                self._hdr_sender_id == segment._hdr_sender_id and
-                self._hdr_sender_start_time_sec == segment._hdr_sender_start_time_sec):
+        if (self.hdr_local_address == segment.hdr_local_address and
+                self.hdr_sender_id == segment.hdr_sender_id and
+                self.hdr_sender_start_time_sec == segment.hdr_sender_start_time_sec):
             return True
         else:
             return False

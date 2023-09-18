@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pymc.aux.distributor_exception import DistributorException
 from pymc.connection_configuration import ConnectionConfiguration
-from pymc.event_loop import ConnectionEvent
 import threading
 
 
@@ -23,8 +20,9 @@ class ConnectionController(object):
         return ConnectionController._instance
 
     def __init__(self):
-        self._mutex: threading.Lock = threading.Lock()
+        self._mutex: threading.RLock = threading.RLock()
         self._connections: dict[int, 'Connection'] = {}
+
 
     def get_connection(self, connection_id: int) -> 'Connection':
         with self._mutex:
@@ -47,17 +45,17 @@ class ConnectionController(object):
 
             return _conn
 
+
+
     def remove_connection(self, connection_id: int):
         with self._mutex:
             self._connections.pop(connection_id)
 
-    def schedule_async_event(self, connection_id: int, async_event: 'ConnectionEvent', wait: bool = False) -> Any:
+    def queue_async_event(self, connection_id: int, async_event: 'AsyncEvent') -> bool:
         from pymc.connection import Connection
-        _conn: Connection = self.get_connection(connection_id)
-        if not _conn:
-            return None
-        if not wait:
-            _conn.schedule_async_event(async_event)
+        with self._mutex:
+            _conn: Connection = self.get_connection(connection_id)
+            if not _conn:
+                return False
+            _conn.queueAsyncEvent(async_event)
             return True
-        else:
-            return _conn.schedule_async_event_wait(async_event)

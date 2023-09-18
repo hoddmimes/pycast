@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from typing import Callable
 from pymc.distributor_configuration import DistributorLogFlags
-from pymc.event_api.events_to_clients import DistributorNewRemoteConnectionEvent, DistributorEvent
+from pymc.distributor_events import DistributorNewRemoteConnectionEvent, DistributorEvent
 from pymc.client_controller import ClientDeliveryController
 from pymc.msg.segment import Segment
 from pymc.remote_connection import RemoteConnection
@@ -21,7 +21,7 @@ class RemoteConnectionController(object):
                 _rmt_conn.cancel()
             self._remote_connections.clear()
 
-    def triggerRemoteConfigurationNotifications(self, callback: Callable[['DistributorEvent'], None] ):
+    def trigger_remote_configuration_notifications(self, callback: Callable[['DistributorEvent'], None] ):
         for _rmt_conn in self._remote_connections.values():
             tEvent = DistributorNewRemoteConnectionEvent(
                 _rmt_conn.remote_host_address,
@@ -56,13 +56,13 @@ class RemoteConnectionController(object):
                     self._connection.log_info("Remote Connection [CREATED] ({})\n    {}"
                                                    .format(hex(segment.__hash__()), _remote_connection))
                 _event = DistributorNewRemoteConnectionEvent(
-                    source_addr=_remote_connection.remote_host_address,
-                    mc_addr=_remote_connection.mc_address,
-                    mc_port=_remote_connection.mc_port,
-                    appl_name=_remote_connection.remote_application_name,
-                    appl_id=_remote_connection.remote_application_id,
-                    sender_id=_remote_connection.remote_sender_id,
-                    sender_start_time=_remote_connection.remote_start_time)
+                    _remote_connection.remote_host_address,
+                    _remote_connection.mc_address,
+                    _remote_connection.mc_port,
+                    _remote_connection.remote_application_name,
+                    _remote_connection.remote_application_id,
+                    _remote_connection.remote_sender_id,
+                    _remote_connection.remote_start_time)
                 ClientDeliveryController.get_instance().queue_event(self._connection.connection_id, _event)
             _remote_connection.is_configuration_active = True
             return _remote_connection
@@ -102,5 +102,5 @@ class SegmentBatch:
     def __init__(self, first_rcv_segment_in_batch):
         self.mList = [first_rcv_segment_in_batch]
 
-    def addSegment(self, segment: Segment):
+    def add_segment(self, segment: Segment):
         self.mList.append(segment)

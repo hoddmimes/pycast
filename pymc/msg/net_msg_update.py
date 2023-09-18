@@ -33,12 +33,7 @@ class NetMsgUpdate(NetMsg):
                   sender_start_time_sec: int,
                   app_id: int):
 
-        super().setHeader(message_type=message_type,
-                          segment_flags=segment_flags,
-                          local_address=local_address,
-                          sender_id=sender_id,
-                          sender_start_time_sec=sender_start_time_sec,
-                          app_id=app_id)
+        super().setHeader(message_type, segment_flags, local_address, sender_id, sender_start_time_sec, app_id)
         # now encode header
         _encoder: Encoder = super().encode()
         _encoder.addInt(self._sequence_no)  # placeholder for the sequence number

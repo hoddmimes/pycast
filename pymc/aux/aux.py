@@ -123,7 +123,7 @@ class Aux:
                 Aux._allocated_server_sockets.append( _socket )
                 return _srv_port
             except OSError as e:
-                if e.errno == 48 or e.errno == 98:
+                if e.errno == 48:
                     _srv_port += 1
                 else:
                     raise e

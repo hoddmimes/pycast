@@ -3,7 +3,7 @@ from typing import Callable
 from abc import ABC, abstractmethod
 
 from pymc.aux.distributor_exception import DistributorException
-from pymc.event_api.events_to_clients import DistributorEvent
+from pymc.distributor_events import DistributorEvent
 from pymc.msg.rcv_update import RcvUpdate
 
 from pymc.subscription import SubscriptionFilter

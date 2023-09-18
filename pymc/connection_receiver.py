@@ -1,6 +1,5 @@
 from __future__ import annotations
 import random
-from typing import Callable
 
 from pymc.aux.aux import Aux
 from pymc.aux.distributor_exception import DistributorException
@@ -42,8 +41,8 @@ class ConnectionReceiver(object):
             self._rcv_threads.append(_thr)
             _thr.start()
 
-    def triggerRemoteConfigurationNotifications(self, callback: Callable[['DistributorEvent'], None]):
-        self._remote_connection_controller.triggerRemoteConfigurationNotifications(callback)
+    def triggerRemoteConfigurationNotifications(self, callback):
+        self._remote_connection_controller.trigger_remote_configuration_notifications(callback)
 
     def checkVersion(self, segment: Segment):
         _major = ((NetMsg.VERSION >> 8) & 0xff)
@@ -52,7 +51,7 @@ class ConnectionReceiver(object):
         _msg_minor = (segment.hdr_version & 0xff)
         if _major != _msg_major:
             self._connection.log_info("Received a segment with incompatible version Segment: {}.{} Distributor: {}.{}".
-                          format(_msg_major, _msg_minor, _major, _minor))
+                                      format(_msg_major, _msg_minor, _major, _minor))
             return False
         else:
             return True
@@ -60,8 +59,6 @@ class ConnectionReceiver(object):
     def close(self):
         for _thr in self._rcv_threads:
             _thr.stop()
-
-
 
     def processConfigurationMsg(self, segment: Segment):
         self._remote_connection_controller.processConfigurationMessage(segment)
@@ -83,7 +80,8 @@ class ConnectionReceiver(object):
 
         if self._configuration.fake_rcv_error_rate > 0 and random_error(self._configuration.fake_rcv_error_rate):
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
-                self._connection.log_info("RETRANSMISSION: RCV SIMULATED  Error Segment [{}] dropped".format(_msg.sequence_no))
+                self._connection.log_info(
+                    "RETRANSMISSION: RCV SIMULATED  Error Segment [{}] dropped".format(_msg.sequence_no))
         else:
             self._remote_connection_controller.process_update_segment(segment)
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):

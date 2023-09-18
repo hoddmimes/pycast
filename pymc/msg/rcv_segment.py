@@ -8,10 +8,10 @@ class RcvSegment(Segment):
     OFFSET_SEQUENCE_NO = Segment.SEGMENT_HEADER_SIZE
     OFFSET_UPDATE_COUNT = OFFSET_SEQUENCE_NO + 4
 
-    def __init__(self, buffer, from_address: int = 0, from_port: int = 0):
+    def __init__(self, buffer):
         super().__init__(buffer)
-        self._from_address: int = from_address
-        self._from_port: int = from_port
+        self._from_address: int = 0
+        self._from_port: int = 0
 
     @property
     def isStartSegment(self) -> bool:
@@ -62,7 +62,7 @@ class RcvSegment(Segment):
 class RcvSegmentBatch(object):
 
     def __init__(self, first_segment_in_batch: RcvSegment = None):
-        if first_segment_in_batch:
+        if first_segment_in_batch is not None:
             self._list: list[RcvSegment] = [first_segment_in_batch]
         else:
             self._list: list[RcvSegment] = []
@@ -73,7 +73,7 @@ class RcvSegmentBatch(object):
     def getUpdates(self, connection_id: int) -> list[RcvUpdate]:
         _msg: NetMsgUpdate = NetMsgUpdate(self._list[0])
         _msg.decode()
-        if len(self._list) == 1:  # If just one segment it is not a large message split into multiple segments
+        if len(self._list) == 1:  # If just one segment it is not a large message splited into multiple segments
             return _msg.getUpdates(connection_id)
 
         # Assemble large message

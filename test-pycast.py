@@ -31,10 +31,10 @@ def subscriber_update_callback(subject: str,
 
 
 def main():
-    distributor_configuration: DistributorConfiguration = DistributorConfiguration( application_name='test')
-    distributor_configuration.log_flags += (DistributorLogFlags.LOG_DATA_PROTOCOL_XTA + DistributorLogFlags.LOG_DATA_PROTOCOL_RCV +
-                                           DistributorLogFlags.LOG_EVENT_LOOP_API + DistributorLogFlags.LOG_EVENT_LOOP_MSGS) # + DistributorLogFlags.LOG_EVENT_LOOP_TIMERS)
 
+    distributor_configuration: DistributorConfiguration = DistributorConfiguration(application_name='test')
+    distributor_configuration.log_flags += (
+                DistributorLogFlags.LOG_DATA_PROTOCOL_XTA + DistributorLogFlags.LOG_DATA_PROTOCOL_RCV)
 
     distributor: Distributor = Distributor(configuration=distributor_configuration)
     connection: Connection = distributor.create_connection(ConnectionConfiguration(mca='224.10.11.12', mca_port=5656))

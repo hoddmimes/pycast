@@ -1,3 +1,4 @@
+from pymc.msg.codec import Encoder, Decoder
 from pymc.msg.net_msg import NetMsg
 from io import StringIO
 from pymc.aux.aux import Aux
@@ -29,7 +30,8 @@ class NetMsgConfiguration(NetMsg):
 
 
     def encode(self):
-        _encoder = super().encode()
+        super().encode()
+        _encoder = super().encoder
         _encoder.addInt(self._mc_address)
         _encoder.addInt(self._mc_port)
         _encoder.addInt(self._sender_id)
@@ -41,7 +43,8 @@ class NetMsgConfiguration(NetMsg):
         _encoder.addString(self._app_name)
 
     def decode(self):
-        _decoder = super().decode()
+        super().decode()
+        _decoder = super().decoder
         self._mc_address = _decoder.getInt()
         self._mc_port = _decoder.getInt()
         self._sender_id = _decoder.getInt()
@@ -62,7 +65,7 @@ class NetMsgConfiguration(NetMsg):
 
     @property
     def sender_id (self) -> int:
-        return self._sender_id
+        return self._mc_port
 
     @property
     def send_start_time(self) -> int:
@@ -88,7 +91,7 @@ class NetMsgConfiguration(NetMsg):
     def app_name(self) -> str:
         return self._app_name
 
-    def __str__(self) -> str:
+    def __str__(self):
         sb = StringIO()
         sb.write(super().__str__())
         sb.write("\n    <")
@@ -101,4 +104,4 @@ class NetMsgConfiguration(NetMsg):
         sb.write(" Host: {}".format(Aux.ip_addr_int_to_str(self.host_address)))
         sb.write(" Appl: {}".format(self.app_name))
         sb.write(">")
-        return sb.getvalue()
+        return "".join(sb)

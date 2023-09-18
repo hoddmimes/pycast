@@ -1,10 +1,9 @@
 from __future__ import annotations
-from pymc.event_timers.check_heartbeat_task import CheckHeartbeatTask
+from pymc.check_heartbeat_task import CheckHeartbeatTask
 from pymc.client_controller import ClientDeliveryController
-from pymc.event_api.events_to_clients import DistributorRemoveRemoteConnectionEvent
+from pymc.distributor_events import DistributorRemoveRemoteConnectionEvent
 from io import StringIO
 from pymc.aux.linked_list import LinkedList
-from pymc.event_timers.connection_timer_event import ConnectionTimerEvent
 from pymc.msg.net_msg import NetMsg
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
 from pymc.msg.net_msg_update import NetMsgUpdate
@@ -13,6 +12,7 @@ from pymc.msg.segment import Segment
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
 from pymc.aux.aux import Aux
 from pymc.aux.aux_uuid import Aux_UUID
+from pymc.connection_timers import ConnectionTimerExecutor, ConnectionTimerTask
 from pymc.distributor_configuration import DistributorLogFlags
 
 
@@ -223,8 +223,8 @@ class RemoteConnection(object):
         _action = self.check_message_sequence(_msg)
 
         if _action == NetMsg.SYNCH:
-            if segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION and self._connection.isLogFlagSet(
-                    DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
+            if (segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION and
+                    self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS)):
                 self._connection.log_info("RETRANSMISSION: RCV Retransmission Segment [{}]".format(_msg.sequence_no))
 
             self._next_expected_seqno += 1
@@ -253,3 +253,42 @@ class RemoteConnection(object):
             self.segmentToPendingReceiverQueue(segment)
 
 
+
+
+
+class CheckConfigurationTask(ConnectionTimerTask):
+    def __init__(self, connection_id, remote_connection_id):
+        super().__init__(connection_id)
+        self.remote_connection_id = remote_connection_id
+
+    def execute(self, connection):
+        _remote_connection: RemoteConnection = connection.connection_receiver.get_remote_connection_by_id(self.remote_connection_id)
+        if _remote_connection is None:
+            self.cancel()
+            return
+        try:
+            if _remote_connection.is_dead:
+                self.cancel()
+                return
+            if connection.is_time_to_die:
+                self.cancel()
+                return
+            if not _remote_connection.is_configuration_active:
+                _remote_connection.is_dead = True
+                connection.connection_receiver.remove_remote_connection(remote_connection=_remote_connection)
+                if connection.is_logging_enabled(DistributorLogFlags.LOG_RMTDB_EVENTS):
+                    connection.log_info("Remote connction disconnected (no configuration heartbeats) \n  {}"
+                                        .format(_remote_connection))
+                tEvent = DistributorRemoveRemoteConnectionEvent(source_addr=_remote_connection.remote_host_address,
+                                                                sender_id=_remote_connection.remote_sender_id,
+                                                                sender_start_time=_remote_connection.remote_start_time,
+                                                                mc_addr=_remote_connection.mc_address,
+                                                                mc_port=_remote_connection.mc_port,
+                                                                appl_name=_remote_connection.remote_application_name,
+                                                                appl_id=_remote_connection.remote_application_id)
+                ClientDeliveryController.get_instance().queue_event(connection.connection_id, tEvent)
+                self.cancel()
+            else:
+                _remote_connection.is_configuration_active = False
+        except Exception as e:
+            connection.log_exception(e)
