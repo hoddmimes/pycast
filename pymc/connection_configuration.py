@@ -2,7 +2,7 @@
 
 class ConnectionConfiguration():
 
-    def __init__(self, mca:str='224.44.44.44', mca_port:int=4444, eth_device=''):
+    def __init__(self, mca: str='224.44.44.44', mca_port: int=4444, eth_device=''):
         self.ttl = 32
         self.mca = mca
         self.mca_port= mca_port

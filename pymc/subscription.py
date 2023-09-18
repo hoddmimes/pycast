@@ -6,52 +6,52 @@ class SubjectTokenParser:
     TOKEN_DELIMITER = '/'
 
     def __init__(self, subject: str):
-        self.mPosition: int = 0
-        self.mStrarr = self._useIndexOf(subject, 0, 0)
+        self.position: int = 0
+        self.strarr = self._useIndexOf(subject, 0, 0)
 
 
     def size(self) -> int:
-       return len(self.mStrarr)
+       return len(self.strarr)
 
 
 
     def getNextElement(self) -> str:
-        if self.mPosition >= len(self.mStrarr):
+        if self.position >= len(self.strarr):
             return None
-        tStr = self.mStrarr[ self.mPosition]
-        self.mPosition += 1
-        return tStr
+        _str = self.strarr[ self.position]
+        self.position += 1
+        return _str
 
     def hasMore(self) ->bool:
-        if self.mPosition < len(self.mStrarr):
+        if self.position < len(self.strarr):
             return True
-        self.mPosition = 0
+        self.position = 0
         return False
 
     def setNewToken(self, subject: str ):
-        self.mPosition = 0
-        self.mStrarr = self._useIndexOf(subject, 0, 0)
+        self.position = 0
+        self.strarr = self._useIndexOf(subject, 0, 0)
 
     def _useIndexOf(self, inStr:str, cnt:int , pos:int )-> []:
         # Recursive version...
 
-        tNextpos:int = inStr.find(self.TOKEN_DELIMITER, pos)
-        if tNextpos != -1:
-            tArr:[] = self._useIndexOf(inStr, cnt + 1, tNextpos + 1)
-            if (tNextpos - pos) > 0:
-                tArr.insert( 0, inStr[ pos: tNextpos])
-            return tArr
+        _nextpos:int = inStr.find(self.TOKEN_DELIMITER, pos)
+        if _nextpos != -1:
+            _arr:[] = self._useIndexOf(inStr, cnt + 1, _nextpos + 1)
+            if (_nextpos - pos) > 0:
+                _arr.insert( 0, inStr[ pos: _nextpos])
+            return _arr
         else:
-            tArr = []
-            tArr.insert(0, inStr[pos:len(inStr)])
-            return tArr
+            _arr = []
+            _arr.insert(0, inStr[pos:len(inStr)])
+            return _arr
 
 
 class Subscription:
     def __init__(self, subject:str, callback: Callable[ [object], None], callbackParameter: object ):
-        self.mSubject = subject
-        self.mCallback: Callable[ [object], None] = callback
-        self.mCallbackParameter : object = callbackParameter
+        self.subject = subject
+        self.callback: Callable[ [object], None] = callback
+        self.callback_parameter : object = callbackParameter
 
 
 class KeyNode:
@@ -65,11 +65,11 @@ class KeyNode:
     WILDREST = "..."
 
     def __init__(self, key:str ):
-        self.mKey = key
-        self.mChildren : dict[str, KeyNode] = None
-        self.mWildcardChild : KeyNode = None
-        self.mWildcardRestChild: KeyNode = None
-        self.mSubscriptions:list[Subscription] = None
+        self.key = key
+        self.children : dict[str, KeyNode] = None
+        self.wildcard_child : KeyNode = None
+        self.wildcard_rest_child: KeyNode = None
+        self.subscriptions:list[Subscription] = None
 
         if key == self.WILDCARD:
             self.type = self.TYPE_WILDCARD
@@ -80,33 +80,31 @@ class KeyNode:
 
     def toString(self) -> str:
 
-        tOutbuf = io.StringIO()
-        tOutbuf.write("KEY: " + self.mKey)
+        _outbuf = io.StringIO()
+        _outbuf.write("KEY: " + self.key)
 
-        if self.mSubscriptions:
-            tOutbuf.write(" subscriptions: " + str(len(self.mSubscriptions)))
+        if self.subscriptions:
+            _outbuf.write(" subscriptions: " + str(len(self.subscriptions)))
         else:
-            tOutbuf.write(" subscriptions: 0")
+            _outbuf.write(" subscriptions: 0")
 
 
-        if self.mWildcardRestChild:
-            tOutbuf.write(" wldcrd-rest: True")
+        if self.wildcard_rest_child:
+            _outbuf.write(" wldcrd-rest: True")
 
 
         childKeys = io.StringIO()
         if self.children:
             for kn in self.children.values():
-                childKeys.write(str(kn.mKey) + " ")
+                childKeys.write(str(kn.key) + " ")
 
-        if self.mWildcardChild:
+        if self.wildcard_child:
             childKeys.write("*")
 
         if len(childKeys.getvalue()) > 0:
-            tOutbuf.write( childKeys.getvalue())
+            _outbuf.write( childKeys.getvalue())
 
-        return tOutbuf.getvalue()
-
-
+        return _outbuf.getvalue()
 
 
 
@@ -117,13 +115,13 @@ class KeyNode:
         tKeyNode = None
 
         if childKey == self.WILDCARD:
-            if not self.mWildcardChild:
-               self.mWildcardChild = KeyNode(childKey)
-               return self.mWildcardChild
+            if not self.wildcard_child:
+               self.wildcard_child = KeyNode(childKey)
+               return self.wildcard_child
         elif childKey == self.WILDREST:
-            if not self.mWildcardRestChild:
-                self.mWildcardRestChild = KeyNode(childKey)
-            return self.mWildcardRestChild
+            if not self.wildcard_rest_child:
+                self.wildcard_rest_child = KeyNode(childKey)
+            return self.wildcard_rest_child
         else:
             if not self.children:
                 self.children = {}  #<String, KeyNode>()
@@ -136,75 +134,75 @@ class KeyNode:
 
     def addSubscription(self, subjectName:str, callback: Callable[ [str, bytes, object, int,  int], None], callbackParameter: object) -> Subscription:
         tSubscription:Subscription = Subscription(subjectName, callback, callbackParameter )
-        if not self.mSubscriptions:
-            self.mSubscriptions = []
-        self.mSubscriptions.append(tSubscription)
+        if not self.subscriptions:
+            self.subscriptions = []
+        self.subscriptions.append(tSubscription)
         return tSubscription
 
     def subscriptionsToString(self, outbuf:io.StringIO, prefix:str ):
-        if self.mSubscriptions:
-            for s in self.mSubscriptions:
-                outbuf.write("References: {} Topic: {}/{}\n".format(len(self.mSubscriptions), prefix, self.mKey))
+        if self.subscriptions:
+            for s in self.subscriptions:
+                outbuf.write("References: {} Topic: {}/{}\n".format(len(self.subscriptions), prefix, self.key))
 
-        if self.mKey == 'ROOT':
+        if self.key == 'ROOT':
             if self.children:
                 for kn in self.children.values():
                     kn.subscriptionsToString( outbuf, "")
 
-            if self.mWildcardChild:
-                self.mWildcardChild.subscriptionsToString(outbuf, "")
+            if self.wildcard_child:
+                self.wildcard_child.subscriptionsToString(outbuf, "")
 
-            if self.mWildcardRestChild:
-                self.mWildcardRestChild.subscriptionsToString(outbuf, "")
+            if self.wildcard_rest_child:
+                self.wildcard_rest_child.subscriptionsToString(outbuf, "")
         else:
             if self.children:
                 for kn in self.children.values():
-                    kn.subscriptionsToString(outbuf, prefix + "/" + self.mKey)
+                    kn.subscriptionsToString(outbuf, prefix + "/" + self.key)
 
-            if self.mWildcardChild:
-                self.mWildcardChild.subscriptionsToString(outbuf, prefix + "/" + self.mKey)
+            if self.wildcard_child:
+                self.wildcard_child.subscriptionsToString(outbuf, prefix + "/" + self.key)
 
-            if self.mWildcardRestChild:
-                self.mWildcardRestChild.subscriptionsToString(outbuf, prefix + "/" + self.mKey)
+            if self.wildcard_rest_child:
+                self.wildcard_rest_child.subscriptionsToString(outbuf, prefix + "/" + self.key)
 
 
     def getActiveSubscriptionsStrings(self, vector:[], prefix:str ):
-        if self.mSubscriptions:
-            for s in self.mSubscriptions:
-                vector.queue("References: {} Topic: {}/{}".format(len(self.mSubscriptions), prefix, self.mKey))
+        if self.subscriptions:
+            for s in self.subscriptions:
+                vector.queue("References: {} Topic: {}/{}".format(len(self.subscriptions), prefix, self.key))
 
-        if self.mKey == 'ROOT':
+        if self.key == 'ROOT':
             if self.children:
                 for kn in self.children.values():
                     kn.getActiveSubscriptionsStrings( vector, "")
 
-            if self.mWildcardChild:
-                self.mWildcardChild.getActiveSubscriptionsStrings(vector, "")
+            if self.wildcard_child:
+                self.wildcard_child.getActiveSubscriptionsStrings(vector, "")
 
-            if self.mWildcardRestChild:
-                self.mWildcardRestChild.getActiveSubscriptionsStrings(vector, "")
+            if self.wildcard_rest_child:
+                self.wildcard_rest_child.getActiveSubscriptionsStrings(vector, "")
         else:
             if self.children:
                 for kn in self.children.values():
-                    kn.getActiveSubscriptionsStrings(vector, prefix + "/" + self.mKey)
+                    kn.getActiveSubscriptionsStrings(vector, prefix + "/" + self.key)
 
 
-            if self.mWildcardChild:
-                self.mWildcardChild.getActiveSubscriptionsStrings(vector, prefix + "/" + self.mKey)
+            if self.wildcard_child:
+                self.wildcard_child.getActiveSubscriptionsStrings(vector, prefix + "/" + self.key)
 
-            if self.mWildcardRestChild:
-                self.mWildcardRestChild.getActiveSubscriptionsStrings(vector, prefix + "/" + self.mKey)
+            if self.wildcard_rest_child:
+                self.wildcard_rest_child.getActiveSubscriptionsStrings(vector, prefix + "/" + self.key)
 
     def removeAll(self):
 
-        if self.mWildcardChild:
-            self.mWildcardChild.removeAll()
+        if self.wildcard_child:
+            self.wildcard_child.removeAll()
 
-        if self.mWildcardRestChild:
-            self.mWildcardRestChild.removeAll()
+        if self.wildcard_rest_child:
+            self.wildcard_rest_child.removeAll()
 
-        self.mWildcardChild = None
-        self.mWildcardRestChild = None
+        self.wildcard_child = None
+        self.wildcard_rest_child = None
 
         if self.children:
             for kn in self.children.values():
@@ -218,14 +216,14 @@ class KeyNode:
             for kn in self.children.values():
                 tCount += kn.countActiveSubscriptions()
 
-        if  self.mSubscriptions:
-            tCount += len(self.mSubscriptions)
+        if  self.subscriptions:
+            tCount += len(self.subscriptions)
 
-        if self.mWildcardChild:
-            tCount += self.mWildcardChild.countActiveSubscriptions()
+        if self.wildcard_child:
+            tCount += self.wildcard_child.countActiveSubscriptions()
 
-        if self.mWildcardRestChild:
-            tCount += self.mWildcardRestChild.countActiveSubscriptions()
+        if self.wildcard_rest_child:
+            tCount += self.wildcard_rest_child.countActiveSubscriptions()
 
         return tCount
 
@@ -233,19 +231,19 @@ class KeyNode:
     def matchAny(self, keys: SubjectTokenParser ) -> bool:
         # Traversed the whole key look if there are any subscriber at this level if so return true
         if not keys.hasMore():
-            if self.mSubscriptions and len(self.mSubscriptions) > 0:
+            if self.subscriptions and len(self.subscriptions) > 0:
                 return True
             else:
                 return False
 
         # Examine if there are any wildcard subscribers at this level if so return true
-        if self.mWildcardRestChild and len(self.mWildcardRestChild.mSubscriptions) > 0:
+        if self.wildcard_rest_child and len(self.wildcard_rest_child.subscriptions) > 0:
             return True
 
-        if self.mWildcardChild:
+        if self.wildcard_child:
             keys.getNextElement()
-            for kn in self.mWildcardChild:
-                if self.mWildcardChild.matchAny(keys):
+            for kn in self.wildcard_child:
+                if self.wildcard_child.matchAny(keys):
                     return True
 
         if self.children:
@@ -262,17 +260,17 @@ class KeyNode:
         for i in range( 2 * level ):
             tOutbuf.write(' ')
 
-        tOutbuf.write("key: " + self.mKey)
+        tOutbuf.write("key: " + self.key)
 
-        if self.mSubscriptions:
-            tOutbuf.write(" subscriptions: " + str(len(self.mSubscriptions)))
+        if self.subscriptions:
+            tOutbuf.write(" subscriptions: " + str(len(self.subscriptions)))
         else:
             tOutbuf.write(" subscriptions: 0")
 
-        if self.mWildcardChild:
+        if self.wildcard_child:
             tOutbuf.write(" wldcrd: True")
 
-        if self.mWildcardRestChild:
+        if self.wildcard_rest_child:
             tOutbuf.write(" wldcrd-rest: True")
 
         print( tOutbuf.getvalue())
@@ -281,33 +279,33 @@ class KeyNode:
             for kn in self.children.values():
                 kn.traverse(level+1)
 
-        if self.mWildcardChild:
-            self.mWildcardChild.traverse(level + 1)
+        if self.wildcard_child:
+            self.wildcard_child.traverse(level + 1)
 
 
 
 
     def matchRecursive(self, subjectName:str,  keys: SubjectTokenParser, data: bytes, appId:int, queueLength:int):
         if not keys.hasMore():
-            if self.mSubscriptions:
-                for sub in self.mSubscriptions:
-                    sub.mCallback(subjectName, data, sub.mCallbackParameter, appId, queueLength)
+            if self.subscriptions:
+                for sub in self.subscriptions:
+                    sub.callback(subjectName, data, sub.callback_parameter, appId, queueLength)
 
         else:
             if self.children:
-                kn = self.mChildren.get( keys.getNextElement())
+                kn = self.children.get(keys.getNextElement())
                 if kn:
                     kn.matchRecursive( subjectName, keys, data, appId, queueLength)
 
 
-                if self.mWildcardChild:
+                if self.wildcard_child:
                     keys.getNextElement()
-                    self.mWildcardChild.matchRecursive(subjectName, keys, data, appId, queueLength)
+                    self.wildcard_child.matchRecursive(subjectName, keys, data, appId, queueLength)
 
-                if self.mWildcardRestChild:
-                    if self.mWildcardRestChild.mSubscriptions:
-                        for sub in self.mWildcardRestChild.mSubscriptions:
-                            sub.mCallback(subjectName, data, sub.mCallbackParameter, appId, queueLength)
+                if self.wildcard_rest_child:
+                    if self.wildcard_rest_child.subscriptions:
+                        for sub in self.wildcard_rest_child.subscriptions:
+                            sub.callback(subjectName, data, sub.callback_parameter, appId, queueLength)
 
 
 class SubscriptionFilter:

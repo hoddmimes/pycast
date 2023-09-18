@@ -1,27 +1,24 @@
 from __future__ import annotations
 
 import random
-from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor, Future
+import time
+from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
 
 from time import perf_counter
-from pymc.connection_timer_task import ConnectionTimerTask
+from pymc.event_timers.connection_timer_event import ConnectionTimerEvent
 from pymc.connection_controller import ConnectionController
 from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.aux import Aux
 
-import time
-
-
-
 
 class TimerTaskWraper(object):
-    def __init__(self, delay_ms: int, connection_timer_task: ConnectionTimerTask, init_delay: int, repeat: bool):
-        self._task: ConnectionTimerTask = connection_timer_task
+    def __init__(self, delay_ms: int, connection_timer_task: ConnectionTimerEvent, init_delay: int, repeat: bool, test_mode: bool = False):
+        self._task: ConnectionTimerEvent = connection_timer_task
         self._delay_ms: int = delay_ms
         self._repeat: bool = repeat
         self._init_delay = init_delay or delay_ms
+        self._test_mode = test_mode
 
 
     @classmethod
@@ -32,7 +29,7 @@ class TimerTaskWraper(object):
             raise Exception("can not cast object to {}".format(cls.__name__))
 
     @property
-    def task(self) -> ConnectionTimerTask:
+    def task(self) -> ConnectionTimerEvent:
         return self._task
 
     @property
@@ -48,6 +45,7 @@ class TimerTaskWraper(object):
         return self._init_delay
 
 
+
 def _timer_executor_(timer_task: TimerTaskWraper):
     # Always execute one time
     _first_execution: bool = True
@@ -61,14 +59,12 @@ def _timer_executor_(timer_task: TimerTaskWraper):
         else:
             Aux.sleep_ms(timer_task.delay_ms)
 
-        connection = ConnectionController.get_instance().get_and_lock_connection(connection_id=timer_task.task.connection_id)
-        try:
-            timer_task.task.execute(connection)
-        except Exception as e:
-            print(e)
-        finally:
-            if connection:
-                connection.unlock()
+        if not timer_task._test_mode:
+            # Schedule the timer event in the connection event loop
+            ConnectionController.get_instance().schedule_async_event(connection_id=timer_task.task.connection_id,
+                                                                     async_event=timer_task.task)
+        else:
+            timer_task.task.execute(None)
 
 
 class ConnectionTimerExecutor(object):
@@ -87,24 +83,32 @@ class ConnectionTimerExecutor(object):
 
     def __init__(self):
         self._queue = BlockingQueue()
+        self._test_mode = False
         self._executor = ThreadPoolExecutor(max_workers=200)
         self._dispatcher = Thread(target=self._timer_task_dispatcher)
         self._dispatcher.start()
+
+    def enable_test_mode(self):
+        self._test_mode = True
+
 
     def _timer_task_dispatcher(self):
         while True:
             timer_task: TimerTaskWraper = TimerTaskWraper.cast(self._queue.take())
             self._executor.submit(_timer_executor_, timer_task)
 
-    def queue(self, interval: int, task: ConnectionTimerTask, init_delay: int = None, repeat: bool = True):
-        timer_task: TimerTaskWraper = TimerTaskWraper(delay_ms=interval, connection_timer_task=task, init_delay=init_delay, repeat=repeat)
+    def queue(self, interval: int, task: ConnectionTimerEvent, init_delay: int = None,
+              repeat: bool = True, test_mode: bool = False):
+
+        timer_task: TimerTaskWraper = TimerTaskWraper(delay_ms=interval, connection_timer_task=task,
+                                                      init_delay=init_delay, repeat=repeat, test_mode=test_mode)
         self._queue.add(timer_task)
 
 
 # ===================================================================
 #  Test
 # ===================================================================
-class _TestTask(ConnectionTimerTask):
+class _TestTask(ConnectionTimerEvent):
 
     def __init__(self, connection_id, interval, thread_id):
         super().__init__(connection_id)

@@ -35,8 +35,11 @@ class NetMsg(ABC, object):
     def hdr_segment_flags(self) -> int:
         return self._segment.hdr_segment_flags
 
+
+
     @hdr_segment_flags.setter
     def hdr_segment_flags(self, value: int):
+        self._segment.encoder.putByteAt(Segment.HDR_OFFSET_MSG_FLAGS, value)
         self._segment.hdr_segment_flags = value
 
     @property

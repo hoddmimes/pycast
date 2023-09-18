@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pymc.aux.distributor_exception import DistributorException
 from pymc.connection_configuration import ConnectionConfiguration
+from pymc.event_loop import ConnectionEvent
 import threading
 
 
@@ -20,16 +23,15 @@ class ConnectionController(object):
         return ConnectionController._instance
 
     def __init__(self):
-        self._mutex_access: threading.RLock = threading.RLock()
-        self._mutex_remove: threading.RLock = threading.RLock()
+        self._mutex: threading.Lock = threading.Lock()
         self._connections: dict[int, 'Connection'] = {}
 
     def get_connection(self, connection_id: int) -> 'Connection':
-        with self._mutex_access:
+        with self._mutex:
             return self._connections.get(connection_id, None)
 
     def create_connection(self, connection_configuration: ConnectionConfiguration) -> 'Connection':
-        with self._mutex_remove and self._mutex_access:
+        with self._mutex:
             for _conn in self._connections.values():
                 if _conn.mc_address == connection_configuration.mca and _conn.mc_port == connection_configuration.mca_port:
                     raise DistributorException(
@@ -45,23 +47,17 @@ class ConnectionController(object):
 
             return _conn
 
-    def get_and_lock_connection(self, connection_id: int) -> 'Connection':
-        with self._mutex_access:
-            _conn: 'Connection' = self.get_connection(connection_id)
-            if _conn:
-                _conn.lock()
-        return _conn
-
-
-    def removeConnection(self, connection_id: int):
-        with self._mutex_remove and self._mutex_access:
+    def remove_connection(self, connection_id: int):
+        with self._mutex:
             self._connections.pop(connection_id)
 
-    def queueAsyncEvent(self, connection_id: int, async_event: 'AsyncEvent') -> bool:
+    def schedule_async_event(self, connection_id: int, async_event: 'ConnectionEvent', wait: bool = False) -> Any:
         from pymc.connection import Connection
-        with self._mutex_access:
-            _conn: Connection = self.get_connection(connection_id)
-            if not _conn:
-                return False
-            _conn.queueAsyncEvent(async_event)
+        _conn: Connection = self.get_connection(connection_id)
+        if not _conn:
+            return None
+        if not wait:
+            _conn.schedule_async_event(async_event)
             return True
+        else:
+            return _conn.schedule_async_event_wait(async_event)

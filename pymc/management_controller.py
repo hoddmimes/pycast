@@ -195,7 +195,7 @@ def serveDistExploreRetransmissionsRqst(pNetMsg):
 def serveDistTriggerConfigurationRqst(pNetMsg):
     tConnectedConnections = DistributorConnectionController.getDistributorConnection()
     for tConn in tConnectedConnections:
-        tConn.pushOutConfiguration()
+        tConn.push_out_configuration()
 
 def serveDistExploreSubscriptionsRqst(pNetMsg):
     tRequest = pNetMsg.getMessage().getWrappedMessage()

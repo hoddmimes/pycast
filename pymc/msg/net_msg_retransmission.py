@@ -1,5 +1,3 @@
-import socket
-from pymc.msg.segment import Segment
 from pymc.msg.net_msg import NetMsg
 from pymc.aux.aux import Aux
 from io import StringIO

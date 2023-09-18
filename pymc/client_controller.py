@@ -7,20 +7,20 @@ from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.distributor_exception import DistributorException
 from pymc.clients_events import SubscriptionFiltersCntx, EventCallbackCntx, ClientUpdateEvent, ClientDedicatedAppEvent
 from pymc.clients_events import ClientAppEvent, ClientEvent
-from pymc.distributor_events import DistributorEvent
+from pymc.event_api.events_to_clients import DistributorEvent
 from pymc.msg.generated.net_messages import QueueSizeItem
 from pymc.msg.rcv_update import RcvUpdate
 from pymc.subscription import SubscriptionFilter
 
 
 class ClientDeliveryController(object):
-    _cInstance: ClientDeliveryController = None
+    _instance: ClientDeliveryController = None
 
     @staticmethod
     def get_instance() -> ClientDeliveryController:
-        if not ClientDeliveryController._cInstance:
-            ClientDeliveryController._cInstance = ClientDeliveryController()
-        return ClientDeliveryController._cInstance
+        if not ClientDeliveryController._instance:
+            ClientDeliveryController._instance = ClientDeliveryController()
+        return ClientDeliveryController._instance
 
     def __init__(self):
         self._lock = threading.Lock()
@@ -95,9 +95,9 @@ class ClientDeliveryController(object):
     def get_queue_size(self) -> QueueSizeItem:
         with self._lock:
             _item: QueueSizeItem = QueueSizeItem()
-            _item.set_peak_size(self._peak_length)
-            _item.set_peak_time(Aux.time_string(self._peak_time))
-            _item.set_size(self._queue_length)
+            _item.peak_size = self._peak_length
+            _item.peak_time = Aux.time_string(self._peak_time)
+            _item.size = self._queue_length
             return _item
 
     def get_subscription_filter(self, connection_id: int) -> SubscriptionFilter | None:

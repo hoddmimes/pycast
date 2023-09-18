@@ -1,10 +1,10 @@
 from __future__ import annotations
-from pymc.check_heartbeat_task import CheckHeartbeatTask
+from pymc.event_timers.check_heartbeat_task import CheckHeartbeatTask
 from pymc.client_controller import ClientDeliveryController
-from pymc.distributor_events import DistributorRemoveRemoteConnectionEvent
-from pymc.distributor_interfaces import ConnectionBase
+from pymc.event_api.events_to_clients import DistributorRemoveRemoteConnectionEvent
 from io import StringIO
 from pymc.aux.linked_list import LinkedList
+from pymc.event_timers.connection_timer_event import ConnectionTimerEvent
 from pymc.msg.net_msg import NetMsg
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
 from pymc.msg.net_msg_update import NetMsgUpdate
@@ -13,7 +13,6 @@ from pymc.msg.segment import Segment
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
 from pymc.aux.aux import Aux
 from pymc.aux.aux_uuid import Aux_UUID
-from pymc.connection_timers import ConnectionTimerExecutor, ConnectionTimerTask
 from pymc.distributor_configuration import DistributorLogFlags
 
 
@@ -34,10 +33,10 @@ class RemoteConnection(object):
         self._heartbeat_interval = _msg.hb_interval_ms
         self._configuration_interval = _msg.cfg_interval_ms
         self._remote_application_name = _msg.app_name
-        self._configuration = connection.configuration()
+        self._configuration = connection.configuration
         self._remote_connection_controller = controller
         self._retransmission_controller = connection.retransmission_controller
-        self._ipmc = connection.ipmc()
+        self._ipmc = connection.ipmc
         self._rcv_segment_batch = None
         self._pending_receiver_queue: LinkedList = LinkedList()  # Linked list with unprocessed received segmenet
         self._hb_active = True
@@ -47,7 +46,7 @@ class RemoteConnection(object):
         self._next_expected_seqno = 0
         self._highiest_seen_seqno = 0
 
-        self._check_heartbeat_task = CheckHeartbeatTask(connection_id=connection.connection_id(),
+        self._check_heartbeat_task = CheckHeartbeatTask(connection_id=connection.connection_id,
                                                         remote_connection_id=self._remote_connection_id)
 
         self._check_configuration_task = CheckConfigurationTask(connection_id=connection.connection_id,
@@ -104,13 +103,17 @@ class RemoteConnection(object):
     def is_dead(self) -> bool:
         return self._is_dead
 
+    @is_dead.setter
+    def is_dead(self, value: bool):
+        self._is_dead = value
+
     @property
     def is_configuration_active(self) -> bool:
         return self._cfg_is_active
 
     @is_configuration_active.setter
     def is_configuration_active(self, value: int):
-        self.is_configuration_active = value
+        self._cfg_is_active = value
 
     @property
     def remote_connection_id(self) -> int:
@@ -238,7 +241,8 @@ class RemoteConnection(object):
             return
         elif _action == NetMsg.HIGHER:
             if _msg.sequence_no > self._highiest_seen_seqno + 1:
-                self._retransmission_controller.create_retransmission_request(this, self._highiest_seen_seqno,
+                self._retransmission_controller.create_retransmission_request(self,
+                                                                              self._highiest_seen_seqno,
                                                                               _msg.sequence_no - 1)
             self._highiest_seen_seqno = _msg.sequence_no
 
@@ -249,39 +253,3 @@ class RemoteConnection(object):
             self.segmentToPendingReceiverQueue(segment)
 
 
-class CheckConfigurationTask(ConnectionTimerTask):
-    def __init__(self, connection_id, remote_connection_id):
-        super().__init__(connection_id)
-        self.mRemoteConnectionId = remote_connection_id
-
-    def execute(self, pConnection):
-        tRemoteConnection = pConnection.mConnectionReceiver.mRemoteConnectionController.get_remote_connection_by_id(
-            self.mRemoteConnectionId)
-        if tRemoteConnection == None:
-            self.cancel()
-            return
-        try:
-            if tRemoteConnection.isDead:
-                self.cancel()
-                return
-            if pConnection.mTimeToDie:
-                self.cancel()
-                return
-            if not tRemoteConnection.mCfgIsActive:
-                tRemoteConnection.isDead = True
-                tRemoteConnection.mRemoteConnectionController.removeRemoteConnection(tRemoteConnection)
-                if pConnection.isLogFlagSet(DistributorLogFlags.LOG_RMTDB_EVENTS):
-                    pConnection.log(
-                        "Remote connction disconnected (no configuration heartbeats) \n        " + tRemoteConnection.toString())
-                tEvent = DistributorRemoveRemoteConnectionEvent(tRemoteConnection.mRemoteHostInetAddress,
-                                                                tRemoteConnection.mRemoteSenderId,
-                                                                tRemoteConnection.mMca.mInetAddress,
-                                                                tRemoteConnection.mMca.mPort,
-                                                                tRemoteConnection.mRemoteApplicationName,
-                                                                tRemoteConnection.mRemoteAppId)
-                ClientDeliveryController.get_instance().queue_event(pConnection._connection_id, tEvent)
-                self.cancel()
-            else:
-                tRemoteConnection.mCfgIsActive = False
-        except Exception as e:
-            e.printStackTrace()

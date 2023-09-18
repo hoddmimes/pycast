@@ -84,4 +84,4 @@ class Aux_UUID:
     @staticmethod
     def getId() -> int:
         _uuid = Aux_UUID()
-        _uuid.getNextId()
+        return _uuid.getNextId()

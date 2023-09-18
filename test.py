@@ -1,62 +1,50 @@
-from __future__ import annotations
-import random
-import threading
+
 import time
-import os
+import asyncio
+import functools
 from abc import ABC
-import types
-import logging
-from io import StringIO
-from datetime import datetime
-from concurrent.futures import ProcessPoolExecutor, Future
-from concurrent.futures import ThreadPoolExecutor, Future
+from threading import Thread, current_thread, Event
+from concurrent.futures import Future
 from typing import Any
-from pymc.msg.segment import Segment
-from pymc.aux.aux import Aux
 
 
-class TestClass(object):
-    def __init__(self, msg: str, value: int):
-        self._message: str = msg
-        self._value = value
-
-    @property
-    def message(self) ->str:
-        return self._message
-
-    @message.setter
-    def message(self, value: str):
-        self._message = value
-
-    @property
-    def value(self) -> int:
-        return self._value
-
-    @value.setter
-    def value(self, value:  int):
-        self._value = value
+class BaseClass(ABC):
 
     def __str__(self):
-        return "message: {} value: {}".format( self._message, self._value)
+        return "class name: {}".format( self.__class__.__name__)
 
-    def __hash__(self):
-        return Aux.hash32( self._message)
+    @classmethod
+    def cast(cls, obj: object) -> Any:
+        if isinstance(obj, cls):
+            return obj
+        if obj.__class__.__name__ == cls.__name__:
+            return obj
+        raise Exception("can not cast object to {}".format( cls.__name__))
 
-    def __eq__(self, other: TestClass):
-        if self._message == other.message and self.value == other.value:
-            return True
-        else:
-            return False
+class TestClass(BaseClass):
+    def __init__(self, chr: str):
+        self.a = chr
+class TestClassXXX(BaseClass):
+    def __init__(self):
+        pass
+
+def foo() -> tuple[int,str]:
+    return (42,'frotz')
 
 
-def timer_callback( arg1, arg2, arg3 ):
-    print(arg3)
-
+def test( base: BaseClass):
+    x = foo()
+    print(x)
 
 def main():
-   t = threading.Timer( interval=3, function=timer_callback, args=(42,'frotz','foo'))
-   t.start()
-   time.sleep(200)
+    a = TestClass('frotz')
+    test(a)
+
+
+
+
+
+
 
 if __name__ == '__main__':
     main()

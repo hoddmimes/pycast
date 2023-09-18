@@ -1,5 +1,8 @@
+import importlib
 import struct
 from abc import ABC
+
+from pymc.msg.messageif import MessageBase
 
 
 ########################################################################################################################
@@ -13,7 +16,7 @@ class Codec(ABC, object):
             self._buffer = bytearray(args[0])
             self._size = args[0]
             self._pos = 0
-        elif isinstance(args[0], bytearray):
+        elif isinstance(args[0], bytearray) or isinstance(args[0], bytes):
             self._buffer = args[0]
             self._pos = 0
             self._size = len(args[0])
@@ -224,6 +227,20 @@ class Encoder(Codec):
             self._buffer[self._pos: self._pos + len(value)] = value
             self._pos += len(value)
 
+    def addMessage(self, msg: MessageBase):
+        if msg is None:
+            self._capacity_(1)
+            self.addBool(False)
+            return
+
+        _bytarr = msg.encode()
+        _size = (5 + len(_bytarr))
+        self._capacity_(_size)
+        self.addBool(1)
+        self.addInt(len(_bytarr))
+        self._buffer[self._pos:self._pos + len(_bytarr)] = _bytarr
+        self._pos += len(_bytarr)
+
     @property
     def remaining(self) -> int:
         return len(self._buffer) - self._pos
@@ -324,6 +341,44 @@ class Decoder(Codec):
         _bytarr = self._buffer[self._pos:self._pos + size]
         self._pos += size
         return _bytarr
+
+    def getMessage(self) -> MessageBase|None:
+        if not self.getBool():
+            return None
+
+        _size = self.getInt()  # get message instance size
+
+        _bytarr = self._buffer[self._pos:self._pos + _size]
+        self._pos += _size
+
+        _cls_tuple = self._getMsgClassModuleAndName(_bytarr)
+        _msg: MessageBase = self._createMessageInstance(class_module=_cls_tuple[0], class_name=_cls_tuple[1])
+        _msg.decode(_bytarr)
+        return _msg
+
+    def _createMessageInstance(self, class_module: str, class_name:str) -> MessageBase:
+        _classModule = importlib.import_module(class_module)
+        _clazz = getattr(_classModule, class_name)
+        _instance: MessageBase = _clazz()
+        return _instance
+
+    def _getMsgClassModuleAndName(self, buffer: bytearray) -> tuple:
+        _pos: int = 0
+        if buffer[_pos] == 1:
+            _pos += 1
+            _size = int.from_bytes(buffer[_pos:_pos + 2], 'big')
+            _pos += 2
+            _bytarr = buffer[_pos:_pos + _size]
+            _class_module = _bytarr.decode()
+            _pos += _size
+        if buffer[_pos] == 1:
+            _pos += 1
+            _size = int.from_bytes(buffer[_pos:_pos + 2], 'big')
+            _pos += 2
+            _bytarr = buffer[_pos:_pos + _size]
+            _class_name = _bytarr.decode()
+
+        return (_class_module, _class_name)
 
     @property
     def remaining(self):

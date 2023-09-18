@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sys
 import logging
+from typing import Callable
+
 from pymc.aux.aux import Aux
 from pymc.aux.aux_uuid import Aux_UUID
 from pymc.aux.distributor_exception import DistributorException
@@ -9,14 +11,22 @@ from pymc.aux.log_manager import LogManager
 from pymc.distributor_configuration import DistributorConfiguration
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.connection_controller import ConnectionController
+from pymc.event_api.event_api_create_publisher import EventApiCreatePublisher
+from pymc.event_api.event_api_create_subscriber import EventApiCreateSubscriber
 
 
 class Distributor(object):
     _instance = None
 
-    def __init__(self, application_name: str, configuration: DistributorConfiguration = None):
+    def __init__(self, application_name: str = None, configuration: DistributorConfiguration = None):
         self._aux_uuid: Aux_UUID = Aux_UUID()
+        if application_name is None and configuration is None:
+            raise DistributorException("parameter 'application_name' and/or 'configuration' must be present")
+        if configuration and application_name:
+            configuration.app_name = application_name
+
         self._configuration: DistributorConfiguration = configuration or DistributorConfiguration(application_name)
+
         LogManager.set_configuration(self.configuration.log_to_console,
                                      self.configuration.log_to_file,
                                      self.configuration.log_file,
@@ -31,7 +41,7 @@ class Distributor(object):
                           format(self.configuration.app_name, self._start_time_string, hex(self._id),
                                  self._local_address_string))
         if Distributor._instance is None:
-            self._instance = self
+            Distributor._instance = self
         else:
             raise DistributorException("Distributor instance is already instantiated")
 
@@ -41,14 +51,25 @@ class Distributor(object):
             raise DistributorException("Distributor is not yet instantiated, is that possible")
         return Distributor._instance
 
+    '''
+    The creation of Connection instances is a bit special. A Connection instance is the async coordinator 
+    Normally all action are scheduled via a Cordinator instance for synchronisation but since this is the creation
+    of a Conection is goes via the Connection controller
+    '''
     def create_connection(self, configuration: ConnectionConfiguration) -> 'Connection':
         return ConnectionController.get_instance().create_connection(connection_configuration=configuration)
 
-    def create_publisher(self, connection: 'Connection') -> 'Publisher':
-        pass
+    def create_publisher(self, connection: 'Connection',
+                         event_callback: Callable[['DistributorEvent'], None]) -> 'Publisher':
 
-    def create_subscriber(self, connection: 'Connection') -> 'Subscriber':
-        pass
+        event: EventApiCreatePublisher = EventApiCreatePublisher(event_callback)
+        return ConnectionController.get_instance().schedule_async_event( connection.connection_id, event, wait=True)
+
+    def create_subscriber(self, connection: 'Connection',
+                          event_callback: Callable[['DistributorEvent'], None],
+                          update_callback: Callable[[str, bytes, object, int, int], None]) -> 'Subscriber':
+        event: EventApiCreateSubscriber = EventApiCreateSubscriber(event_callback,update_callback)
+        return ConnectionController.get_instance().schedule_async_event(connection.connection_id, event, wait=True)
 
     @property
     def distributor_id(self) -> int:

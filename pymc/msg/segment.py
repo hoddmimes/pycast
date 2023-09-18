@@ -51,7 +51,7 @@ class Segment(ABC, object):
             self._size: int = args[0]
             self._encoder: Encoder = Encoder(self._size)
             self._decoder: Decoder = None
-        elif isinstance(args[0], bytearray):
+        elif isinstance(args[0], bytes) or isinstance(args[0], bytearray):
             # The parameter is a bytearray which indicates that the segment will be
             # to decode an incoming message to the Distributor
             self._encoder: Encoder = None
@@ -77,6 +77,9 @@ class Segment(ABC, object):
         else:
             return self._encoder.length
 
+    @property
+    def allocate_size(self):
+        return self._size
 
     @property
     def get_free_space_left(self) -> int:
@@ -94,24 +97,64 @@ class Segment(ABC, object):
 
 
     def encode(self):
-        self._encoder.reset()
-        self._encoder.addShort(self._hdr_version)
-        self._encoder.addByte(self._hdr_msg_type)
-        self._encoder.addByte(self._hdr_segment_flags)
-        self._encoder.addInt(self._hdr_local_address)
-        self._encoder.addInt(self._hdr_sender_id)
-        self._encoder.addInt(self._hdr_sender_start_time_sec)
-        self._encoder.addInt(self._hdr_app_id)
+        self.encoder.reset()
+        self.encoder.addShort(self._hdr_version)
+        self.encoder.addByte(self._hdr_msg_type)
+        self.encoder.addByte(self._hdr_segment_flags)
+        self.encoder.addInt(self._hdr_local_address)
+        self.encoder.addInt(self._hdr_sender_id)
+        self.encoder.addInt(self._hdr_sender_start_time_sec)
+        self.encoder.addInt(self._hdr_app_id)
 
     def decode(self):
-        self._decoder.reset()
-        self._hdr_version = self._decoder.getShort()
-        self._hdr_msg_type = self._decoder.getByte()
-        self._hdr_segment_flags = self._decoder.getByte()
-        self._hdr_local_address = self._decoder.getInt()
-        self._hdr_sender_id = self._decoder.getInt()
-        self._hdr_sender_start_time_sec = self._decoder.getInt()
+        self.decoder.reset()
+        self._hdr_version = self.decoder.getShort()
+        self._hdr_msg_type = self.decoder.getByte()
+        self._hdr_segment_flags = self.decoder.getByte()
+        self._hdr_local_address = self.decoder.getInt()
+        self._hdr_sender_id = self.decoder.getInt()
+        self._hdr_sender_start_time_sec = self.decoder.getInt()
         self._hdr_app_id = self._decoder.getInt()
+
+    def clone_to_decoder(self):
+        if self._decoder:
+            raise DistributorException("can not clone a decode-segment to a decode-segment")
+        _segment = Segment( self.encoder.buffer )
+        return _segment
+
+    @staticmethod
+    def debug( segment: Segment):
+        if segment._encoder:
+            bytarr = segment._encoder.buffer
+            dec = Decoder( bytarr )
+            version = dec.getShort()
+            msg_type = dec.getByte()
+            msg_flags = dec.getByte()
+            lcl_addr = dec.getInt()
+            sndr_id = dec.getInt()
+            start_time= dec.getInt()
+            app_id = dec.getInt()
+            print("[segment-dbg encode] version: {} type: {} flags:{} addr: {} sndrid: {} start-time: {} app_id: {}"
+                  .format(version, msg_type, msg_flags, Aux.ip_addr_int_to_str(lcl_addr),
+                          hex(sndr_id), Aux.time_string(start_time),hex(app_id)))
+        else:
+            print("[segment-dbg encode] None")
+
+        if segment._decoder:
+            bytarr = segment._decoder.buffer
+            dec = Decoder(bytarr)
+            version = dec.getShort()
+            msg_type = dec.getByte()
+            msg_flags = dec.getByte()
+            lcl_addr = dec.getInt()
+            sndr_id = dec.getInt()
+            start_time = dec.getInt()
+            app_id = dec.getInt()
+            print("[segment-dbg decode] version: {} type: {} flags:{} addr: {} sndrid: {} start-time: {} app_id: {}"
+                  .format(version, msg_type, msg_flags, Aux.ip_addr_int_to_str(lcl_addr),
+                          hex(sndr_id), Aux.time_string(start_time), hex(app_id)))
+        else:
+            print("[segment-dbg decode] None")
 
     @property
     def hdr_version(self) -> int:
@@ -173,6 +216,13 @@ class Segment(ABC, object):
             return True
         else:
             return False
+
+    @property
+    def is_start_segment(self) -> bool:
+        if self._hdr_segment_flags & Segment.FLAG_M_SEGMENT_START != 0:
+            return True
+        else:
+            return False
     @classmethod
     def cast(cls, obj: object) -> Segment:
         if isinstance( obj, Segment):
@@ -186,7 +236,6 @@ class Segment(ABC, object):
             _sndrid = (self._hdr_sender_id & 0xFF) << 8
             _time = (self._hdr_sender_start_time_sec & 0xFFFF) << 16
             self._hash_code_value = _addr + _sndrid + _time
-        print("segment-hash: {}".format(hex(self._hash_code_value)) )
         return self._hash_code_value
 
     def __eq__(self, segment: Segment):
@@ -229,6 +278,14 @@ class Segment(ABC, object):
             else:
                 return self._encoder.getIntAt(self.SEGMENT_HEADER_SIZE)
         raise DistributorException("used property 'seqno' for a none update message, can not beleive we did that :-)")
+
+    def update_count(self) -> int:
+        if self._hdr_msg_type == Segment.MSG_TYPE_UPDATE or self._hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION:
+            if self._decoder:
+                return self._decoder.getIntAt(self.SEGMENT_HEADER_SIZE + 4)
+            else:
+                return self._encoder.getIntAt(self.SEGMENT_HEADER_SIZE + 4)
+        raise DistributorException("used property 'update_count' for a none update message, can not beleive we did that :-)")
 
     @staticmethod
     def getMessageTypeString(msg_type) -> str:
