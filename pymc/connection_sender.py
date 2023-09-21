@@ -22,6 +22,7 @@ from pymc.client_controller import ClientDeliveryController
 
 
 def sendHeartbeat(connection: 'Connection'):
+    from pymc.distributor import Distributor
     _heartbeat = NetMsgHeartbeat(XtaSegment(connection.configuration.small_segment_size))
     _heartbeat.setHeader(
         message_type=Segment.MSG_TYPE_HEARTBEAT,
@@ -29,7 +30,7 @@ def sendHeartbeat(connection: 'Connection'):
         local_address=connection.connection_sender.local_address,
         sender_id=connection.connection_sender.sender_id,
         sender_start_time_sec=connection.connection_sender.sender_start_time,
-        app_id=connection.distributor.app_id())
+        app_id=Distributor.get_instance().app_id)
 
     _heartbeat.set(
         mc_addr=connection.ipmc.mc_address,
@@ -112,7 +113,7 @@ class ConnectionSender(object):
         from pymc.distributor import Distributor
         self._local_address: int = Distributor.get_instance().local_address
         self._app_id: int = Distributor.get_instance().app_id
-        self._current_seqno: int = 0
+        self._current_seqno: int = 1 # Start at sequence number 1
 
         self._configuration: ConnectionConfiguration = connection.configuration
 
@@ -125,6 +126,13 @@ class ConnectionSender(object):
                                                                    max_bandwidth_kbit_sec=connection.configuration.max_bandwidth_kbit)
 
         self._retransmission_cache = RetransmissionCache(self)
+
+        from pymc.connection_timers import ConnectionTimerExecutor
+        ConnectionTimerExecutor.getInstance().queue(interval=connection.configuration.heartbeat_interval_ms,
+                                                    task=self._heartbeat_timer_task)
+
+        ConnectionTimerExecutor.getInstance().queue(interval=1000, task=self._traffic_flow_task)
+
 
     def log_protocol_data(self, segment: Segment):
         _msg_type = segment.hdr_msg_type
@@ -281,8 +289,12 @@ class ConnectionSender(object):
         self._current_update.sequence_no = self._current_seqno
         self._current_update.hdr_segment_flags = segment_flags
 
+
         # self._current_update.encode()
         _send_delay = self.send_segment(self._current_update.segment)
+
+        self._current_seqno += 1
+
         self._current_update = None
         self._current_update = self.get_new_current_update()
         return _send_delay

@@ -298,14 +298,14 @@ class KeyNode:
                     kn.matchRecursive( subjectName, keys, data, appId, queueLength)
 
 
-                if self.wildcard_child:
-                    keys.getNextElement()
-                    self.wildcard_child.matchRecursive(subjectName, keys, data, appId, queueLength)
+            if self.wildcard_child:
+                keys.getNextElement()
+                self.wildcard_child.matchRecursive(subjectName, keys, data, appId, queueLength)
 
-                if self.wildcard_rest_child:
-                    if self.wildcard_rest_child.subscriptions:
-                        for sub in self.wildcard_rest_child.subscriptions:
-                            sub.callback(subjectName, data, sub.callback_parameter, appId, queueLength)
+            if self.wildcard_rest_child:
+                if self.wildcard_rest_child.subscriptions:
+                    for sub in self.wildcard_rest_child.subscriptions:
+                        sub.callback(subjectName, data, sub.callback_parameter, appId, queueLength)
 
 
 class SubscriptionFilter:
@@ -362,10 +362,11 @@ def subscriptionCallback( subjectName:str, data:bytes, callbackParameter:object,
 
 def main_filter():
     filter:SubscriptionFilter = SubscriptionFilter()
-    filter.add("/foo/bar/fie",subscriptionCallback, "/foo/bar/fie" )
-    filter.add("/foo/*/zzz",subscriptionCallback, "/foo/*/zzz" )
-    filter.add("/foo/...",subscriptionCallback, "/foo/..." )
-    filter.add("/frotz/a/b/c",subscriptionCallback, "/frotz/a/b/c" )
+    # filter.add("/foo/bar/fie",subscriptionCallback, "/foo/bar/fie" )
+    # filter.add("/foo/*/zzz",subscriptionCallback, "/foo/*/zzz" )
+    # filter.add("/foo/...",subscriptionCallback, "/foo/..." )
+    #filter.add("/frotz/a/b/c",subscriptionCallback, "/frotz/a/b/c" )
+    filter.add("/...", subscriptionCallback, "/..." )
 
     filter.match("/foo/bar/fie", bytes("test1".encode()), 4711,1)
     print( filter.toString())

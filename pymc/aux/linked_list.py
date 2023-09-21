@@ -17,7 +17,6 @@ class Link(object):
         self._blink: Link = self
         self._object: object = obj
 
-
 class ListItr(object):
     def __init__(self, linked_list: LinkedList, forward: bool = True):
         self.linked_list: LinkedList = linked_list
@@ -44,7 +43,7 @@ class ListItr(object):
                 self._curr_item = self._curr_item._flink
             else:
                 self._curr_item = self._curr_item._blink
-            _item = self._curr_item.object
+            _item = self._curr_item._object
             return _item
 
     def remove(self):

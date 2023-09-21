@@ -6,7 +6,7 @@ from abc import ABC
 from threading import Thread, current_thread, Event
 from concurrent.futures import Future
 from typing import Any
-
+from pymc.aux.blocking_queue import BlockingQueue
 
 class BaseClass(ABC):
 
@@ -37,8 +37,12 @@ def test( base: BaseClass):
     print(x)
 
 def main():
-    a = TestClass('frotz')
-    test(a)
+    q: BlockingQueue = BlockingQueue()
+    q.add("item 1")
+    q.add("item 2")
+
+    l= q.drain()
+    print(l)
 
 
 

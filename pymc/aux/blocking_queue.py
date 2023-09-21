@@ -38,7 +38,7 @@ class BlockingQueue:
         with self._mutex:
             if not self._queue.empty():
                 _length = min(self._queue.qsize(), max_items)
-                _list = [_length]
+                _list = []
                 for i in range(_length):
                     _list.append(self._queue.get())
                 if self._queue.empty():
