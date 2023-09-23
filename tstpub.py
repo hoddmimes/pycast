@@ -47,14 +47,12 @@ def parse_arguments() -> dict:
     return params
 
 def publisher_event_callback(event: DistributorEvent):
-    print("[PUBLISHER-EVENT-CALLBACK] {}".format(event))
+    print("{} [PUBLISHER-EVENT-CALLBACK] {}".format(Aux.time_string(), event))
 
 
 
 def create_data( size: int) -> bytes:
-    bytarr = bytearray(size)
-    itertools.repeat(65, len(bytarr))
-    return bytes(bytarr)
+    return bytes([65]) * size
 
 def generate_subjects( count: int) -> [str]:
     subjects = []
@@ -62,7 +60,7 @@ def generate_subjects( count: int) -> [str]:
         subjects.append("/test/{}".format(str(i).zfill(4)))
     return subjects
 
-def calculate_dismiss( rate: int) -> tuple[]:
+def calculate_dismiss( rate: int) -> tuple:
 
     if rate <= 100:
         d = int(1000 / rate)
@@ -94,10 +92,18 @@ def main():
     params = parse_arguments()
 
     distributor_configuration: DistributorConfiguration = DistributorConfiguration(application_name='test')
-    distributor_configuration.log_flags += (DistributorLogFlags.LOG_DEFAULT_FLAGS)
+
+    distributor_configuration.log_flags += (DistributorLogFlags.LOG_DEFAULT_FLAGS +
+                                            # DistributorLogFlags.LOG_DATA_PROTOCOL_XTA +
+                                            # DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS +
+                                            DistributorLogFlags.LOG_RMTDB_EVENTS)
 
     distributor: Distributor = Distributor(configuration=distributor_configuration)
-    connection: Connection = distributor.create_connection(ConnectionConfiguration(mca='224.10.11.12', mca_port=5656))
+
+    connection_configuration: ConnectionConfiguration = ConnectionConfiguration(mca='224.10.11.12', mca_port=5656)
+    connection_configuration.send_holdback_delay_ms = 20
+
+    connection: Connection = distributor.create_connection(connection_configuration)
 
     publisher: Publisher = distributor.create_publisher(connection=connection, event_callback=publisher_event_callback)
 
@@ -128,7 +134,7 @@ def main():
 
     exec_time = time.perf_counter()
     xta_rate = loop_count / exec_time
-    print("Sent {} updates, rate {:.1f}".format(loop_count, round(xta_rate,1)))
+    print("{} Sent {} updates, rate {:.1f}".format(Aux.time_string(), loop_count, round(xta_rate,1)))
 
     
 if __name__ == '__main__':

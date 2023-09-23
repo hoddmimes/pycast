@@ -26,7 +26,7 @@ class Publisher(object):
         if Publisher.cLogger is None:
             self.cLogger = LogManager.get_instance().get_logger('Publisher')
 
-    def publish(self, subject: str, data_bytes: bytearray, data_len: int = None):
+    def publish(self, subject: str, data_bytes: bytes, data_len: int = None):
         if data_len is None:
             _data = bytes(data_bytes)
         else:

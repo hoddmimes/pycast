@@ -201,6 +201,12 @@ class Segment(ABC, object):
     def encoder(self) -> Encoder | None:
         return self._encoder
 
+    @property
+    def buffer(self) -> bytes:
+        if self._decoder is not None:
+            return self._decoder.buffer
+        else:
+            return self._encoder.buffer
     # =========================================================================================
 
     @property

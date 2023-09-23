@@ -63,14 +63,17 @@ def _timer_executor_(timer_task: TimerTaskWraper):
         else:
             Aux.sleep_ms(timer_task.delay_ms)
 
-        _connection = ConnectionController.get_instance().get_connection(connection_id=timer_task.task.connection_id)
-        if _connection is None:
-            raise DistributorException("Can not retreive connection with id {}, appears to be closed and removed".format(hex(timer_task.task.connection_id)))
-        with _connection:
-            try:
-                timer_task.task.execute(_connection)
-            except Exception as e:
-                _connection.log_exception(e)
+        if timer_task.task.connection_id == 0: # test connection id
+            timer_task.task.execute(None)
+        else:
+            _connection = ConnectionController.get_instance().get_connection(connection_id=timer_task.task.connection_id)
+            if _connection is None:
+                raise DistributorException("Can not retreive connection with id {}, appears to be closed and removed".format(hex(timer_task.task.connection_id)))
+            with _connection:
+                try:
+                    timer_task.task.execute(_connection)
+                except Exception as e:
+                    _connection.log_exception(e)
 
 
 

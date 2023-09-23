@@ -8,8 +8,12 @@ class RcvSegment(Segment):
     OFFSET_SEQUENCE_NO = Segment.SEGMENT_HEADER_SIZE
     OFFSET_UPDATE_COUNT = OFFSET_SEQUENCE_NO + 4
 
-    def __init__(self, buffer):
-        super().__init__(buffer)
+    def __init__(self, arg):
+        if isinstance(arg, Segment):
+            super().__init__(arg.buffer)
+        else:
+            super().__init__(arg)
+
         self._from_address: int = 0
         self._from_port: int = 0
 

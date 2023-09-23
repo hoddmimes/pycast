@@ -3,7 +3,7 @@ from pymc.check_heartbeat_task import CheckHeartbeatTask
 from pymc.client_controller import ClientDeliveryController
 from pymc.distributor_events import DistributorRemoveRemoteConnectionEvent
 from io import StringIO
-from pymc.aux.linked_list import LinkedList
+from pymc.aux.linked_list import LinkedList, ListItr
 from pymc.msg.net_msg import NetMsg
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
 from pymc.msg.net_msg_update import NetMsgUpdate
@@ -140,7 +140,7 @@ class RemoteConnection(object):
         sb.write(" appl_name: {} \n".format(self._remote_application_name))
         sb.write("    hb_interval: {}".format(self._heartbeat_interval))
         sb.write(" cfg_interval: {}".format(self._configuration_interval))
-        sb.write(" local_mca: {}".format(Aux.ip_addr_int_to_str(self._connection.mc_address())))
+        sb.write(" local_mca: {}".format(Aux.ip_addr_int_to_str(self._connection.mc_address)))
         return sb.getvalue()
 
     def process_heartbeat_message(self, segment: Segment):
@@ -196,18 +196,23 @@ class RemoteConnection(object):
             else:
                 return
 
-    def segment_to_rcv_segment_batch(self, rcv_segment: RcvSegment):
-        if self._rcv_segment_batch is None:
-            self._rcv_segment_batch = RcvSegmentBatch(rcv_segment)
-        else:
-            self._rcv_segment_batch.addSegment(rcv_segment)
+    def segment_to_pending_receiver_queue(self, segment: Segment):
+        if self._pending_receiver_queue.is_empty:
+            self._pending_receiver_queue.add(segment)
+            return
 
-        if rcv_segment.is_end_segment:
-            self._connection.connection_receiver.process_receive_segment_batch(self._rcv_segment_batch)
-            self._rcv_segment_batch = None
+        _itr: ListItr = ListItr(self._pending_receiver_queue, forward=False)
+        while _itr.has_previous():
+            _segment: Segment = Segment.cast(_itr.previous())
+            if _segment.seqno == segment.seqno:
+                return
+            elif _segment.seqno > segment.seqno:
+                _itr.add(_segment)
+                return
 
+        self._pending_receiver_queue.addhdr(segment)
 
-    def processUpdateSegment(self, segment: Segment):
+    def process_update_segment(self, segment: Segment):
 
         if len(self._connection.subscribers) == 0:
             self._start_synchronized = False
@@ -250,7 +255,7 @@ class RemoteConnection(object):
                 self._connection.log_info(
                     "RETRANSMISSION: RCV Message To Pending Queue Segment [{}]".format(_msg.sequence_no))
             self._retransmission_controller.updateRetransmissions(segment)
-            self.segmentToPendingReceiverQueue(segment)
+            self.segment_to_pending_receiver_queue(segment=segment)
 
 
 

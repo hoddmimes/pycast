@@ -49,8 +49,7 @@ class TrafficFlowTask(ConnectionTimerTask):
 
     # get current update rate / sec
     def get_update_rate(self) -> int:
-        update_rate_per_sec: int = int(
-            float(self._updates_increment * self._interval_factor) * self._last_relative_time_factor)
+        update_rate_per_sec: int = int(float(self._updates_increment * self._interval_factor) * self._last_relative_time_factor)
         return update_rate_per_sec
 
     '''
@@ -89,7 +88,7 @@ class TrafficFlowTask(ConnectionTimerTask):
 '''
 
 
-def test():
+def test_bandwidth():
     flow_task = TrafficFlowTask(connection_id=0, recalc_interval_ms=100, max_bandwidth_kbit_sec=256)
     ConnectionTimerExecutor.getInstance().queue(interval=flow_task._recalc_interval_ms, task=flow_task, repeat=True)
 
@@ -108,6 +107,24 @@ def test():
     print('kbit-rate: {} '.format(_rate))
     sys.exit()
 
+def test_holdback():
+    flow_task = TrafficFlowTask(connection_id=0, recalc_interval_ms=100, max_bandwidth_kbit_sec=0)
+    ConnectionTimerExecutor.getInstance().queue(interval=flow_task._recalc_interval_ms, task=flow_task, repeat=True)
+
+    _startTime = Aux.current_milliseconds()
+    _tot_bytes = 0
+
+    for x in range(10000):
+        for i in range(4):
+            flow_task.increment(64)
+        Aux.sleep_ms(10)
+        if (x % 40) == 0:
+            print("updates {} update-rate {}".format( x, flow_task.get_update_rate()))
+
+
+
+    sys.exit()
 
 if __name__ == '__main__':
-    test()
+    # test_bandwidth()
+    test_holdback()

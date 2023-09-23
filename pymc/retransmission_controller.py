@@ -56,6 +56,7 @@ class NaggingMonitorTask(ConnectionTimerTask):
                     #
                     if self._cfg_max_retransmissions == 0 or (self._cfg_max_retransmissions <= self._interval_count):
                         _event = DistributorNaggingErrorEvent(connection.mIpmg.mInetAddress, connection.mIpmg.mPort)
+                        from pymc.client_controller import ClientDeliveryController
                         ClientDeliveryController.get_instance().queue_event(connection.connection_id, _event)
                     self.clear()
             else:
@@ -65,8 +66,7 @@ class NaggingMonitorTask(ConnectionTimerTask):
 
 class RetransmissionRequestItem(ConnectionTimerTask):
     def __init__(self, connection_id: int, remote_connection_id: int, low_seqno: int, high_seqno: int):
-        super().__init__()
-        self._connectio_id: int = connection_id
+        super().__init__(connection_id)
         self._remote_connection_id: int = remote_connection_id
         self._low_seqno: int = low_seqno
         self._high_seqno: int = high_seqno

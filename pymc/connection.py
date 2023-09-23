@@ -77,7 +77,7 @@ class Connection(object):
     def eval_outgoing_traffic_flow(self, bytes_sent: int) -> int:
         return self._connection_sender.eval_outgoing_traffic_flow(bytes_sent)
 
-    def flushHoldback(self, flush_holback_seqno: int):
+    def flush_holdback(self, flush_holback_seqno: int):
         self._connection_sender.flush_holback(flush_holback_seqno)
 
     @property

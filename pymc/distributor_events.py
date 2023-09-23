@@ -179,7 +179,7 @@ class AsyncEventFlushSender(AsyncEvent, ABC):
         self.mCurrentFlushSeqno = current_flush_seqno
 
     def execute(self, connection: 'Connection'):
-        connection.mConnectionSender.flushHoldback(self.mCurrentFlushSeqno)
+        connection.mConnectionSender.flush_holdback(self.mCurrentFlushSeqno)
 
     def toString(self) -> str:
         return " current-flush-seqno: {}".format(self.mCurrentFlushSeqno)

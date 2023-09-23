@@ -88,7 +88,7 @@ class RemoteConnectionController(object):
         _remote_connection = self._remote_connections.get(segment.__hash__())
         if _remote_connection is not None:
             _remote_connection.is_heartbeat_active = True
-            _remote_connection.processUpdateSegment(segment)
+            _remote_connection.process_update_segment(segment)
 
 
 class SegmentBatch:

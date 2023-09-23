@@ -10,6 +10,11 @@ class DummyLock(object):
     def __enter__(self):
         pass
 
+    def acquire(self):
+        pass
+
+    def release(self):
+        pass
 
 class Link(object):
     def __init__(self, obj: object):
@@ -21,33 +26,47 @@ class ListItr(object):
     def __init__(self, linked_list: LinkedList, forward: bool = True):
         self.linked_list: LinkedList = linked_list
         self._forward = forward
-        if forward:
-            self._curr_item = linked_list._header._flink
-        else:
-            self._curr_item = linked_list._header._blink
+        self._curr_item = linked_list._header
         if linked_list._locking:
             self._mutex = threading.RLock()
         else:
             self._mutex = DummyLock()
 
     def has_next(self) -> bool:
-        if self._forward and self._curr_item._flink != self.linked_list._header:
+        if self._curr_item._flink != self.linked_list._header:
             return True
-        if not self._forward and self._curr_item._blink != self.linked_list._header:
+        return False
+
+    def has_previous(self) -> bool:
+        if self._curr_item._blink != self.linked_list._header:
             return True
         return False
 
     def next(self) -> object:
         with self._mutex:
-            if self._forward:
-                self._curr_item = self._curr_item._flink
-            else:
-                self._curr_item = self._curr_item._blink
+            self._curr_item = self._curr_item._flink
             _item = self._curr_item._object
             return _item
 
-    def remove(self):
+    def previous(self) -> object:
         with self._mutex:
+            self._curr_item = self._curr_item._blink
+            _item = self._curr_item._object
+            return _item
+
+    def add(self, item: object):
+        with self._mutex and self.linked_list:
+            _itm = Link(item)
+            # Set new item links
+            _itm._flink = self._curr_item._flink
+            _itm._blink = self._curr_item
+
+            self._curr_item._flink._blink = _itm
+            self._curr_item._flink = _itm
+            self.linked_list._size += 1
+
+    def remove(self):
+        with self._mutex and self.linked_list:
             if self._curr_item == self.linked_list._header:
                 return None
             else:
@@ -67,9 +86,15 @@ class LinkedList:
         self._locking = locking
         self._size = 0
         if locking:
-            self._mutex = threading.RLock()
+            self._mutex: threading.RLock = threading.RLock()
         else:
-            self._mutex = DummyLock()
+            self._mutex: DummyLock = DummyLock()
+
+    def __enter__(self):
+        self._mutex.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._mutex.release()
 
     def is_empty(self) -> bool:
         if self._header._blink == self._header:

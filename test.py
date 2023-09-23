@@ -7,6 +7,8 @@ from threading import Thread, current_thread, Event
 from concurrent.futures import Future
 from typing import Any
 from pymc.aux.blocking_queue import BlockingQueue
+from pymc.aux.linked_list import ListItr, LinkedList
+
 
 class BaseClass(ABC):
 
@@ -37,13 +39,33 @@ def test( base: BaseClass):
     print(x)
 
 def main():
-    q: BlockingQueue = BlockingQueue()
-    q.add("item 1")
-    q.add("item 2")
+    q: LinkedList = LinkedList()
+    q.add(1)
+    q.add(2)
+    q.add(4)
+    q.add(6)
 
-    l= q.drain()
-    print(l)
+    '''
+    itr: ListItr =  ListItr(q, forward=False)
+    while itr.has_previous():
+        v = itr.previous()
+        if 5 > v:
+            itr.add(5)
+            break
+    '''
+    itr: ListItr =  ListItr(q, forward=True)
+    while itr.has_next():
+        v = itr.next()
+        if 5 < v:
+            itr.previous()
+            itr.add(5)
+            break
 
+    itr: ListItr = ListItr(q)
+    while itr.has_next():
+        v = itr.next()
+        print(v)
+    print("end")
 
 
 

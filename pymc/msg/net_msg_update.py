@@ -11,7 +11,7 @@ from io import StringIO
 
 
 class NetMsgUpdate(NetMsg):
-    _seqno_stamp = AtomicLong(1)
+    _seqno_stamp = AtomicLong(0)
 
     MIN_UPDATE_HEADER_SIZE = Segment.SEGMENT_HEADER_SIZE + 8  # segment-header-size + seqno:int + update-count:int
 
@@ -19,7 +19,7 @@ class NetMsgUpdate(NetMsg):
         super().__init__(segment)
         self._sequence_no: int = 0
         self._update_count: int = 0  # Number of updates in segment
-        self._flush_sequence_number: int = 0
+        self._flush_sequence_number: int = NetMsgUpdate._seqno_stamp.incrementAndGet()
         self._create_time: int = Aux.current_milliseconds()  # Time when the NetMessage was created
 
         self._large_subject_name: str = None

@@ -20,7 +20,6 @@ from pymc.distributor_configuration import DistributorLogFlags
 from pymc.client_controller import ClientDeliveryController
 
 
-
 def sendHeartbeat(connection: 'Connection'):
     from pymc.distributor import Distributor
     _heartbeat = NetMsgHeartbeat(XtaSegment(connection.configuration.small_segment_size))
@@ -101,8 +100,6 @@ class ConnectionSender(object):
         self._last_update_flush_seqno: int = 0
         self._connection: 'Connection' = connection
 
-
-        self._heartbeat_timer_task = SendHeartbeatTask(connection_id=connection.connection_id)
         self._logger = connection.logger
 
         if connection.configuration.sender_id_port == 0:
@@ -113,26 +110,32 @@ class ConnectionSender(object):
         from pymc.distributor import Distributor
         self._local_address: int = Distributor.get_instance().local_address
         self._app_id: int = Distributor.get_instance().app_id
-        self._current_seqno: int = 1 # Start at sequence number 1
+        self._current_seqno: int = 1  # Start at sequence number 1
 
         self._configuration: ConnectionConfiguration = connection.configuration
 
         self._current_update: NetMsgUpdate = None
         self._current_update = self.get_new_current_update()  # initialize self.mCurrentUpdate:NetMsgUpdate
 
-
-        self._traffic_flow_task: TrafficFlowTask = TrafficFlowTask(connection_id=connection.connection_id,
-                                                                   recalc_interval_ms=100,
-                                                                   max_bandwidth_kbit_sec=connection.configuration.max_bandwidth_kbit)
-
         self._retransmission_cache = RetransmissionCache(self)
 
         from pymc.connection_timers import ConnectionTimerExecutor
+
+        # Create and start send-configuration task
+        self._xta_configuration_task = SendConfigurationTask(connection_id=connection.connection_id)
+        ConnectionTimerExecutor.getInstance().queue(interval=connection.configuration.configuration_interval_ms,
+                                                    task=self._xta_configuration_task)
+
+        # Create and start send-heartbeats task
+        self._xta_heartbeat_timer_task = SendHeartbeatTask(connection_id=connection.connection_id)
         ConnectionTimerExecutor.getInstance().queue(interval=connection.configuration.heartbeat_interval_ms,
-                                                    task=self._heartbeat_timer_task)
+                                                    task=self._xta_heartbeat_timer_task)
 
+        # Create and start flow regulator task
+        self._traffic_flow_task: TrafficFlowTask = TrafficFlowTask(connection_id=connection.connection_id,
+                                                                   recalc_interval_ms=100,
+                                                                   max_bandwidth_kbit_sec=connection.configuration.max_bandwidth_kbit)
         ConnectionTimerExecutor.getInstance().queue(interval=1000, task=self._traffic_flow_task)
-
 
     def log_protocol_data(self, segment: Segment):
         _msg_type = segment.hdr_msg_type
@@ -224,6 +227,8 @@ class ConnectionSender(object):
         if (self._current_update and
                 flush_request_seqno == self._current_update.flush_seqno and
                 self._current_update.update_count > 0):
+            if self._connection.is_logging_enabled(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
+                self._connection.log_info("Flushing holdback segment, sludh-seqno: {}".format(self._current_update.flush_seqno))
             self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
     def eval_outgoing_traffic_flow(self, bytes_sent: int) -> int:
@@ -236,6 +241,7 @@ class ConnectionSender(object):
         else:
             self.small_update_to_segment(xta_update)
 
+
         if (self._configuration.send_holdback_delay_ms > 0 and
                 self._traffic_flow_task.get_update_rate() > self._configuration.send_holdback_threshold and
                 Aux.current_milliseconds() - self._current_update.create_time < self._configuration.send_holdback_delay_ms):
@@ -247,8 +253,9 @@ class ConnectionSender(object):
                 ConnectionTimerExecutor.getInstance().queue(interval=self._configuration.send_holdback_delay_ms,
                                                             task=_timerTask)
                 if self._connection.is_logging_enabled(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
-                    self._connection.log_info("outgoing flow, queue new holdback flush timer seqno: {} holddback time: {} (ms)"
-                                  .format(self._last_update_flush_seqno, self._configuration.send_holdback_delay_ms))
+                    self._connection.log_info(
+                        "outgoing flow, queue new holdback flush timer seqno: {} holddback time: {} (ms)"
+                        .format(self._last_update_flush_seqno, self._configuration.send_holdback_delay_ms))
             return 0
         # send message
         return self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
@@ -289,7 +296,6 @@ class ConnectionSender(object):
         self._current_update.sequence_no = self._current_seqno
         self._current_update.hdr_segment_flags = segment_flags
 
-
         # self._current_update.encode()
         _send_delay = self.send_segment(self._current_update.segment)
 
@@ -307,8 +313,8 @@ class ConnectionSender(object):
             return 0
 
         if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
+            self._traffic_flow_task.increment(segment.length)
             if self._configuration.max_bandwidth_kbit > 0:
-                self._traffic_flow_task.increment(segment.length)
                 _wait_ms = self._traffic_flow_task.calculate_wait_time_ms
                 Aux.sleep_ms(_wait_ms)
 
@@ -339,6 +345,6 @@ class ConnectionSender(object):
 
             if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
                 self._retransmission_cache.addSentUpdate(segment)
-                self._heartbeat_timer_task.dataHasBeenPublished()
+                self._xta_heartbeat_timer_task.dataHasBeenPublished()
 
         return _send_time_usec
