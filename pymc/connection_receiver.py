@@ -41,10 +41,10 @@ class ConnectionReceiver(object):
             self._rcv_threads.append(_thr)
             _thr.start()
 
-    def triggerRemoteConfigurationNotifications(self, callback):
+    def trigger_remote_configuration_notifications(self, callback):
         self._remote_connection_controller.trigger_remote_configuration_notifications(callback)
 
-    def checkVersion(self, segment: Segment):
+    def check_version(self, segment: Segment):
         _major = ((NetMsg.VERSION >> 8) & 0xff)
         _minor = (NetMsg.VERSION & 0xff)
         _msg_major = (segment.hdr_version >> 8) & 0xff
@@ -60,21 +60,25 @@ class ConnectionReceiver(object):
         for _thr in self._rcv_threads:
             _thr.stop()
 
-    def processConfigurationMsg(self, segment: Segment):
-        self._remote_connection_controller.processConfigurationMessage(segment)
+    def process_configuration_msg(self, segment: Segment):
+        _msg = NetMsgConfiguration(segment)
+        _msg.decode()
+
+        self._remote_connection_controller.process_configuration_message(segment)
+
         if self._connection.is_logging_enabled(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg = NetMsgConfiguration(segment)
             _msg.decode()
             self._connection.log_info("PROTOCOL [RCV] [CONFIGURATION] {}".format(_msg))
 
-    def processHeartbeatMsg(self, segment: Segment):
+    def process_heartbeat_msg(self, segment: Segment):
         self._remote_connection_controller.process_heartbeat_message(segment)
         if self._connection.is_logging_enabled(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg = NetMsgHeartbeat(segment)
             _msg.decode()
             self._connection.log_info("PROTOCOL [RCV] [HEARTBEAT] {}".format(_msg))
 
-    def processUpdateMsg(self, segment: Segment):
+    def process_update_msg(self, segment: Segment):
         _msg = NetMsgUpdate(segment)
         _msg.decode()
 
@@ -83,21 +87,22 @@ class ConnectionReceiver(object):
                 self._connection.log_info(
                     "RETRANSMISSION: RCV SIMULATED  Error Segment [{}] dropped".format(_msg.sequence_no))
         else:
-            self._remote_connection_controller.process_update_segment(segment)
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
                 if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
                     self._connection.log_info("PROTOCOL [RCV] [UPDATE] {}".format(_msg))
                 else:
                     self._connection.log_info("PROTOCOL [RCV] [RETRANSMISSION] {}".format(_msg))
 
-    def processRetransmissionNAK(self, segment: Segment):
-        self._connection.retransmission_controller.processRetransmissionNAK(segment)
+            self._remote_connection_controller.process_update_segment(segment)
+
+    def process_retransmission_nak(self, segment: Segment):
+        self._connection.retransmission_controller.process_retransmission_nak(segment)
         if self._connection.is_logging_enabled(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg = NetMsgRetransmissionNAK(segment)
             _msg.decode()
             self._connection.log_info("PROTOCOL [RCV] [RETRANS-NAK] {}".format(_msg))
 
-    def processRetransmissionRqst(self, segment: Segment):
+    def process_retransmission_rqst(self, segment: Segment):
         _msg = NetMsgRetransmissionRqst(segment)
         _msg.decode()
         self._connection.connection_sender.retransmit(_msg)
@@ -107,7 +112,7 @@ class ConnectionReceiver(object):
 
     def process_received_segment(self, segment: Segment):
         if segment.hdr_version != NetMsg.VERSION:
-            if not self.checkVersion(segment):
+            if not self.check_version(segment):
                 return
         if self._connection.is_logging_enabled(DistributorLogFlags.LOG_SEGMENTS_EVENTS):
             _net_msg = NetMsg(segment)
@@ -116,17 +121,17 @@ class ConnectionReceiver(object):
 
         match segment.hdr_msg_type:
             case Segment.MSG_TYPE_UPDATE:
-                self.processUpdateMsg(segment)
+                self.process_update_msg(segment)
             case Segment.MSG_TYPE_CONFIGURATION:
-                self.processConfigurationMsg(segment)
+                self.process_configuration_msg(segment)
             case Segment.MSG_TYPE_HEARTBEAT:
-                self.processHeartbeatMsg(segment)
+                self.process_heartbeat_msg(segment)
             case Segment.MSG_TYPE_RETRANSMISSION:
-                self.processUpdateMsg(segment)
+                self.process_update_msg(segment)
             case Segment.MSG_TYPE_RETRANSMISSION_NAK:
-                self.processRetransmissionNAK(segment)
+                self.process_retransmission_nak(segment)
             case Segment.MSG_TYPE_RETRANSMISSION_RQST:
-                self.processRetransmissionRqst(segment)
+                self.process_retransmission_rqst(segment)
             case _:
                 raise DistributorException("unknown received message type: {}".format(segment.hdr_msg_type))
 

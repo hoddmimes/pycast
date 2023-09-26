@@ -43,7 +43,7 @@ class RemoteConnectionController(object):
         return None
 
 
-    def processConfigurationMessage(self, segment: Segment):
+    def process_configuration_message(self, segment: Segment):
         _remote_connection = self._remote_connections.get(segment.__hash__())
         if _remote_connection is None:
             _remote_connection = RemoteConnection(segment, self, self._connection)

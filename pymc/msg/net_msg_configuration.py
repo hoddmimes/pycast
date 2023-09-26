@@ -16,7 +16,8 @@ class NetMsgConfiguration(NetMsg):
         self._host_address: int = 0
         self._sender_start_time_sec: int = 0
 
-    def set(self, mc_addr:int, mc_port:int, sender_id:int, start_time_sec:int, heartbeat_interval:int, config_interval:int, host_addr:int, app_id: int, app_name:str):
+    def set(self, mc_addr: int, mc_port: int, sender_id: int, start_time_sec: int, heartbeat_interval: int,
+            config_interval: int, host_addr: int, app_id: int, app_name: str):
         self._mc_address = mc_addr
         self._mc_port = mc_port
         self._hb_interval_ms = heartbeat_interval
@@ -65,7 +66,7 @@ class NetMsgConfiguration(NetMsg):
 
     @property
     def sender_id (self) -> int:
-        return self._mc_port
+        return self._sender_id
 
     @property
     def send_start_time(self) -> int:
@@ -91,7 +92,7 @@ class NetMsgConfiguration(NetMsg):
     def app_name(self) -> str:
         return self._app_name
 
-    def __str__(self):
+    def __str__(self) -> str:
         sb = StringIO()
         sb.write(super().__str__())
         sb.write("\n    <")
@@ -100,8 +101,8 @@ class NetMsgConfiguration(NetMsg):
         sb.write(" HB intval: {}".format(self.hb_interval_ms))
         sb.write(" CFG intval: {}".format(self.cfg_interval_ms))
         sb.write(" StartTime: {}".format(Aux.time_string(self.send_start_time)))
-        sb.write(" SndrId: {0:x}".format(self.sender_id))
+        sb.write(" SndrId: {}".format(hex(self.sender_id)))
         sb.write(" Host: {}".format(Aux.ip_addr_int_to_str(self.host_address)))
         sb.write(" Appl: {}".format(self.app_name))
         sb.write(">")
-        return "".join(sb)
+        return sb.getvalue()

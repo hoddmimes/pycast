@@ -41,14 +41,14 @@ class CleanRetransmissionQueueTask(ConnectionTimerTask):
             t_first_item: RetransQueItm = t_cache.peakFirst
             t_last_item: RetransQueItm = t_cache.peakLast
             if t_first_item:
-                t_time_diff = t_first_item.queue_time - t_last_item.queue_time  # Diff in seconds
+                t_time_diff = t_last_item.queue_time - t_first_item.queue_time   # Diff in seconds
                 connection.log_info(
                     "RETRANSMISSON CACHE STATISTICS Connection: {}\n    size: {} elements: {} time-span: {} (sec)".
-                    format(str(connection.mIpmc), t_cache._cache_size, t_cache.queue_size, t_time_diff))
+                        format(str(connection.ipmc), t_cache._cache_size, t_cache.queue_size, t_time_diff))
             else:
                 connection.log_info(
                     "RETRANSMISSON CACHE STATISTICS Connection: {}\n    size: 0 elements: 0 time-span: 0 (sec)".
-                    format(str(connection.mIpmc)))
+                    format(str(connection.ipmc)))
 
         _items_removed = 0
         _t_threshold_time = Aux.current_seconds() - t_cache._configuration.retrans_cache_life_time_sec
@@ -67,16 +67,7 @@ class CleanRetransmissionQueueTask(ConnectionTimerTask):
                 t_cache._cache_size -= t_que_itm.segment.length
                 t_que_itm.segment = None
 
-class QueueRetransmissionListTask(ConnectionTimerTask):
-    def __init__(self, connection_id:int, retrans_list:list[RetransQueItm]):
-        super().__init__(connection_id)
-        self.mRetransList = list(reversed(retrans_list))
 
-    def execute(self, connection: 'Connection'):
-        if connection.mConnectionSender.mRetransmissionCache._is_dead:
-            return
-        connection.mConnectionSender.mRetransmissionCache.sendRetransmissions(self.mRetransList)
-        self.mRetransList = None
 
 class RetransmissionCache(object):
     def __init__(self, sender: 'ConnectionSender'):
@@ -108,13 +99,14 @@ class RetransmissionCache(object):
         self._clean_cache_task.cancel()
         self._queue.clear()
 
-    def addSentUpdate(self, segment: Segment):
+    def add_sent_update(self, segment: Segment):
+        segment.hdr_msg_type = Segment.MSG_TYPE_RETRANSMISSION
         _queitm: RetransQueItm = RetransQueItm(segment=segment, sequence_no=segment.seqno)
         self._queue.add(_queitm)
         self._cache_size += segment.length
-        self.microClean()
+        self.micro_clean()
 
-    def microClean(self):
+    def micro_clean(self):
         _itr: ListItr = ListItr(self._queue)
         while _itr.has_next():
             if self._cache_size <= self._configuration.retrans_max_cache_bytes:
@@ -125,7 +117,7 @@ class RetransmissionCache(object):
                 self._cache_size -= _queitm.segment.length
                 _queitm.segment = None
 
-    def getRetransmissionNAKSequenceNumbers(self, pLowestRequestedSeqNo, pLowestSeqNoInCache) -> list[int]:
+    def get_retransmission_nak_sequence_numbers(self, pLowestRequestedSeqNo, pLowestSeqNoInCache) -> list[int]:
         _size = 0
         _NAKSeqNumbers = None
         if pLowestRequestedSeqNo < pLowestSeqNoInCache:
@@ -134,7 +126,7 @@ class RetransmissionCache(object):
         pNAKSeqNumbers = list(range(pLowestRequestedSeqNo, pLowestSeqNoInCache))
         return pNAKSeqNumbers
 
-    def sendRetransmissionNAK(self, nak_seqno:list[int]):
+    def send_retransmission_nak(self, nak_seqno:list[int]):
         tNAKMsg = NetMsgRetransmissionNAK(XtaSegment(self._configuration.small_segment_size))
         tNAKMsg.setHeader(message_type=Segment.MSG_TYPE_RETRANSMISSION_NAK,
                           segment_flags=Segment.FLAG_M_SEGMENT_END + Segment.FLAG_M_SEGMENT_START,
@@ -148,7 +140,7 @@ class RetransmissionCache(object):
         tNAKMsg.encode()
         self._sender.send_segment(tNAKMsg._segment)
 
-    def sendRetransmissions(self, retrans_list: list[RetransQueItm]):
+    def send_retransmissions(self, retrans_list: list[RetransQueItm]):
         for tQueItm in retrans_list:
             tQueItm.resent_count += 1
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
@@ -161,9 +153,9 @@ class RetransmissionCache(object):
         _retrans_list: list[RetransQueItm] = []
         nak_sequence_numbers = None
 
-        if self._connection.isLogFlagSet(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
+        if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
             if self._queue.is_empty():
-                self._connection.log_info("RETRANSMISSION: RCV Request for resending Segment [{}:{}] Cache is empty!".
+                self._connection.log_info("RETRANSMISSION: RCV Request for resending Segment [{}:{}] Cache is empty!!!".
                                           format(low_seqno, high_seqno))
             else:
                 _first: RetransQueItm = RetransQueItm.cast(self._queue.peekFirst())
@@ -172,26 +164,27 @@ class RetransmissionCache(object):
                     "RETRANSMISSION: RCV Request for resending Segment [{}:{}] Cache Segment [{}:{}]".
                     format(low_seqno, high_seqno, _first.seqno, _last.seqno))
             if self._queue.is_empty():
-                nak_sequence_numbers = self.getRetransmissionNAKSequenceNumbers(low_seqno, high_seqno)
+                nak_sequence_numbers = self.get_retransmission_nak_sequence_numbers(low_seqno, high_seqno)
             else:
                 _first: RetransQueItm = RetransQueItm.cast(self._queue.peekFirst())
 
                 if low_seqno < _first.seqno:
-                    nak_sequence_numbers = self.getRetransmissionNAKSequenceNumbers(low_seqno, _first.seqno)
+                    nak_sequence_numbers = self.get_retransmission_nak_sequence_numbers(low_seqno, _first.seqno)
                 _itr = ListItr(linked_list=self._queue, forward=False)
-                while _itr.has_next():
-                    _que_itm: RetransQueItm = RetransQueItm.cast(_itr.next())
+                while _itr.has_previous():
+                    _que_itm: RetransQueItm = RetransQueItm.cast(_itr.previous())
                     if _que_itm.seqno < low_seqno:
                         break
                     if _que_itm.seqno >= low_seqno and _que_itm.seqno <= high_seqno:
                         _que_itm.in_progress = True
                         _retrans_list.append(_que_itm)
         if nak_sequence_numbers is not None:
-            self.sendRetransmissionNAK(nak_sequence_numbers)
+            self.send_retransmission_nak(nak_sequence_numbers)
         if len(_retrans_list) > 0 and self._configuration.retrans_server_holdback_ms > 0:
-            _task = QueueRetransmissionListTask(self._connection.mConnectionId, _retrans_list)
-            ConnectionTimerExecutor.getInstance().queue(self._configuration.retrans_server_holdback_ms, _task)
+            from pymc.queue_retrans_list_task import QueueRetransmissionListTask
+            _task = QueueRetransmissionListTask(self._connection.connection_id, _retrans_list)
+            ConnectionTimerExecutor.getInstance().queue(interval=self._configuration.retrans_server_holdback_ms, task=_task, repeat=False)
         elif len(_retrans_list) > 0 and self._configuration.retrans_server_holdback_ms <= 0:
-            self.sendRetransmissions(_retrans_list)
+            self.send_retransmissions(_retrans_list)
 
 

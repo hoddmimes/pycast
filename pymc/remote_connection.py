@@ -134,8 +134,8 @@ class RemoteConnection(object):
     def __str__(self):
         sb = StringIO()
         sb.write("host: {}".format(self._remote_host_address_string))
-        sb.write(" sender_id: {0:x}".format(self._remote_sender_id))
-        sb.write(" start_time: {}".format(Aux.time_string(self._remote_start_time)))
+        sb.write(" remote_sender_id: {0:x}".format(self._remote_sender_id))
+        sb.write(" remote_start_time: {}".format(Aux.time_string(self._remote_start_time)))
         sb.write(" connect_time: {}".format(self._connect_time_string))
         sb.write(" appl_name: {} \n".format(self._remote_application_name))
         sb.write("    hb_interval: {}".format(self._heartbeat_interval))
@@ -147,9 +147,11 @@ class RemoteConnection(object):
         _msg = NetMsgHeartbeat(segment)
         _msg.decode()
         self._hb_active = True
-        if self._start_synchronized and self._highiest_seen_seqno < _msg.sequence_no:
-            self._retransmission_controller.create_retransmission_request(self, self._highiest_seen_seqno + 1,
-                                                                          _msg.sequence_no)
+        if self._start_synchronized and self._highiest_seen_seqno + 1 < _msg.sequence_no:
+            if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
+                self._connection.log_info("RETRANSMISSION Heartbeat out of sync highest-seqno {} hb-seqno {}".
+                                          format(self._highiest_seen_seqno, _msg.sequence_no))
+            self._retransmission_controller.create_retransmission_request(self, self._highiest_seen_seqno + 1, _msg.sequence_no)
             self._highiest_seen_seqno = _msg.sequence_no
 
     def check_message_sequence(self, msg: NetMsgUpdate):
@@ -187,12 +189,12 @@ class RemoteConnection(object):
             _msg.decode()
             if _msg.sequence_no == self._next_expected_seqno:
                 self._next_expected_seqno += 1
-                _rcv_segment = RcvSegment(Segment.cast(self._pending_receiver_queue.removeFirst()))
+                _segment: Segment =Segment.cast(self._pending_receiver_queue.removeFirst())
                 if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
-                    self._connection.lo(
+                    self._connection.log_info(
                         "RETRANSMISSION: RCV Process message from pending queue Segment [{}] QueueSize: {}".format(
-                            _rcv_segment.sequence_no, self._pending_receiver_queue.size))
-                self.segment_to_rcv_segment_batch(_rcv_segment)
+                            _segment.seqno, self._pending_receiver_queue.size))
+                self.segment_to_rcv_segment_batch(_segment)
             else:
                 return
 
@@ -205,12 +207,16 @@ class RemoteConnection(object):
         while _itr.has_previous():
             _segment: Segment = Segment.cast(_itr.previous())
             if _segment.seqno == segment.seqno:
+                self._pending_receiver_queue.dump()
                 return
             elif _segment.seqno > segment.seqno:
                 _itr.add(_segment)
+                self._pending_receiver_queue.dump()
                 return
 
         self._pending_receiver_queue.addhdr(segment)
+        self._pending_receiver_queue.dump()
+
 
     def process_update_segment(self, segment: Segment):
 
@@ -223,14 +229,13 @@ class RemoteConnection(object):
         _msg.decode()
 
         if segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION:
-            self._retransmission_controller.updateRetransmissions(segment)
+            self._retransmission_controller.update_retransmissions(segment)
 
         _action = self.check_message_sequence(_msg)
 
         if _action == NetMsg.SYNCH:
-            if (segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION and
-                    self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS)):
-                self._connection.log_info("RETRANSMISSION: RCV Retransmission Segment [{}]".format(_msg.sequence_no))
+            if segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION and self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):(
+                self._connection.log_info("RETRANSMISSION: RCV Retransmission Segment [{}]".format(_msg.sequence_no)))
 
             self._next_expected_seqno += 1
             if _msg.sequence_no > self._highiest_seen_seqno:
@@ -246,15 +251,15 @@ class RemoteConnection(object):
             return
         elif _action == NetMsg.HIGHER:
             if _msg.sequence_no > self._highiest_seen_seqno + 1:
-                self._retransmission_controller.create_retransmission_request(self,
-                                                                              self._highiest_seen_seqno,
-                                                                              _msg.sequence_no - 1)
+                self._retransmission_controller.create_retransmission_request(remote_connection=self,
+                                                                              low_seqno=(self._highiest_seen_seqno + 1),
+                                                                              high_seqno=_msg.sequence_no - 1)
             self._highiest_seen_seqno = _msg.sequence_no
 
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
                 self._connection.log_info(
                     "RETRANSMISSION: RCV Message To Pending Queue Segment [{}]".format(_msg.sequence_no))
-            self._retransmission_controller.updateRetransmissions(segment)
+            self._retransmission_controller.update_retransmissions(segment)
             self.segment_to_pending_receiver_queue(segment=segment)
 
 

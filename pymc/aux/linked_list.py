@@ -65,6 +65,9 @@ class ListItr(object):
             self._curr_item._flink = _itm
             self.linked_list._size += 1
 
+
+
+
     def remove(self):
         with self._mutex and self.linked_list:
             if self._curr_item == self.linked_list._header:
@@ -183,3 +186,14 @@ class LinkedList:
                     _itr.remove()
                     return True
             return False
+
+    def dump(self):
+        with self._mutex:
+            if self._header._flink == self._header:
+                print("DLL No items in the list")
+                return
+            else:
+                lnk: Link = self.self._header._flink
+                while lnk != self._header:
+                    print("DLL {}".format( str(lnk._object)))
+                    lnk = lnk._flink

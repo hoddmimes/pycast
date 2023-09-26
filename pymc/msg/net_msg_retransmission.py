@@ -19,14 +19,16 @@ class NetMsgRetransmissionRqst(NetMsg):
         self._sender_id: int = 0
         self._sender_start_time_ms: int = 0
 
-    def set(self, requestor_addr: int, low_seqno: int, high_seqno: int, host_name: str, appl_name: str, sender_id: int, sender_start_time_ms: int):
+    def set(self, requestor_addr: int, low_seqno: int, high_seqno: int, host_name: str, appl_name: str,
+            remote_sender_id: int, remote_sender_start_time_ms: int):
+
         self._requestor_addr = requestor_addr
         self._low_seqno = low_seqno
         self._high_seqno = high_seqno
         self._host_name = host_name
         self._app_name = appl_name
-        self._sender_id = sender_id
-        self._sender_start_time_ms = sender_start_time_ms
+        self._sender_id = remote_sender_id
+        self._sender_start_time_ms = remote_sender_start_time_ms
 
     @property
     def requestor_addr(self) -> int:
@@ -70,7 +72,7 @@ class NetMsgRetransmissionRqst(NetMsg):
         _decoder = super().decoder
         self._requestor_addr = _decoder.getInt()
         self._sender_id = _decoder.getInt()
-        self._sender_start_time_ms = _decoder.getInt()
+        self._sender_start_time_ms = _decoder.getLong()
         self._low_seqno = _decoder.getInt()
         self._high_seqno = _decoder.getInt()
         self._host_name = _decoder.getString()
@@ -79,7 +81,7 @@ class NetMsgRetransmissionRqst(NetMsg):
 
 
     def __str__(self):
-        sb = StringIO
+        sb = StringIO()
         sb.write(super().__str__())
         sb.write("\n    <")
         sb.write("Rqstr addr: " + Aux.ip_addr_int_to_str(self.requestor_addr))

@@ -20,44 +20,9 @@ from pymc.distributor_configuration import DistributorLogFlags
 from pymc.client_controller import ClientDeliveryController
 
 
-def sendHeartbeat(connection: 'Connection'):
-    from pymc.distributor import Distributor
-    _heartbeat = NetMsgHeartbeat(XtaSegment(connection.configuration.small_segment_size))
-    _heartbeat.setHeader(
-        message_type=Segment.MSG_TYPE_HEARTBEAT,
-        segment_flags=Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END,
-        local_address=connection.connection_sender.local_address,
-        sender_id=connection.connection_sender.sender_id,
-        sender_start_time_sec=connection.connection_sender.sender_start_time,
-        app_id=Distributor.get_instance().app_id)
-
-    _heartbeat.set(
-        mc_addr=connection.ipmc.mc_address,
-        mc_port=connection.ipmc.mc_port,
-        sender_id=connection.connection_sender.sender_id,
-        sequence_no=connection.connection_sender.current_seqno)
-    _heartbeat.encode()
-    from pymc.connection import Connection
-    connection.connection_sender.send_segment(_heartbeat.segment)
 
 
-class SendHeartbeatTask(ConnectionTimerTask):
-    def __init__(self, connection_id):
-        super().__init__(connection_id)
-        self._connection_is_sending = False
 
-    def dataHasBeenPublished(self):
-        self._connection_is_sending = True
-
-    def execute(self, connection: 'Connection'):
-        if connection.is_time_to_die:
-            super().cancel()
-            return
-        if len(connection.publishers) == 0:
-            return
-        if not self._connection_is_sending:
-            sendHeartbeat(connection)
-        self._connection_is_sending = False
 
 
 def sendConfiguration(connection: 'Connection'):
@@ -94,7 +59,7 @@ def random_error(probability: int):  # n/1000
 
 class ConnectionSender(object):
     def __init__(self, connection: 'Connection'):
-        self._sender_id: int = Aux_UUID.getId()
+        self._sender_id: Aux_UUID.getId()
         self._error_signaled: bool = False
         self._sender_start_time = Aux.current_seconds()
         self._last_update_flush_seqno: int = 0
@@ -110,7 +75,7 @@ class ConnectionSender(object):
         from pymc.distributor import Distributor
         self._local_address: int = Distributor.get_instance().local_address
         self._app_id: int = Distributor.get_instance().app_id
-        self._current_seqno: int = 1  # Start at sequence number 1
+        self._current_seqno: int = 0  # Start at sequence number 0
 
         self._configuration: ConnectionConfiguration = connection.configuration
 
@@ -127,6 +92,7 @@ class ConnectionSender(object):
                                                     task=self._xta_configuration_task)
 
         # Create and start send-heartbeats task
+        from pymc.send_hearbeat_task import SendHeartbeatTask
         self._xta_heartbeat_timer_task = SendHeartbeatTask(connection_id=connection.connection_id)
         ConnectionTimerExecutor.getInstance().queue(interval=connection.configuration.heartbeat_interval_ms,
                                                     task=self._xta_heartbeat_timer_task)
@@ -195,14 +161,16 @@ class ConnectionSender(object):
 
     def retransmit(self, msg: NetMsgRetransmissionRqst):
         if msg.sender_start_time == self.sender_start_time and msg.sender_id == self.sender_id:
-            self._connection.updateInRetransmissionStatistics(self._connection.mc_address(),
-                                                              self._connection.mc_port,
-                                                              msg, True)
+            self._connection.update_in_retransmission_statistics(mc_addr=self._connection.mc_address,
+                                                                 mc_port=self._connection.mc_port,
+                                                                 msg=msg,
+                                                                 to_this_node=True)
             self._retransmission_cache.retransmit(msg.low_sequence_no, msg.high_sequence_no)
         else:
-            self._connection.updateInRetransmissionStatistics(self._connection.mc_address(),
-                                                              self._connection.mc_port,
-                                                              msg, False)
+            self._connection.update_in_retransmission_statistics(mc_addr=self._connection.mc_address,
+                                                                 mc_port=self._connection.mc_port,
+                                                                 msg=msg,
+                                                                 to_this_node=False)
 
     def get_new_current_update(self) -> NetMsgUpdate:
         # should always be None when calling this method
@@ -293,13 +261,12 @@ class ConnectionSender(object):
         if self._current_update.update_count == 0:
             return 0  # No updates in segment we can continue to use this one
 
+        self._current_seqno += 1
         self._current_update.sequence_no = self._current_seqno
         self._current_update.hdr_segment_flags = segment_flags
 
         # self._current_update.encode()
         _send_delay = self.send_segment(self._current_update.segment)
-
-        self._current_seqno += 1
 
         self._current_update = None
         self._current_update = self.get_new_current_update()
@@ -327,7 +294,7 @@ class ConnectionSender(object):
         if (self._configuration.fake_xta_error_rate > 0 and
                 random_error(self._configuration.fake_xta_error_rate) and
                 segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE):
-            self._connection.log_info('SIMULATED XTA Error Segment [{}] dropped'.format(segment.seqno))
+            self._connection.log_info('SIMULATED XTA Error Segment seqno: {} dropped'.format(segment.seqno))
 
         else:
             try:
@@ -343,8 +310,8 @@ class ConnectionSender(object):
                 ClientDeliveryController.get_instance().queue_event(connection_id=self._connection.connection_id,
                                                                     event=_event)
 
-            if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
-                self._retransmission_cache.addSentUpdate(segment)
-                self._xta_heartbeat_timer_task.dataHasBeenPublished()
+        if segment.hdr_msg_type == Segment.MSG_TYPE_UPDATE:
+            self._retransmission_cache.add_sent_update(segment)
+            self._xta_heartbeat_timer_task.data_has_been_published()
 
         return _send_time_usec

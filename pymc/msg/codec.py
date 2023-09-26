@@ -267,7 +267,7 @@ class Encoder(Codec):
 
 class Decoder(Codec):
 
-    def __init__(self, buffer: bytearray):
+    def __init__(self, buffer: bytes):
         super().__init__(buffer)
 
     def getBool(self) -> bool:

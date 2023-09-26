@@ -89,8 +89,8 @@ class RetransmissionRequestItem(ConnectionTimerTask):
                       high_seqno=self._high_seqno,
                       host_name=Aux.ip_addr_int_to_str(connection.local_address),
                       appl_name=Distributor.get_instance().app_name,
-                      sender_id=remote_connection.remote_sender_id,
-                      sender_start_time_ms=remote_connection.remote_start_time)
+                      remote_sender_id=remote_connection.remote_sender_id,
+                      remote_sender_start_time_ms=remote_connection.remote_start_time)
 
         connection.retransmission_statistics.update_out_statistics(mc_address=connection.mc_address,
                                                                    mc_port=connection.mc_port,
@@ -114,6 +114,7 @@ class RetransmissionRequestItem(ConnectionTimerTask):
                         hex(remote_connection.remote_sender_id), self._low_seqno,
                         remote_connection.highiest_seen_seqno))
 
+        from pymc.client_controller import ClientDeliveryController
         ClientDeliveryController.get_instance().queue_event(self._connection_id, _event)
 
     def adjust_seqno(self, seqno: int):
@@ -166,6 +167,7 @@ class RetransmissionRequestItem(ConnectionTimerTask):
                         .format(remote_connection.remote_host_address_string,
                                 hex(remote_connection.remote_sender_id), self._low_seqno, self._high_seqno))
 
+                from pymc.client_controller import ClientDeliveryController
                 ClientDeliveryController.get_instance().queue_event(connection.connection_id, _event)
 
 
@@ -194,6 +196,10 @@ class RetransmissionController:
             self._retransmission_request_queue.clear()
 
     def create_retransmission_request(self, remote_connection, low_seqno, high_seqno):
+        if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
+            self._connection.log_info("RETRANSMISSION out-of-synch create retrans-rqst-item [{}:{}]"
+                                      .format(low_seqno, high_seqno))
+
         _rqst_task = RetransmissionRequestItem(connection_id=self._connection.connection_id,
                                                remote_connection_id=remote_connection.remote_connection_id,
                                                low_seqno=low_seqno,

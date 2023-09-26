@@ -6,8 +6,12 @@ from abc import ABC
 from threading import Thread, current_thread, Event
 from concurrent.futures import Future
 from typing import Any
+
+from pymc.aux.aux import Aux
 from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.linked_list import ListItr, LinkedList
+from pymc.msg.net_msg_retransmission import NetMsgRetransmissionRqst
+from pymc.msg.segment import Segment
 
 
 class BaseClass(ABC):
@@ -39,33 +43,34 @@ def test( base: BaseClass):
     print(x)
 
 def main():
-    q: LinkedList = LinkedList()
-    q.add(1)
-    q.add(2)
-    q.add(4)
-    q.add(6)
+    xsegment: Segment = Segment(512)
+    xsegment.setHeader( header_version=0x0101,
+                       messsage_type=5,
+                       segment_flags=Segment.FLAG_M_SEGMENT_START+Segment.FLAG_M_SEGMENT_END,
+                       local_address=123456789,
+                       sender_id=4242,
+                       sender_start_time_sec=Aux.current_seconds(),
+                       app_id=0x6666)
 
-    '''
-    itr: ListItr =  ListItr(q, forward=False)
-    while itr.has_previous():
-        v = itr.previous()
-        if 5 > v:
-            itr.add(5)
-            break
-    '''
-    itr: ListItr =  ListItr(q, forward=True)
-    while itr.has_next():
-        v = itr.next()
-        if 5 < v:
-            itr.previous()
-            itr.add(5)
-            break
 
-    itr: ListItr = ListItr(q)
-    while itr.has_next():
-        v = itr.next()
-        print(v)
-    print("end")
+    xmsg: NetMsgRetransmissionRqst = NetMsgRetransmissionRqst(xsegment)
+    xmsg.set(requestor_addr=234567890,
+            low_seqno=11,
+            host_name="123456789",
+            high_seqno=12,
+            appl_name='test',
+            remote_sender_id=8888,
+            remote_sender_start_time_ms=2424242424)
+
+    xmsg.encode()
+    print(xmsg)
+    data:bytes = xmsg.segment.buffer
+
+    rsegment:Segment = Segment(data)
+    rmsg: NetMsgRetransmissionRqst = NetMsgRetransmissionRqst(rsegment)
+    rmsg.decode()
+
+    print( rmsg )
 
 
 

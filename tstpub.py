@@ -1,18 +1,17 @@
 import random
 import sys
-import threading
-import itertools
 import time
-from time import sleep
 
+from tstmsg import TestMessage
 from pymc.aux.aux import Aux
 from pymc.connection import Connection
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.distributor import Distributor
 from pymc.distributor_configuration import DistributorConfiguration, DistributorLogFlags
 from pymc.publisher import Publisher
-from pymc.subscriber import Subscriber
 from pymc.distributor_events import DistributorEvent
+
+
 
 
 def parse_arguments() -> dict:
@@ -32,7 +31,7 @@ def parse_arguments() -> dict:
             params['max_size'] = int(sys.argv[i+1])
             i += 1
         if sys.argv[i] == "-rate":
-            params['rate'] = int(sys.argv[i+1])
+            params['rate'] = float(sys.argv[i+1])
             i += 1
         if sys.argv[i] == "-subjects":
             params['subjects'] = int(sys.argv[i+1])
@@ -49,18 +48,13 @@ def parse_arguments() -> dict:
 def publisher_event_callback(event: DistributorEvent):
     print("{} [PUBLISHER-EVENT-CALLBACK] {}".format(Aux.time_string(), event))
 
-
-
-def create_data( size: int) -> bytes:
-    return bytes([65]) * size
-
 def generate_subjects( count: int) -> [str]:
     subjects = []
     for i in range(count):
         subjects.append("/test/{}".format(str(i).zfill(4)))
     return subjects
 
-def calculate_dismiss( rate: int) -> tuple:
+def calculate_dismiss( rate ) -> tuple:
 
     if rate <= 100:
         d = int(1000 / rate)
@@ -87,13 +81,13 @@ def calculate_dismiss( rate: int) -> tuple:
 
 
 
-
 def main():
     params = parse_arguments()
 
     distributor_configuration: DistributorConfiguration = DistributorConfiguration(application_name='test')
 
     distributor_configuration.log_flags += (DistributorLogFlags.LOG_DEFAULT_FLAGS +
+                                            # DistributorLogFlags.LOG_RETRANSMISSION_CACHE +
                                             # DistributorLogFlags.LOG_DATA_PROTOCOL_XTA +
                                             # DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS +
                                             DistributorLogFlags.LOG_RMTDB_EVENTS)
@@ -101,7 +95,8 @@ def main():
     distributor: Distributor = Distributor(configuration=distributor_configuration)
 
     connection_configuration: ConnectionConfiguration = ConnectionConfiguration(mca='224.10.11.12', mca_port=5656)
-    connection_configuration.send_holdback_delay_ms = 20
+    connection_configuration.send_holdback_delay_ms = 20 # if the rate exceeds send_holdback_threshold  per send_holdback_calc_interval_ms
+    connection_configuration.fake_xta_error_rate = 30 # randomly simulate 30 error per 1000 messages
 
     connection: Connection = distributor.create_connection(connection_configuration)
 
@@ -114,27 +109,27 @@ def main():
 
 
     # Start publisher logic
-    loop_count: int = 0
     stop_count: int = params['count']
     min_size = params['min_size']
     max_size = params['max_size']
     verbose = params['verbose']
 
     start_time = time.perf_counter()
+    sequence_number = 0
 
-    while loop_count < stop_count and loop_count < stop_count:
+    while sequence_number < stop_count:
         for i in range(xta_loop):
+            sequence_number += 1
+            _msg = TestMessage(sequence_number, random.randrange(min_size, max_size))
             _subject_index = random.randrange(0, len(subjects))
-            _data = create_data(random.randrange(min_size, max_size))
-            publisher.publish(subject=subjects[_subject_index], data_bytes=_data)
-            loop_count += 1
-            if ((loop_count % verbose) == 0):
-                print("published {} updates".format(loop_count))
+            publisher.publish(subject=subjects[_subject_index], data_bytes=_msg.encode())
+            if ((sequence_number % verbose) == 0):
+                print("published {} updates".format(sequence_number))
         Aux.sleep_ms(xta_dismiss)
 
     exec_time = time.perf_counter()
-    xta_rate = loop_count / exec_time
-    print("{} Sent {} updates, rate {:.1f}".format(Aux.time_string(), loop_count, round(xta_rate,1)))
+    xta_rate = sequence_number / exec_time
+    print("{} Sent {} updates, rate {:.1f}".format(Aux.time_string(), sequence_number, round(xta_rate,1)))
 
     
 if __name__ == '__main__':

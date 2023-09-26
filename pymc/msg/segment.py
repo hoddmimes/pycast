@@ -167,6 +167,7 @@ class Segment(ABC, object):
     @hdr_msg_type.setter
     def hdr_msg_type(self, value:  int):
         self._hdr_msg_type = value
+        self._encoder.putByteAt( Segment.HDR_OFFSET_MSG_TYPE, Segment.MSG_TYPE_RETRANSMISSION)
 
     @property
     def hdr_segment_flags(self) -> int:

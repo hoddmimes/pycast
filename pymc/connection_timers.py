@@ -23,7 +23,7 @@ class TimerTaskWraper(object):
         self._task: ConnectionTimerTask = connection_timer_task
         self._delay_ms: int = delay_ms
         self._repeat: bool = repeat
-        self._init_delay = init_delay or delay_ms
+        self._init_delay = init_delay
 
 
     @classmethod
@@ -49,6 +49,9 @@ class TimerTaskWraper(object):
     def init_delay(self) -> int:
         return self._init_delay
 
+    def __str__(self):
+        return 'class: {} repeat: {} delay: {} init-delay: {} '.format( self.__class__.__name__, self.repeat, self.delay_ms, self.init_delay)
+
 
 def _timer_executor_(timer_task: TimerTaskWraper):
     # Always execute one time
@@ -56,7 +59,6 @@ def _timer_executor_(timer_task: TimerTaskWraper):
     while timer_task.repeat or _first_execution:
         if timer_task.task.canceled:
             return
-
         if _first_execution:
             Aux.sleep_ms(timer_task.init_delay)
             _first_execution = False
@@ -103,7 +105,12 @@ class ConnectionTimerExecutor(object):
             self._executor.submit(_timer_executor_, timer_task)
 
     def queue(self, interval: int, task: ConnectionTimerTask, init_delay: int = None, repeat: bool = True):
-        timer_task: TimerTaskWraper = TimerTaskWraper(delay_ms=interval, connection_timer_task=task, init_delay=init_delay, repeat=repeat)
+        if init_delay is None:
+            _init_delay = interval
+        else:
+            _init_delay = init_delay
+
+        timer_task: TimerTaskWraper = TimerTaskWraper(delay_ms=interval, connection_timer_task=task, init_delay=_init_delay, repeat=repeat)
         self._queue.add(timer_task)
 
 

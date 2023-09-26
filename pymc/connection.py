@@ -61,12 +61,12 @@ class Connection(object):
         self._traffic_statistic_task = TrafficStatisticTimerTask(self._connection_id)
         ConnectionTimerExecutor.getInstance().queue(interval=1000, task=self._traffic_statistic_task, repeat=True)
         self._state: int = self.STATE_RUNNING
+
     def __enter__(self):
         self._mutex.acquire()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._mutex.release()
-
 
     def remove_publisher(self, publisher: 'Publisher'):
         self._publishers.remove(publisher)
@@ -146,7 +146,7 @@ class Connection(object):
 
     @property
     def local_address(self) -> int:
-        from distributor import Distributor
+        from pymc.distributor import Distributor
         return Distributor.get_instance().local_address
 
     @property
@@ -163,7 +163,7 @@ class Connection(object):
         self._subscribers.append(_subscriber)
         if event_callback:
             ClientDeliveryController.get_instance().add_event_listner(self._connection_id, event_callback)
-            self._connection_receiver.triggerRemoteConfigurationNotifications(event_callback)
+            self._connection_receiver.trigger_remote_configuration_notifications(event_callback)
 
         return _subscriber
 
@@ -186,10 +186,9 @@ class Connection(object):
 
         if event_callback:
             ClientDeliveryController.get_instance().add_event_listner(self._connection_id, event_callback)
-            self._connection_receiver.triggerRemoteConfigurationNotifications(event_callback)
+            self._connection_receiver.trigger_remote_configuration_notifications(event_callback)
 
         return publisher
-
 
     def add_subscription(self, subscriber: 'Subscriber', subject: str, callback_parameter: object):
         if self.is_time_to_die:
