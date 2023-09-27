@@ -14,6 +14,7 @@ from pymc.aux.aux import Aux
 from pymc.aux.aux_uuid import Aux_UUID
 from pymc.connection_timers import ConnectionTimerExecutor, ConnectionTimerTask
 from pymc.distributor_configuration import DistributorLogFlags
+from pymc.aux.trace import Trace
 
 
 class RemoteConnection(object):
@@ -271,7 +272,7 @@ class CheckConfigurationTask(ConnectionTimerTask):
         super().__init__(connection_id)
         self.remote_connection_id = remote_connection_id
 
-    def execute(self, connection):
+    def execute(self, connection, trace: Trace):
         _remote_connection: RemoteConnection = connection.connection_receiver.get_remote_connection_by_id(self.remote_connection_id)
         if _remote_connection is None:
             self.cancel()

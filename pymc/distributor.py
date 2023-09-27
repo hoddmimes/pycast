@@ -11,12 +11,16 @@ from pymc.aux.log_manager import LogManager
 from pymc.distributor_configuration import DistributorConfiguration
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.connection_controller import ConnectionController
+from pymc.aux.trace import Trace
 
 
 class Distributor(object):
     _instance = None
 
     def __init__(self, application_name: str = None, configuration: DistributorConfiguration = None):
+        Trace.enabled = configuration.trace_enabled
+        Trace.print_limit_usec = configuration.print_limit_usec
+
         self._aux_uuid: Aux_UUID = Aux_UUID()
         if application_name is None and configuration is None:
             raise DistributorException("parameter 'application_name' and/or 'configuration' must be present")

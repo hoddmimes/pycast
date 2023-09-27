@@ -96,7 +96,7 @@ def main():
 
     connection_configuration: ConnectionConfiguration = ConnectionConfiguration(mca='224.10.11.12', mca_port=5656)
     connection_configuration.send_holdback_delay_ms = 20 # if the rate exceeds send_holdback_threshold  per send_holdback_calc_interval_ms
-    connection_configuration.fake_xta_error_rate = 30 # randomly simulate 30 error per 1000 messages
+    # connection_configuration.fake_xta_error_rate = 30 # randomly simulate 30 error per 1000 messages
 
     connection: Connection = distributor.create_connection(connection_configuration)
 
@@ -116,15 +116,24 @@ def main():
 
     start_time = time.perf_counter()
     sequence_number = 0
+    _sndtim: float = 0
+    _xta_time_usec = 0
 
     while sequence_number < stop_count:
         for i in range(xta_loop):
             sequence_number += 1
             _msg = TestMessage(sequence_number, random.randrange(min_size, max_size))
             _subject_index = random.randrange(0, len(subjects))
-            publisher.publish(subject=subjects[_subject_index], data_bytes=_msg.encode())
+            _t1 = time.perf_counter_ns()
+            _xta_time_usec += publisher.publish(subject=subjects[_subject_index], data_bytes=_msg.encode())
+            _sndtim += (time.perf_counter_ns() - _t1)
             if ((sequence_number % verbose) == 0):
-                print("published {} updates".format(sequence_number))
+                exec_time = time.perf_counter() - start_time
+                xta_rate = sequence_number / exec_time
+                xta_wait_time_usec = (_sndtim / 1000) / sequence_number
+                _xta_transmission_time_usec = _xta_time_usec / sequence_number
+                print("published {} updates updates, rate {:.1f} xta overall time / update: {} (usec) xta send-time / update {} (usec)"
+                      .format(sequence_number,  round(xta_rate,1), int(xta_wait_time_usec), int(_xta_transmission_time_usec)))
         Aux.sleep_ms(xta_dismiss)
 
     exec_time = time.perf_counter()

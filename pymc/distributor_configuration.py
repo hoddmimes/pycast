@@ -16,6 +16,8 @@ class DistributorLogFlags:
 class DistributorConfiguration(object):
 
     def __init__(self, application_name: str):
+        self.trace_enabled = False
+        self.print_limit_usec = 3000
         self.app_name = application_name
         self.log_flags = DistributorLogFlags.LOG_DEFAULT_FLAGS
         self.log_to_console = True

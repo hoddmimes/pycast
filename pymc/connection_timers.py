@@ -12,6 +12,7 @@ from pymc.connection_timer_task import ConnectionTimerTask
 from pymc.connection_controller import ConnectionController
 from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.aux import Aux
+from pymc.aux.trace import Trace
 
 import time
 
@@ -68,15 +69,19 @@ def _timer_executor_(timer_task: TimerTaskWraper):
         if timer_task.task.connection_id == 0: # test connection id
             timer_task.task.execute(None)
         else:
+            trcctx: Trace = Trace(verbose=False)
             _connection = ConnectionController.get_instance().get_connection(connection_id=timer_task.task.connection_id)
+            trcctx.add("got Connection")
             if _connection is None:
                 raise DistributorException("Can not retreive connection with id {}, appears to be closed and removed".format(hex(timer_task.task.connection_id)))
             with _connection:
+                trcctx.add("got and locked Connection({})".format( timer_task.task.__class__.__name__))
                 try:
-                    timer_task.task.execute(_connection)
+                    timer_task.task.execute(_connection, trcctx)
+                    trcctx.add("execution completed")
                 except Exception as e:
                     _connection.log_exception(e)
-
+            trcctx.dump()
 
 
 class ConnectionTimerExecutor(object):
@@ -127,7 +132,7 @@ class _TestTask(ConnectionTimerTask):
         self._count = 0
         self._overhead = 0
 
-    def execute(self, connection):
+    def execute(self, connection, trace: Trace):
         self._count += 1
         _exec_time = (perf_counter() - self.startTime) * 1000.0
         self._overhead += _exec_time - self.interval

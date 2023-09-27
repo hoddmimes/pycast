@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from pymc.aux.aux import Aux
 from pymc.msg.rcv_segment import Segment, RcvSegment
 from pymc.distributor_configuration import DistributorLogFlags
+from pymc.aux.trace import Trace
 
 
 class AsyncEvent(ABC):
@@ -12,7 +13,7 @@ class AsyncEvent(ABC):
         pass
 
     @abstractmethod
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         pass
 
     @abstractmethod
@@ -165,7 +166,7 @@ class AsyncEventSignalEvent(AsyncEvent, ABC):
     def __str__(self) -> str:
         return "AsyncEventSignalEvent event: {}".format(self.event)
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         if connection.is_logging_enabled(DistributorLogFlags.LOG_ERROR_EVENTS):
             connection.log_info("APPLICATION ERROR EVENT Event: {}".format(self.event))
 
@@ -178,7 +179,7 @@ class AsyncEventFlushSender(AsyncEvent, ABC):
         super().__init__()
         self.mCurrentFlushSeqno = current_flush_seqno
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         connection.mConnectionSender.flush_holdback(self.mCurrentFlushSeqno)
 
     def toString(self) -> str:
@@ -190,7 +191,7 @@ class AsyncEventReceiveSegment(AsyncEvent, ABC):
         super().__init__()
         self.mRcvSegment = rcv_segment
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         connection.traffic_statistic_task.update_rcv_statistics(self.mRcvSegment)
         connection.connection_receiver.process_received_segment(self.mRcvSegment)
 

@@ -2,6 +2,7 @@ from pymc.connection_timer_task import ConnectionTimerTask
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
 from pymc.msg.segment import Segment
 from pymc.msg.xta_segment import XtaSegment
+from pymc.aux.trace import Trace
 
 
 class SendHeartbeatTask(ConnectionTimerTask):
@@ -12,7 +13,7 @@ class SendHeartbeatTask(ConnectionTimerTask):
     def data_has_been_published(self):
         self._connection_is_sending = True
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         if connection.is_time_to_die:
             super().cancel()
             return

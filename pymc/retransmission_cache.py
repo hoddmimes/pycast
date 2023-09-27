@@ -8,7 +8,7 @@ from pymc.msg.net_msg_retransmission import NetMsgRetransmissionNAK
 from pymc.connection import ConnectionConfiguration
 from pymc.connection_timers import ConnectionTimerTask, ConnectionTimerExecutor
 from pymc.distributor_configuration import DistributorLogFlags
-
+from pymc.aux.trace import Trace
 
 class RetransQueItm(object):
     def __init__(self, segment: Segment, sequence_no: int):
@@ -33,7 +33,7 @@ class CleanRetransmissionQueueTask(ConnectionTimerTask):
     def __init__(self, connection_id: int):
         super().__init__(connection_id)
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         t_removed_elements: int = 0
         t_cache_threshold_time = Aux.current_seconds() - connection.configuration.retrans_cache_life_time_sec
         t_cache: RetransmissionCache = connection.connection_sender.retransmission_cache

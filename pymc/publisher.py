@@ -3,6 +3,7 @@ from typing import Callable
 from pymc.aux.aux import Aux
 from logging import Logger
 
+from pymc.aux.trace import Trace
 from pymc.aux.aux_uuid import Aux_UUID
 from pymc.aux.distributor_exception import DistributorException
 from pymc.aux.log_manager import LogManager
@@ -32,24 +33,29 @@ class Publisher(object):
         else:
             _data = bytes(data_bytes[:data_len])
 
-        _connection: 'Connection' = ConnectionController.get_instance().get_connection(self._connection_id)
+        trcctx: Trace = Trace(verbose=False)
+        _xta_update = XtaUpdate(subject, _data, trcctx )
 
+        _connection: 'Connection' = ConnectionController.get_instance().get_connection(self._connection_id)
+        trcctx.add("publish got Connection")
         if not _connection:
             raise DistributorException("Distributor connection is closed or no longer valid")
 
         with _connection:
+            trcctx.add("publish locked Connection")
             _connection.checkStatus()
-            _xta_update = XtaUpdate(subject, _data)
-            _xta_time = _connection.publishUpdate(_xta_update)
+            _xta_time_usec = _connection.publishUpdate(_xta_update)
+            trcctx.add("after publishedUpdate")
 
             if self._is_flood_regulated:
                 _wait_time: int = _connection.eval_outgoing_traffic_flow(_xta_update.size)
                 if _wait_time > 0:
                     if _connection.is_(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
-                        self.cLogger.info("outgoing flow regulated, wait: {} ms)  xta_time: {}".format(_wait_time, _xta_time))
+                        self.cLogger.info("outgoing flow regulated, wait: {} ms)  xta_time: {}".format(_wait_time, _xta_time_usec))
                     Aux.sleep_ms(_wait_time)
-
-        return _xta_time
+            trcctx.add("publish complete")
+        trcctx.dump()
+        return _xta_time_usec
 
     @property
     def get_id(self) -> int:

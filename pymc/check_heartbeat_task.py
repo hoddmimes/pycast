@@ -4,16 +4,17 @@ from pymc.client_controller import ClientDeliveryController
 from pymc.connection_timers import ConnectionTimerTask
 from pymc.distributor_events import DistributorRemoveRemoteConnectionEvent
 from pymc.distributor_configuration import DistributorLogFlags
-
+from pymc.aux.trace import Trace
 
 
 class CheckHeartbeatTask(ConnectionTimerTask):
-    def __init__(self, connection_id: int , remote_connection_id: int):
+    def __init__(self, connection_id: int, remote_connection_id: int):
         super().__init__(connection_id)
         self._remote_connection_id = remote_connection_id
 
-    def execute(self, connection: 'Connection'):
-        _remote_connection: 'RemoteConnection' = connection.connection_receiver.get_remote_connection_by_id(self._remote_connection_id)
+    def execute(self, connection: 'Connection', trace: Trace):
+        _remote_connection: 'RemoteConnection' = connection.connection_receiver.get_remote_connection_by_id(
+            self._remote_connection_id)
         if _remote_connection is None:
             self.cancel()
             return

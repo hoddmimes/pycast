@@ -1,4 +1,5 @@
 import random
+import time
 
 from pymc.msg.net_msg_update import NetMsgUpdate
 from pymc.msg.net_msg_heartbeat import NetMsgHeartbeat
@@ -18,7 +19,7 @@ from pymc.send_holdback_task import SenderHoldbackTimerTask
 from pymc.connection_timers import ConnectionTimerExecutor, ConnectionTimerTask
 from pymc.distributor_configuration import DistributorLogFlags
 from pymc.client_controller import ClientDeliveryController
-
+from pymc.aux.trace import Trace
 
 
 
@@ -34,7 +35,7 @@ class SendConfigurationTask(ConnectionTimerTask):
     def __init__(self, connection_id: int):
         super().__init__(connection_id)
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         if connection.is_time_to_die:
             self.cancel()
             return
@@ -196,7 +197,7 @@ class ConnectionSender(object):
                 flush_request_seqno == self._current_update.flush_seqno and
                 self._current_update.update_count > 0):
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
-                self._connection.log_info("Flushing holdback segment, sludh-seqno: {}".format(self._current_update.flush_seqno))
+                self._connection.log_info("Flushing holdback segment, flush-seqno: {}".format(self._current_update.flush_seqno))
             self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
     def eval_outgoing_traffic_flow(self, bytes_sent: int) -> int:
@@ -205,9 +206,9 @@ class ConnectionSender(object):
 
     def update_to_segment(self, xta_update: XtaUpdate) -> int:
         if xta_update.size > self._configuration.segment_size - NetMsgUpdate.MIN_UPDATE_HEADER_SIZE:
-            self.large_update_to_segments(xta_update)
+            _xta_time_usec = self.large_update_to_segments(xta_update)
         else:
-            self.small_update_to_segment(xta_update)
+            _xta_time_usec = self.small_update_to_segment(xta_update)
 
 
         if (self._configuration.send_holdback_delay_ms > 0 and
@@ -219,29 +220,36 @@ class ConnectionSender(object):
                     connection_id=self._connection.connection_id,
                     flush_seqno=self._last_update_flush_seqno)
                 ConnectionTimerExecutor.getInstance().queue(interval=self._configuration.send_holdback_delay_ms,
-                                                            task=_timerTask)
+                                                            task=_timerTask,
+                                                            repeat=False)
                 if self._connection.is_logging_enabled(DistributorLogFlags.LOG_TRAFFIC_FLOW_EVENTS):
                     self._connection.log_info(
                         "outgoing flow, queue new holdback flush timer seqno: {} holddback time: {} (ms)"
                         .format(self._last_update_flush_seqno, self._configuration.send_holdback_delay_ms))
-            return 0
+            return _xta_time_usec
         # send message
-        return self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
+        _xta_time_usec = self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
+        return _xta_time_usec
 
-    def small_update_to_segment(self, xta_update: XtaUpdate):
+    def small_update_to_segment(self, xta_update: XtaUpdate) -> int:
         if not self._current_update.addUpdate(xta_update):
             # send current segment and allocate a new empty one
-            self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
+            _xta_time_usec = self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
             if not self._current_update.addUpdate(xta_update):
                 raise DistributorException('Update did not fit into segment, {} bytes'.format(xta_update.size))
+        else:
+            _xta_time_usec = 0
 
-    def large_update_to_segments(self, xta_update: XtaUpdate):
+        return _xta_time_usec
+
+    def large_update_to_segments(self, xta_update: XtaUpdate) -> int:
         # If we have updates in the current segment, queue and get a new segment
-        self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
+        _xta_time_usec  = self.queue_current_update(Segment.FLAG_M_SEGMENT_START + Segment.FLAG_M_SEGMENT_END)
 
         _offset: int = 0
         _segment_count = 0
+
 
         self._current_update.addLargeUpdateHeader(xta_update.subject, xta_update.data_length)
 
@@ -249,12 +257,13 @@ class ConnectionSender(object):
             _offset += self._current_update.addLargeData(xta_update.data, _offset)
             self._current_update.update_count = 1
             if _segment_count == 0:
-                self.queue_current_update(Segment.FLAG_M_SEGMENT_START)
+                _xta_time_usec += self.queue_current_update(Segment.FLAG_M_SEGMENT_START)
             elif _offset == xta_update.data_length:
-                self.queue_current_update(Segment.FLAG_M_SEGMENT_END)
+                _xta_time_usec += self.queue_current_update(Segment.FLAG_M_SEGMENT_END)
             else:
-                self.queue_current_update(Segment.FLAG_M_SEGMENT_MORE)
+                _xta_time_usec += self.queue_current_update(Segment.FLAG_M_SEGMENT_MORE)
             _segment_count += 1
+        return _xta_time_usec
 
     def queue_current_update(self, segment_flags: int) -> int:
 
@@ -272,7 +281,7 @@ class ConnectionSender(object):
         self._current_update = self.get_new_current_update()
         return _send_delay
 
-    def send_segment(self, segment: Segment):
+    def send_segment(self, segment: Segment) -> int:
 
         _send_time_usec: int = 0
 

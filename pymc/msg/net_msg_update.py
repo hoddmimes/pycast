@@ -166,6 +166,7 @@ class NetMsgUpdate(NetMsg):
         return _size  # return size of bytes read from this segment
 
     def __str__(self) -> str:
-        sb = StringIO(super().__str__())
+        sb = StringIO()
+        sb.write(super().__str__())
         sb.write('\n    <updseqno: {} updcnt: {}>'.format(self._sequence_no, self._update_count))
         return sb.getvalue()

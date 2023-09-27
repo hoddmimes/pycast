@@ -11,6 +11,7 @@ from pymc.distributor_events import DistributorNaggingErrorEvent, DistributorRet
 from pymc.msg.net_msg_retransmission import NetMsgRetransmissionRqst, NetMsgRetransmissionNAK
 from pymc.msg.segment import Segment
 from pymc.msg.xta_segment import XtaSegment
+from pymc.aux.trace import Trace
 
 '''
     This class will monitor itself as a subscriber i.e. it will monitor number of retransmissions 
@@ -44,7 +45,7 @@ class NaggingMonitorTask(ConnectionTimerTask):
     generating outgoing retransmission requests.
     '''
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         try:
             # check if we have generated any new retransmission requests lately, if not reset
             if self._interval_count > self._last_interval_count:
@@ -128,7 +129,7 @@ class RetransmissionRequestItem(ConnectionTimerTask):
         if seqno == self._low_seqno:
             self._low_seqno += 1
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         if connection.is_time_to_die:
             self.cancel()
             return

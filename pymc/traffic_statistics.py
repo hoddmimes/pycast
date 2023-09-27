@@ -1,4 +1,5 @@
 from pymc.aux.aux import Aux
+from pymc.aux.trace import Trace
 from pymc.aux.atomic import AtomicLong
 from pymc.connection_timers import ConnectionTimerTask
 import pymc.msg.generated.net_messages as netmsg
@@ -321,7 +322,7 @@ class TrafficStatisticTimerTask(ConnectionTimerTask,
             self.rcv_updates_5_min.update(_update_count)
             self.rcv_total_user_updates.increment(_update_count)
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         _current_time = Aux.current_milliseconds()
         _tim_diff = _current_time - self.last_timestamp
         self.last_timestamp = _current_time

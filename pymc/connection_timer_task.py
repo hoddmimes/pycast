@@ -12,7 +12,7 @@ class ConnectionTimerTask(ABC):
         self._canceled = True
 
     @abstractmethod
-    def execute(self, connection):
+    def execute(self, connection, trace_context):
         pass
 
     @property

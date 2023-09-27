@@ -1,11 +1,12 @@
 from __future__ import annotations
-
+from pymc.aux.trace import Trace
 
 class XtaUpdate(object):
 
-    def __init__(self, subject: str, data: bytes):
+    def __init__(self, subject: str, data: bytes, trace_context: Trace = None):
         self._subject: str = subject
         self._data: bytes = data
+        self._trace_cntx = trace_context
 
 
 
@@ -32,6 +33,10 @@ class XtaUpdate(object):
     @property
     def data(self) -> bytes:
         return self._data
+
+    @property
+    def trace_context(self) -> Trace:
+        return self._trace_cntx
 
     @classmethod
     def cast(cls, obj: object) -> XtaUpdate:

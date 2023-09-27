@@ -6,6 +6,7 @@ import threading
 
 from pymc.connection_timers import ConnectionTimerTask, ConnectionTimerExecutor
 from pymc.aux.aux import Aux
+from pymc.aux.trace import Trace
 
 '''
 # The TrafficFlow Task is monitoring and regulator the traffic flow i.e. update/sec
@@ -33,7 +34,7 @@ class TrafficFlowTask(ConnectionTimerTask):
         self._last_relative_time_factor: float = 1.0
         self._max_bandwith_within_interval: int = int((max_bandwidth_kbit_sec * 1024) / self._interval_factor)
 
-    def execute(self, connection: 'Connection'):
+    def execute(self, connection: 'Connection', trace: Trace):
         with self._mutex:
             _real_time_ms: float = (perf_counter() - self._last_recalc_timestamp) * 1000.0
             self._last_relative_time_factor = _real_time_ms / float(self._recalc_interval_ms)

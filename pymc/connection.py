@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from time import perf_counter
 from typing import Callable
 
@@ -10,6 +11,7 @@ from pymc.aux.aux_uuid import Aux_UUID
 from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.distributor_exception import DistributorException
 from pymc.aux.log_manager import LogManager
+from pymc.aux.trace import Trace
 from pymc.client_controller import ClientDeliveryController
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.connection_receiver import ConnectionReceiver
@@ -225,9 +227,9 @@ class Connection(object):
                 raise DistributorException("Connection in error state, not in a trustworthy state")
 
     def send(self, segment: Segment) -> int:
-        _start_time = perf_counter()
+        _start_time = time.perf_counter_ns()
         self._ipmc.send(segment.encoder.buffer)
-        return int((perf_counter() - _start_time) * 1000000)  # return usec
+        return int((time.perf_counter_ns() - _start_time) / 1000)  # return usec
 
     def getConfiguration(self):
         return self._configuration
@@ -272,19 +274,26 @@ class Connection(object):
         while self._state == Connection.STATE_RUNNING or self._state == Connection.STATE_INIT:
             _async_event: AsyncEvent = AsyncEvent.cast(self._async_event_queue.take())
 
+            trcctx: Trace = Trace()
             with self._mutex:
+                trcctx.add("[connwrk {} got lock".format(_async_event.__class__.__name__))
                 if not self._state == Connection.STATE_RUNNING:
                     self._async_event_queue.clear()
                     return
 
                 # Execute Async Event
-                _async_event.execute(self)
+                _async_event.execute(self, trcctx)
+                trcctx.add("[connwrk {} execution completed".format(_async_event.__class__.__name__))
 
                 if not self._async_event_queue.is_empty():
                     _event_list: list = self._async_event_queue.drain(60)
                     for _async_event in _event_list:
                         if self._state == Connection.STATE_RUNNING:
-                            _async_event.execute(self)
+                            trcctx.add("[connwrk-drain {} starting execution".format(_async_event.__class__.__name__))
+                            _async_event.execute(self, trcctx)
+                            trcctx.add("[connwrk-drain {} execution completed".format(_async_event.__class__.__name__))
+            trcctx.dump()
+
 
     def log_info(self, msg):
         self._logger.info(msg)
