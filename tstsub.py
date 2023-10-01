@@ -73,6 +73,8 @@ def main():
     global params
     params = parse_arguments()
     distributor_configuration: DistributorConfiguration = DistributorConfiguration(application_name='test')
+    distributor_configuration.web_interface = False
+
     distributor_configuration.log_flags = (DistributorLogFlags.LOG_DEFAULT_FLAGS +
                                            # DistributorLogFlags.LOG_DATA_PROTOCOL_XTA +
                                            # + DistributorLogFlags.LOG_DATA_PROTOCOL_RCV +

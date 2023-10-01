@@ -11,7 +11,7 @@ from pymc.aux.aux import Aux
 from pymc.aux.blocking_queue import BlockingQueue
 from pymc.aux.linked_list import ListItr, LinkedList
 from pymc.msg.net_msg_retransmission import NetMsgRetransmissionRqst
-from pymc.msg.segment import Segment
+import re
 
 
 class AddEvent(object):
@@ -70,21 +70,9 @@ class TestClass(Thread):
 
 
 def main():
-    filename: str = "/home/bertilsson/source/pycast/pymc/aux/trace.py"
-    componets = filename.split('/')
-    print(componets[-1])
-
-    interations: int = 250000
-    tstcls = TestClass(interations)
-    tstcls.start()
-    _start = time.perf_counter_ns()
-    for x in range(interations):
-        with tstcls:
-            tstcls.incremen(AddEvent(1))
-
-    tstcls.wait_for_all()
-    _exec_time = (time.perf_counter_ns() - _start) / 1000.0
-    print("overhead {} usec".format(_exec_time / tstcls.counter))
+   x = 42
+   f = 12.123456789
+   print("int: {} float: {} end".format( str(x).rjust(7,' '), str(round(f,1)).rjust(8,' ')))
 
 
 if __name__ == '__main__':

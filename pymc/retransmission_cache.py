@@ -76,12 +76,21 @@ class RetransmissionCache(object):
         self._sender: 'ConnectionSender' = sender
         self._is_dead: bool = False
         self._queue: LinkedList = LinkedList()
+        self._local_address = 0
         self._cache_size: int = 0
         self._clean_cache_task = CleanRetransmissionQueueTask(self._connection.connection_id)
         _interval_ms: int = self._connection.configuration.retrans_cache_clean_interval_sec * 1000
         ConnectionTimerExecutor.getInstance().queue(interval=_interval_ms,
                                                     task=self._clean_cache_task,
                                                     repeat=True)
+
+
+    @property
+    def local_address(self) -> int:
+        if self._local_address == 0:
+            from pymc.distributor import Distributor
+            self._local_address = Distributor.get_instance().local_address
+        return self._local_address
 
     @property
     def queue_size(self) -> int:
@@ -94,6 +103,7 @@ class RetransmissionCache(object):
     @property
     def peakLast(self) -> RetransQueItm:
         return RetransQueItm.cast(self._queue.peekLast())
+
 
     def close(self):
         self._clean_cache_task.cancel()
@@ -127,15 +137,18 @@ class RetransmissionCache(object):
         return pNAKSeqNumbers
 
     def send_retransmission_nak(self, nak_seqno:list[int]):
+        from pymc.distributor import Distributor
         tNAKMsg = NetMsgRetransmissionNAK(XtaSegment(self._configuration.small_segment_size))
         tNAKMsg.setHeader(message_type=Segment.MSG_TYPE_RETRANSMISSION_NAK,
                           segment_flags=Segment.FLAG_M_SEGMENT_END + Segment.FLAG_M_SEGMENT_START,
-                          local_address=self._sender.mLocalAddress,
-                          sender_id=self._sender.mSenderId,
+                          local_address=self._sender.local_address,
+                          sender_id=self._sender.sender_id,
                           sender_start_time_sec=self._sender.sender_start_time,
-                          app_id=self._sender._connection.mDistributor.getAppId())
+                          app_id=Distributor.get_instance().app_id)
 
-        tNAKMsg.set(mc_addr=self._sender.mMca.mInetAddress, mc_port=self._sender.mMca.mPort, sender_id=self._sender.mSenderId)
+        tNAKMsg.set(mc_addr=self._sender.connection.mc_address,
+                    mc_port=self._sender.connection.mc_port,
+                    sender_id=self._sender.sender_id)
         tNAKMsg.setNakSeqNo(nak_seqno)
         tNAKMsg.encode()
         self._sender.send_segment(tNAKMsg._segment)
@@ -146,6 +159,7 @@ class RetransmissionCache(object):
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
                 self._connection.log_info("RETRANSMISSION: XTA RE-SENDING Segment [{}] resent-count: {}".
                                           format(tQueItm.seqno, tQueItm.resent_count))
+
             self._sender.send_segment(tQueItm.segment)
             tQueItm.in_progress = False
 

@@ -43,10 +43,20 @@ class CounterElement(object):
     def calculate(self, time_diff):
         if time_diff > 0:
             with self._lock:
-                self._value_sec = (self._curr_value_sec * 1000)  # time_diff
+                self._value_sec = int((self._curr_value_sec * 1000) / time_diff)  # time_diff
                 if self._value_sec > self._max_value_sec:
                     self._max_value_sec = self._value_sec
                     self._max_value_sec_time = Aux.current_milliseconds()
+                self._curr_value_sec = 0
+    @property
+    def to_web_table(self) -> list[str]:
+        _attr: list[str] = []
+        _attr.append( str(self._attribute_name).ljust(20,' '))
+        _attr.append("total: {}".format(str(self._total).rjust(7,' ').replace(' ','&nbsp')))
+        _attr.append("current/sec: {}".format(str(self._value_sec).rjust(5, ' ').replace(' ','&nbsp')))
+        _attr.append("max/sec {}".format(str(self._max_value_sec).rjust(6, ' ').replace(' ','&nbsp')))
+        _attr.append("peak time: {}".format(str(Aux.time_string(self._max_value_sec_time))))
+        return _attr
 
     def __str__(self) -> str:
         _tim_str = Aux.time_string(self._max_value_sec_time)

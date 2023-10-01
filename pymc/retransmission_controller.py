@@ -93,10 +93,6 @@ class RetransmissionRequestItem(ConnectionTimerTask):
                       remote_sender_id=remote_connection.remote_sender_id,
                       remote_sender_start_time_ms=remote_connection.remote_start_time)
 
-        connection.retransmission_statistics.update_out_statistics(mc_address=connection.mc_address,
-                                                                   mc_port=connection.mc_port,
-                                                                   host_address=remote_connection.remote_host_address)
-
         _rqst_msg.encode()
         connection.connection_sender.send_segment(_rqst_msg._segment)
 

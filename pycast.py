@@ -50,21 +50,30 @@ def create_data( size: int) -> bytes:
 
 def main():
     distributor_configuration: DistributorConfiguration = DistributorConfiguration(application_name='test')
-    distributor_configuration.log_flags += (DistributorLogFlags.LOG_DATA_PROTOCOL_XTA + DistributorLogFlags.LOG_DATA_PROTOCOL_RCV)
+    distributor_configuration.log_flags = DistributorLogFlags.LOG_DEFAULT_FLAGS # (DistributorLogFlags.LOG_DATA_PROTOCOL_XTA + DistributorLogFlags.LOG_DATA_PROTOCOL_RCV)
 
+    ''' Create a Distributor instance'''
     distributor: Distributor = Distributor(configuration=distributor_configuration)
+    ''' Create a connect instance i.e transport channel '''
     connection: Connection = distributor.create_connection(ConnectionConfiguration(mca='224.10.11.12', mca_port=5656))
 
+    ''' Create a publisher instance on the just created connection '''
     publisher: Publisher = distributor.create_publisher(connection=connection, event_callback=publisher_event_callback)
+
+    ''' Create a publisher on the just created connection '''
     subscriber: Subscriber = distributor.create_subscriber(connection=connection,
                                                            event_callback=subscriber_event_callback,
                                                            update_callback=subscriber_update_callback)
 
-    subscriber.add_subscription(subject='/...', callback_parameter='frotz_parameter')
+    ''' Setup subscription for some topics'''
+    global test_subjects
+    for subj in test_subjects:
+        subscriber.add_subscription(subject=subj, callback_parameter='frotz_parameter')
 
     # Start publisher logic
 
 
+    ''' Start to publish data '''
     while (True):
         _sleep_time = random.randrange(20, 2000)
         _subject_index = random.randrange(0, len(test_subjects))

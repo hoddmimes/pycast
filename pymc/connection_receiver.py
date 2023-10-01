@@ -7,7 +7,7 @@ from pymc.connection_configuration import ConnectionConfiguration
 from pymc.client_controller import ClientDeliveryController
 from pymc.msg.rcv_update import RcvUpdate
 from pymc.distributor_configuration import DistributorLogFlags
-from pymc.msg.rcv_segment import RcvSegmentBatch
+from pymc.msg.rcv_segment import RcvSegmentBatch, RcvSegment
 from pymc.msg.segment import Segment
 from pymc.msg.net_msg import NetMsg
 from pymc.msg.net_msg_configuration import NetMsgConfiguration
@@ -26,6 +26,8 @@ from pymc.ipmc_receiver_thread import IpmcReceiverThread
 class ConnectionReceiver(object):
 
     def __init__(self, connection: 'Connection'):
+        self._mc_address = connection.mc_address
+        self._mc_port = connection.mc_port
         self._connection: 'Connection' = connection
         self._start_time = Aux.current_seconds()
         self._configuration: ConnectionConfiguration = connection.configuration
@@ -78,9 +80,15 @@ class ConnectionReceiver(object):
             _msg.decode()
             self._connection.log_info("PROTOCOL [RCV] [HEARTBEAT] {}".format(_msg))
 
-    def process_update_msg(self, segment: Segment):
+    def process_update_msg(self, segment: RcvSegment):
         _msg = NetMsgUpdate(segment)
         _msg.decode()
+
+        if segment.hdr_msg_type == Segment.MSG_TYPE_RETRANSMISSION:
+            from pymc.distributor import Distributor
+            Distributor.get_instance().retransmission_statistics.update_out_statistics( mc_address=self._mc_address,
+                                                                                        mc_port=self._mc_port,
+                                                                                        host_address=segment.hdr_local_address)
 
         if self._configuration.fake_rcv_error_rate > 0 and random_error(self._configuration.fake_rcv_error_rate):
             if self._connection.is_logging_enabled(DistributorLogFlags.LOG_RETRANSMISSION_EVENTS):
@@ -102,15 +110,21 @@ class ConnectionReceiver(object):
             _msg.decode()
             self._connection.log_info("PROTOCOL [RCV] [RETRANS-NAK] {}".format(_msg))
 
-    def process_retransmission_rqst(self, segment: Segment):
+    def process_retransmission_rqst(self, segment: RcvSegment):
         _msg = NetMsgRetransmissionRqst(segment)
         _msg.decode()
+
+        from pymc.distributor import Distributor
+        Distributor.get_instance().retransmission_statistics.update_in_statistics(mc_address=self._mc_address,
+                                                                                  mc_port=self._mc_port,
+                                                                                  host_address=segment.hdr_local_address)
+
         self._connection.connection_sender.retransmit(_msg)
         if self._connection.is_logging_enabled(DistributorLogFlags.LOG_DATA_PROTOCOL_RCV):
             _msg.decode()
             self._connection.log_info("PROTOCOL [RCV] [RETRANS_RQST] {}".format(_msg))
 
-    def process_received_segment(self, segment: Segment):
+    def process_received_segment(self, segment: RcvSegment):
         if segment.hdr_version != NetMsg.VERSION:
             if not self.check_version(segment):
                 return
@@ -140,11 +154,13 @@ class ConnectionReceiver(object):
         ClientDeliveryController.get_instance().queue_updates(self._connection.connection_id, _updates)
 
     def get_remote_connection_by_id(self, remote_connection_id: int) -> 'RemoteConnection':
-        return self._remote_connection_controller.get_remote_connection_by_id(remote_connection_id);
+        return self._remote_connection_controller.get_remote_connection_by_id(remote_connection_id)
 
     def remove_remote_connection(self, remote_connection: 'RemoteConnection'):
-        self._remote_connection_controller.remove_remote_connection(remote_connection);
+        self._remote_connection_controller.remove_remote_connection(remote_connection)
 
+    def get_remote_connections(self) ->list['RemoteConnections']:
+        return self._remote_connection_controller.get_remote_connections()
 
 def random_error(promille: int) -> bool:
     x: int = random.randrange(0, 1000)

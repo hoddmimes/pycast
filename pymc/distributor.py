@@ -12,6 +12,11 @@ from pymc.distributor_configuration import DistributorConfiguration
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.connection_controller import ConnectionController
 from pymc.aux.trace import Trace
+from pymc.retransmission_statistics import RetransmissionStatistics
+from pymc.web_interface import WebServer
+
+
+
 
 
 class Distributor(object):
@@ -42,10 +47,13 @@ class Distributor(object):
         self._logger.info("==== Distributor [{}] Started at {} ID {} local address: {} ====".
                           format(self.configuration.app_name, self._start_time_string, hex(self._id),
                                  self._local_address_string))
+        self._retransmission_statistics: RetransmissionStatistics = RetransmissionStatistics(self._local_address)
         if Distributor._instance is None:
             Distributor._instance = self
         else:
             raise DistributorException("Distributor instance is already instantiated")
+        if configuration.web_interface:
+            self.web = WebServer( configuration.web_port)
 
     @staticmethod
     def get_instance() -> Distributor:
@@ -68,6 +76,9 @@ class Distributor(object):
         with connection:
             return connection.create_subscriber( event_callback=event_callback, update_callback=update_callback)
 
+    @property
+    def retransmission_statistics(self) -> RetransmissionStatistics:
+        return self._retransmission_statistics
 
     @property
     def distributor_id(self) -> int:

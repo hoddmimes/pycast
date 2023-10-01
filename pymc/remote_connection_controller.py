@@ -42,6 +42,11 @@ class RemoteConnectionController(object):
                 return _rmt_conn
         return None
 
+    def get_remote_connections(self) -> list[RemoteConnection]:
+        _connetions = []
+        for _rmt_conn in self._remote_connections.values():
+            _connetions.append(_rmt_conn)
+        return _connetions
 
     def process_configuration_message(self, segment: Segment):
         _remote_connection = self._remote_connections.get(segment.__hash__())

@@ -12,8 +12,8 @@ class NetMsgRetransmissionRqst(NetMsg):
     def __init__(self, segment):
         super().__init__(segment)
         self._app_name: str = ''
-        self._host_name: str = ''
-        self._requestor_addr: int = 0
+        self._requestor_host_name: str = ''
+        self._requestor_host_addr: int = 0
         self._low_seqno: int = 0
         self._high_seqno: int = 0
         self._sender_id: int = 0
@@ -22,17 +22,17 @@ class NetMsgRetransmissionRqst(NetMsg):
     def set(self, requestor_addr: int, low_seqno: int, high_seqno: int, host_name: str, appl_name: str,
             remote_sender_id: int, remote_sender_start_time_ms: int):
 
-        self._requestor_addr = requestor_addr
+        self._requestor_host_addr = requestor_addr
         self._low_seqno = low_seqno
         self._high_seqno = high_seqno
-        self._host_name = host_name
+        self._requestor_host_name = host_name
         self._app_name = appl_name
         self._sender_id = remote_sender_id
         self._sender_start_time_ms = remote_sender_start_time_ms
 
     @property
-    def requestor_addr(self) -> int:
-        return self._requestor_addr
+    def requestor_host_addr(self) -> int:
+        return self._requestor_host_addr
 
     @property
     def low_sequence_no(self) -> int:
@@ -43,8 +43,8 @@ class NetMsgRetransmissionRqst(NetMsg):
         return self._high_seqno
 
     @property
-    def host_name(self) -> str:
-        return self._host_name
+    def requestor_host_name(self) -> str:
+        return self._requestor_host_name
     @property
     def app_name(self) -> str:
         return self._app_name
@@ -59,23 +59,23 @@ class NetMsgRetransmissionRqst(NetMsg):
     def encode(self):
         super().encode()
         _encoder = super().encoder
-        _encoder.addInt(self._requestor_addr)
+        _encoder.addInt(self._requestor_host_addr)
         _encoder.addInt(self._sender_id)
         _encoder.addLong(self._sender_start_time_ms)
         _encoder.addInt(self._low_seqno)
         _encoder.addInt(self._high_seqno)
-        _encoder.addString(self._host_name)
+        _encoder.addString(self._requestor_host_name)
         _encoder.addString(self._app_name)
 
     def decode(self):
         super().decode()
         _decoder = super().decoder
-        self._requestor_addr = _decoder.getInt()
+        self._requestor_host_addr = _decoder.getInt()
         self._sender_id = _decoder.getInt()
         self._sender_start_time_ms = _decoder.getLong()
         self._low_seqno = _decoder.getInt()
         self._high_seqno = _decoder.getInt()
-        self._host_name = _decoder.getString()
+        self._requestor_host_name = _decoder.getString()
         self._app_name = _decoder.getString()
 
 
@@ -84,7 +84,7 @@ class NetMsgRetransmissionRqst(NetMsg):
         sb = StringIO()
         sb.write(super().__str__())
         sb.write("\n    <")
-        sb.write("Rqstr addr: " + Aux.ip_addr_int_to_str(self.requestor_addr))
+        sb.write("Rqstr addr: " + Aux.ip_addr_int_to_str(self.requestor_host_addr))
         sb.write(" Rqstr appl name: " + self.app_name)
         sb.write(" SndrId: " + hex(self.sender_id))
         sb.write(" StartTime: " + Aux.time_string(self.sender_start_time))

@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 from time import perf_counter
-from typing import Callable
+from typing import Callable, Any
 
 from pymc.aux.aux import Aux
 from pymc.aux.aux_uuid import Aux_UUID
@@ -26,7 +26,7 @@ from pymc.msg.segment import Segment
 from pymc.msg.xta_update import XtaUpdate
 from pymc.remote_connection import RemoteConnection
 from pymc.retransmission_controller import RetransmissionController
-from pymc.retransmission_statistics import RetransmissionStatistics
+from pymc.retransmission_statistics import NodeEntryIn, NodeEntryOut
 from pymc.subscription import SubscriptionFilter
 from pymc.traffic_statistics import TrafficStatisticTimerTask, DistributorPublisherStatisticsIf, \
     DistributorSubscriberStatisticsIf
@@ -52,10 +52,9 @@ class Connection(object):
         self._subscription_filter = SubscriptionFilter()
         ClientDeliveryController.get_instance().add_subscription_filter(self._connection_id, self._subscription_filter)
         self._retransmission_controller = RetransmissionController(self)
-        self._retransmission_statistics = RetransmissionStatistics();
         self._ipmc: IPMC = IPMC(configuration.eth_device, configuration.ttl, configuration.ipBufferSize)
         self._ipmc.open(configuration.mca, configuration.mca_port)
-        self._working_thread = threading.Thread(target=self.connectionWorker, name="connection-working")
+        self._working_thread = threading.Thread(target=self.connection_worker, name="connection-working")
         self._working_thread.start()
         self._connection_sender = ConnectionSender(self)
         self._connection_receiver = ConnectionReceiver(self)
@@ -127,6 +126,10 @@ class Connection(object):
         return self._subscribers
 
     @property
+    def remote_connections(self) -> list['RemoteConnection']:
+        return self.connection_receiver.get_remote_connections()
+
+    @property
     def publishers(self) -> list['Publisher']:
         return self._publishers
 
@@ -152,8 +155,8 @@ class Connection(object):
         return Distributor.get_instance().local_address
 
     @property
-    def retransmission_statistics(self):
-        return self._retransmission_statistics
+    def get_active_subscriptions_count(self) -> int:
+        return self._subscription_filter.getActiveSubscriptionsCount()
 
     def create_subscriber(self,
                           event_callback: Callable[[DistributorEvent], None],
@@ -237,12 +240,6 @@ class Connection(object):
     def get_remote_connection(self, remote_connection_id: int) -> RemoteConnection:
         return self._connection_receiver.get_remote_connection_by_id(remote_connection_id)
 
-    def update_in_retransmission_statistics(self, mc_addr: int,
-                                            mc_port: int,
-                                            msg: NetMsgRetransmissionRqst,
-                                            to_this_node: bool):
-        self._retransmission_statistics.update_in_statistics(mc_addr, mc_port, msg.hdr_local_address, to_this_node)
-
     def async_event_to_client(self, event: DistributorEvent):
         ClientDeliveryController.get_instance().queue_event(connection_id=self.connection_id, event=event)
 
@@ -270,7 +267,7 @@ class Connection(object):
         _cfgmsg.encode()
         self.connection_sender.send_segment(_cfgmsg.segment)
 
-    def connectionWorker(self):
+    def connection_worker(self):
         while self._state == Connection.STATE_RUNNING or self._state == Connection.STATE_INIT:
             _async_event: AsyncEvent = AsyncEvent.cast(self._async_event_queue.take())
 
@@ -294,6 +291,63 @@ class Connection(object):
                             trcctx.add("[connwrk-drain {} execution completed".format(_async_event.__class__.__name__))
             trcctx.dump()
 
+    def get_web_connection_attributes(self) -> list[str]:
+        from pymc.distributor import Distributor
+
+        _in_node_entry: NodeEntryIn = Distributor.get_instance().retransmission_statistics.get_in_entry(self.mc_address,
+                                                                                                        self.mc_port,
+                                                                                                        self.local_address)
+        _out_node_entry: NodeEntryOut = Distributor.get_instance().retransmission_statistics.get_out_entry(
+            self.mc_address, self.mc_port, self.local_address)
+
+        _attr_arr = []
+        _attr_arr.append(Aux.ip_addr_int_to_str(self.mc_address))
+        _attr_arr.append(str(self.mc_port))
+        _attr_arr.append(str(Aux.time_string(self.start_time)))
+        _attr_arr.append(str(len(self.publishers)))
+        _attr_arr.append(str(len(self.subscribers)))
+        _attr_arr.append(str(len(self.remote_connections)))
+        _attr_arr.append(str(self._traffic_statistic_task.getTotalXtaUpdates()))
+        _attr_arr.append(str(self._traffic_statistic_task.getTotalRcvUpdates()))
+
+        _attr_arr.append(str(_out_node_entry.retrans_sent_by_this_node))
+        _attr_arr.append(str(_in_node_entry.retrans_to_this_node))
+        return _attr_arr
+
+    def get_web_subscription_count_attributes(self) -> list[str]:
+        _attr: list[str] = [Aux.ip_addr_int_to_str(self.mc_address), str(self.mc_port)]
+        _attr.append(str(self._subscription_filter.getActiveSubscriptionsCount()))
+        return _attr
+
+    def get_web_subscription_subjects(self, address_data: bool) -> list[list]:
+        subjects: list[str] = self._subscription_filter.getActiveSubscriptionsStrings()
+        subscriptions: list[list[str]] = []
+        _mc_addr_str = Aux.ip_addr_int_to_str(self.mc_address)
+        _mc_port_str = str(self.mc_port)
+
+        for subj in subjects:
+            if address_data:
+                subscriptions.append([_mc_addr_str, _mc_port_str, subj])
+            else:
+                subscriptions.append([subj])
+
+        return subscriptions
+
+    def get_web_remote_connections_attributes(self) -> list[list]:
+        _rmt_connections: list[RemoteConnection] = self.connection_receiver.get_remote_connections()
+
+        _web_rmt_connections: list[list] = []
+        for _rmt_conn in _rmt_connections:
+            _attr_arr = []
+            _attr_arr.append(Aux.ip_addr_int_to_str(self.mc_address))
+            _attr_arr.append(str(self.mc_port))
+
+            _attr_arr.append(Aux.time_string(_rmt_conn.remote_start_time))
+            _attr_arr.append(_rmt_conn.remote_host_address_string)
+            _attr_arr.append(str(_rmt_conn.highiest_seen_seqno))
+            _web_rmt_connections.append(_attr_arr)
+
+        return _web_rmt_connections
 
     def log_info(self, msg):
         self._logger.info(msg)

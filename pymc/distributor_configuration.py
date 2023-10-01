@@ -24,3 +24,5 @@ class DistributorConfiguration(object):
         self.log_to_file = True
         self.log_file = 'Distributor.log'
         self.eth_device = None
+        self.web_interface = True
+        self.web_port = 8888

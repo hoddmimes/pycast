@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from pymc.aux.aux import Aux
 from pymc.aux.distributor_exception import DistributorException
 from pymc.connection_configuration import ConnectionConfiguration
 import threading
@@ -23,6 +23,10 @@ class ConnectionController(object):
         self._mutex: threading.RLock = threading.RLock()
         self._connections: dict[int, 'Connection'] = {}
 
+
+    @property
+    def connections(self) -> int:
+        return len(self._connections)
 
     def get_connection(self, connection_id: int) -> 'Connection':
         with self._mutex:
@@ -59,3 +63,61 @@ class ConnectionController(object):
                 return False
             _conn.queueAsyncEvent(async_event)
             return True
+
+    def web_get_all_subscription(self) -> list[list]:
+        _conn_subscr_list : list[list] = []
+        with self._mutex:
+            for _conn in self._connections.values():
+                with _conn:
+                    _conn_subscr_list.append(_conn.get_web_subscription_subjects(address_data=True))
+        return _conn_subscr_list
+
+
+    def web_get_connection_subscriptions(self, mc_addr_str: str, mc_port_str: str) -> list[str]:
+        _conn = self.find_connection( Aux.ip_addr_str_to_int(mc_addr_str), int(mc_port_str))
+        return _conn.get_web_subscription_subjects(address_data=False)
+
+
+    def web_get_subscription_count(self) -> list[str]:
+        _active_subscriptions: int = 0
+        from pymc.connection import Connection
+        with self._mutex:
+            for _conn in self._connections.values():
+                with _conn:
+                    _active_subscriptions += _conn.get_active_subscriptions_count
+        _lst = ['active subscriptions', str(_active_subscriptions)]
+        return _lst
+
+    def get_web_connection_attributes(self) -> list[list]:
+        _conn_list = []
+        from pymc.connection import Connection
+        with self._mutex:
+            for _conn in self._connections.values():
+                with _conn:
+                    _conn_list.append(_conn.get_web_connection_attributes())
+        return _conn_list
+
+    def get_web_remote_connection_attributes(self) -> list[list]:
+        _conn_list = []
+        from pymc.connection import Connection
+        with self._mutex:
+            for _conn in self._connections.values():
+                with _conn:
+                    _rmt_conn_arr = _conn.get_web_remote_connections_attributes()
+                    for _rmt_conn_attr_arr in _rmt_conn_arr:
+                        _conn_list.append(_rmt_conn_attr_arr)
+        return _conn_list
+
+    def find_connection(self, mc_addr: int, mc_port: int) -> 'Connection' | None:
+        with self._mutex:
+            for _conn in self._connections.values():
+                if _conn.mc_address == mc_addr and _conn.mc_port == mc_port:
+                    return _conn
+        return None
+
+    def get_web_connection_statistics_attributes(self, mc_addr: int, mc_port: int) -> 'TrafficStatisticTimerTask':
+        _conn = self.find_connection(mc_addr, mc_port)
+        if _conn is None:
+            return "Oppps no such connection with mc-address {} and mc-port {}".format(Aux.ip_addr_int_to_str(mc_addr), mc_port)
+        else:
+            return _conn.get_traffic_statistics()

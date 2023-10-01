@@ -166,10 +166,10 @@ class KeyNode:
                 self.wildcard_rest_child.subscriptionsToString(outbuf, prefix + "/" + self.key)
 
 
-    def getActiveSubscriptionsStrings(self, vector:[], prefix:str ):
+    def getActiveSubscriptionsStrings(self, vector: list[str], prefix:str ):
         if self.subscriptions:
             for s in self.subscriptions:
-                vector.queue("References: {} Topic: {}/{}".format(len(self.subscriptions), prefix, self.key))
+                vector.append("References: {} Topic: {}/{}".format(len(self.subscriptions), prefix, self.key))
 
         if self.key == 'ROOT':
             if self.children:
@@ -314,8 +314,9 @@ class SubscriptionFilter:
         self.mRoot = KeyNode("ROOT")
         self.mSubscriptionMap: dict[object, KeyNode] = dict()
 
-    def getActiveSubscriptions(self) -> int:
+    def getActiveSubscriptionsCount(self) -> int:
         return self.mRoot.countActiveSubscriptions()
+
 
     def add(self, subjectName: str,  callback: Callable[[str, bytes, object, int, int], None],  callbackParameter: object) -> object:
         tKeys: SubjectTokenParser =  SubjectTokenParser(subjectName)
@@ -336,9 +337,10 @@ class SubscriptionFilter:
         tKeys:SubjectTokenParser = SubjectTokenParser(subjectName)
         return self.mRoot.matchAny(tKeys)
 
-    def getActiveSubscriptionsStrings(self) ->[str]:
-        tVector:[str] = []
-        return self.mRoot.getActiveSubscriptionsStrings(tVector, "")
+    def getActiveSubscriptionsStrings(self) ->list[str]:
+        _list: list[str] = []
+        self.mRoot.getActiveSubscriptionsStrings(_list, "")
+        return _list
 
     def toString(self) -> str:
         tOutbuf = io.StringIO()

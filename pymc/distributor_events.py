@@ -189,11 +189,11 @@ class AsyncEventFlushSender(AsyncEvent, ABC):
 class AsyncEventReceiveSegment(AsyncEvent, ABC):
     def __init__(self, rcv_segment: RcvSegment):
         super().__init__()
-        self.mRcvSegment = rcv_segment
+        self.rcv_segment = rcv_segment
 
     def execute(self, connection: 'Connection', trace: Trace):
-        connection.traffic_statistic_task.update_rcv_statistics(self.mRcvSegment)
-        connection.connection_receiver.process_received_segment(self.mRcvSegment)
+        connection.traffic_statistic_task.update_rcv_statistics(self.rcv_segment)
+        connection.connection_receiver.process_received_segment(self.rcv_segment)
 
     def toString(self) -> str:
-        return self.mRcvSegment.__str__()
+        return self.rcv_segment.__str__()

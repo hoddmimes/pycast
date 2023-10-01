@@ -12,6 +12,7 @@ from pymc.aux.aux import Aux
 from pymc.distributor_events import DistributorCommunicationErrorEvent
 from pymc.aux.aux_uuid import Aux_UUID
 from pymc.retransmission_cache import RetransmissionCache
+from pymc.retransmission_statistics import RetransmissionStatistics
 from pymc.traffic_flow_task import TrafficFlowTask
 from pymc.connection_configuration import ConnectionConfiguration
 from pymc.aux.distributor_exception import DistributorException
@@ -161,17 +162,7 @@ class ConnectionSender(object):
         return self._connection
 
     def retransmit(self, msg: NetMsgRetransmissionRqst):
-        if msg.sender_start_time == self.sender_start_time and msg.sender_id == self.sender_id:
-            self._connection.update_in_retransmission_statistics(mc_addr=self._connection.mc_address,
-                                                                 mc_port=self._connection.mc_port,
-                                                                 msg=msg,
-                                                                 to_this_node=True)
             self._retransmission_cache.retransmit(msg.low_sequence_no, msg.high_sequence_no)
-        else:
-            self._connection.update_in_retransmission_statistics(mc_addr=self._connection.mc_address,
-                                                                 mc_port=self._connection.mc_port,
-                                                                 msg=msg,
-                                                                 to_this_node=False)
 
     def get_new_current_update(self) -> NetMsgUpdate:
         # should always be None when calling this method
