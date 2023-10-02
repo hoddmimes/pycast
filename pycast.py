@@ -82,8 +82,6 @@ def main():
 
         Aux.sleep_ms(_sleep_time)
 
-    while True:
-        sleep(5)
 
 if __name__ == '__main__':
     main()
