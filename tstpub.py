@@ -96,7 +96,7 @@ def main():
 
     connection_configuration: ConnectionConfiguration = ConnectionConfiguration(mca='224.10.11.12', mca_port=5656)
     connection_configuration.send_holdback_delay_ms = 20 # if the rate exceeds send_holdback_threshold  per send_holdback_calc_interval_ms
-    connection_configuration.fake_xta_error_rate = 30 # randomly simulate 30 error per 1000 messages
+    connection_configuration.fake_xta_error_rate = 0 # randomly simulate 'n'' error per 1000 messages
 
     connection: Connection = distributor.create_connection(connection_configuration)
 
